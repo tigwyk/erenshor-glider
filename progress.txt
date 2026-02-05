@@ -16,6 +16,10 @@
 - Position tracking: Plugin.PositionTracker.CurrentPosition for cached position
 - Vitals tracking: Plugin.PositionTracker.CurrentVitals for cached vitals
 - CharacterStats has: CurrentHP, MaxHP, CurrentMP, MaxMP, Level, CurrentXP, XPToLevel
+- Combat state tracking: Plugin.PositionTracker.CurrentCombatState for cached combat state
+- PlayerCombat.InCombat for combat state, CastSpell.Casting for casting state, Character.Dead for alive/dead
+- GameData.PlayerCombat for player combat controller
+- GameData.PlayerControl.PlayerSpells for player spell casting component
 
 ---
 
@@ -117,4 +121,28 @@
   - Use separate locks for position vs vitals to allow concurrent access
   - readonly struct pattern works well for immutable game state snapshots
   - Percentage helpers (e.g., IsHealthBelowPercent) useful for combat/rest decision thresholds
+---
+
+## 2026-02-05 - US-005
+- What was implemented:
+  - Created CombatState struct with InCombat, IsCasting, IsAlive properties
+  - Added helper properties: IsDead, CanAct, IsIdle for decision-making convenience
+  - Extended GameStubs with PlayerCombat and CastSpell classes
+  - Added Character.Dead field to track alive/dead state
+  - Added GameData.PlayerCombat static field
+  - Added PlayerControl.PlayerSpells for CastSpell component access
+  - Added GetCombatState(), GetCachedCombatState(), UpdateCombatState() to GameStateReader
+  - Added OnCombatStateChanged event for reactive updates
+  - Extended PositionTracker to track combat state at 10Hz alongside position and vitals
+- Files changed:
+  - src/ErenshorGlider/GameState/CombatState.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - GameData.PlayerCombat.InCombat tracks whether player is in combat mode (auto-attack enabled)
+  - CastSpell.Casting tracks whether player is currently casting a spell
+  - Character.Dead tracks death state - use !Dead for IsAlive
+  - PositionTracker now tracks position, vitals, and combat state - serves as central state tracker
+  - CombatState helper properties (CanAct, IsIdle) useful for state machine decisions
 ---

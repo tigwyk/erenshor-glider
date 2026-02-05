@@ -76,8 +76,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses PlayerCombat.InCombat for combat state, CastSpell.Casting for casting, Character.Dead for alive/dead. PositionTracker tracks combat state at 10Hz alongside position and vitals."
     },
     {
       "id": "US-006",
