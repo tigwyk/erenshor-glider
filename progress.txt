@@ -413,3 +413,27 @@
   - LastModified timestamp helps users identify recently updated paths
   - LevelRange and Zone metadata useful for filtering paths by character level/location
 ---
+## 2026-02-05 - US-017
+- What was implemented:
+  - Created WaypointRecorder class for recording player paths
+  - StartRecording(pathName) begins recording, StopRecording() returns WaypointPath
+  - StopAndSave() stops and saves to file via WaypointFileManager
+  - Update() method checks time/distance thresholds before capturing waypoints
+  - MinDistanceBetweenWaypoints (default 5 units) prevents dense waypoint clusters
+  - MinTimeBetweenRecords (default 1 second) prevents rapid-fire recording
+  - RecordCurrentPosition() with optional waypoint type and name parameters
+  - RecordVendor(), RecordRepair(), RecordNode() convenience methods
+  - CancelRecording() discards current recording without saving
+  - OnWaypointRecorded, OnRecordingStarted, OnRecordingStopped events
+  - DefaultWaypointType property sets type for automatic recordings
+- Files changed:
+  - src/ErenshorGlider/Waypoints/WaypointRecorder.cs (created)
+- **Learnings for future iterations:**
+  - Time and distance thresholds prevent excessive waypoint density
+  - Update() should be called regularly (e.g., every frame or at fixed interval) for accurate recording
+  - Starting position is automatically recorded when StartRecording is called
+  - Final position is automatically recorded when StopRecording is called
+  - Event-based design allows UI to show recording status and waypoint count
+  - Recorded path name auto-generates with timestamp if not provided
+  - Manual recording (RecordCurrentPosition) bypasses thresholds for precise placement
+---

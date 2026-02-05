@@ -249,8 +249,8 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "WaypointRecorder class with StartRecording, StopRecording, StopAndSave methods. Update() captures waypoints based on MinDistanceBetweenWaypoints and MinTimeBetweenRecords. RecordVendor, RecordRepair, RecordNode shortcuts."
     },
     {
       "id": "US-018",
