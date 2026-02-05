@@ -18,6 +18,10 @@ public class GameStateReader
     private DateTime _lastVitalsUpdate;
     private readonly object _vitalsLock = new();
 
+    private CombatState _lastCombatState;
+    private DateTime _lastCombatStateUpdate;
+    private readonly object _combatStateLock = new();
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
@@ -27,6 +31,11 @@ public class GameStateReader
     /// Event raised when player vitals change.
     /// </summary>
     public event Action<PlayerVitals>? OnVitalsChanged;
+
+    /// <summary>
+    /// Event raised when combat state changes.
+    /// </summary>
+    public event Action<CombatState>? OnCombatStateChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -219,6 +228,119 @@ public class GameStateReader
                old.Level != newVitals.Level ||
                Math.Abs(old.CurrentXP - newVitals.CurrentXP) > epsilon ||
                Math.Abs(old.XPToLevel - newVitals.XPToLevel) > epsilon;
+    }
+
+    #endregion
+
+    #region Combat State Reading
+
+    /// <summary>
+    /// Gets the player's current combat state (in combat, casting, alive/dead).
+    /// Returns null if player is not loaded.
+    /// </summary>
+    public CombatState? GetCombatState()
+    {
+        try
+        {
+            var playerControl = GameData.PlayerControl;
+            if (playerControl == null)
+                return null;
+
+            var character = playerControl.Myself;
+            if (character == null)
+                return null;
+
+            // Read combat state from PlayerCombat component
+            var playerCombat = GameData.PlayerCombat;
+            bool inCombat = playerCombat?.InCombat ?? false;
+
+            // Read casting state from CastSpell component
+            var playerSpells = playerControl.PlayerSpells;
+            bool isCasting = playerSpells?.Casting ?? false;
+
+            // Read alive/dead state from Character
+            bool isAlive = !character.Dead;
+
+            var combatState = new CombatState(inCombat, isCasting, isAlive);
+
+            lock (_combatStateLock)
+            {
+                _lastCombatState = combatState;
+                _lastCombatStateUpdate = DateTime.UtcNow;
+            }
+
+            return combatState;
+        }
+        catch (Exception)
+        {
+            // Game state not available
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the player's cached combat state (from last update).
+    /// Useful for checking combat state without polling the game.
+    /// </summary>
+    public CombatState? GetCachedCombatState()
+    {
+        lock (_combatStateLock)
+        {
+            if (_lastCombatStateUpdate == default)
+                return null;
+
+            return _lastCombatState;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since combat state was last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastCombatStateUpdate
+    {
+        get
+        {
+            lock (_combatStateLock)
+            {
+                if (_lastCombatStateUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastCombatStateUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the combat state cache and raises events if state changed.
+    /// This should be called at the desired update rate (e.g., 10Hz or higher).
+    /// </summary>
+    /// <returns>True if combat state was updated successfully, false if game state unavailable.</returns>
+    public bool UpdateCombatState()
+    {
+        var newCombatState = GetCombatState();
+        if (newCombatState == null)
+            return false;
+
+        // Check if combat state actually changed
+        CombatState? oldCombatState;
+        lock (_combatStateLock)
+        {
+            oldCombatState = _lastCombatStateUpdate != default ? _lastCombatState : (CombatState?)null;
+        }
+
+        if (oldCombatState == null || HasCombatStateChanged(oldCombatState.Value, newCombatState.Value))
+        {
+            OnCombatStateChanged?.Invoke(newCombatState.Value);
+        }
+
+        return true;
+    }
+
+    private static bool HasCombatStateChanged(CombatState old, CombatState newState)
+    {
+        return old.InCombat != newState.InCombat ||
+               old.IsCasting != newState.IsCasting ||
+               old.IsAlive != newState.IsAlive;
     }
 
     #endregion

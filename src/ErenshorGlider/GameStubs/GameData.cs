@@ -24,6 +24,11 @@ public static class GameData
     /// The player control component (contains transform for position).
     /// </summary>
     public static PlayerControl PlayerControl;
+
+    /// <summary>
+    /// The player combat controller.
+    /// </summary>
+    public static PlayerCombat PlayerCombat;
 }
 
 /// <summary>
@@ -40,6 +45,11 @@ public class PlayerControl : MonoBehaviour
     /// The currently targeted Character.
     /// </summary>
     public Character CurrentTarget;
+
+    /// <summary>
+    /// The player's spell casting component.
+    /// </summary>
+    public CastSpell PlayerSpells;
 }
 
 /// <summary>
@@ -56,6 +66,55 @@ public class Character : MonoBehaviour
     /// The character's faction.
     /// </summary>
     public Faction MyFaction;
+
+    /// <summary>
+    /// Whether the character is dead.
+    /// </summary>
+    public bool Dead;
+}
+
+/// <summary>
+/// Stub for Erenshor's PlayerCombat class.
+/// Handles player combat state and auto-attack.
+/// </summary>
+public class PlayerCombat : MonoBehaviour
+{
+    /// <summary>
+    /// Whether the player is currently in combat mode (auto-attack enabled).
+    /// </summary>
+    public bool InCombat;
+
+    /// <summary>
+    /// Toggles auto-attack on/off.
+    /// </summary>
+    public void ToggleAttack() { }
+
+    /// <summary>
+    /// Forces auto-attack on.
+    /// </summary>
+    public void ForceAttackOn() { }
+}
+
+/// <summary>
+/// Stub for Erenshor's CastSpell component.
+/// Handles spell casting for characters.
+/// </summary>
+public class CastSpell : MonoBehaviour
+{
+    /// <summary>
+    /// Whether this character is currently casting a spell.
+    /// </summary>
+    public bool Casting;
+
+    /// <summary>
+    /// The parent Character reference.
+    /// </summary>
+    public Character MyChar;
+
+    /// <summary>
+    /// Whether this is the player's CastSpell component.
+    /// </summary>
+    public bool isPlayer;
 }
 
 /// <summary>
