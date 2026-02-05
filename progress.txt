@@ -437,3 +437,27 @@
   - Recorded path name auto-generates with timestamp if not provided
   - Manual recording (RecordCurrentPosition) bypasses thresholds for precise placement
 ---
+## 2026-02-05 - US-018
+- What was implemented:
+  - Created WaypointPlayer class for following waypoint paths
+  - PlayPath(name) loads from file, PlayPath(WaypointPath) for direct playback
+  - FindNearestWaypoint() starts from closest waypoint when playback begins
+  - Update() method handles navigation between waypoints and stuck detection
+  - Supports Loop mode (return to start) and ReverseAtEnd mode (ping-pong)
+  - OverrideLoop property allows overriding path's loop setting
+  - Stop(), Pause(), Resume() methods for playback control
+  - JumpToWaypoint(index) jumps to specific waypoint
+  - SkipToNext(), SkipToPrevious() for manual waypoint navigation
+  - CurrentWaypoint and CurrentWaypointIndex properties for state tracking
+  - OnWaypointReached, OnPathCompleted, OnPlaybackStarted events
+- Files changed:
+  - src/ErenshorGlider/Waypoints/WaypointPlayer.cs (created)
+- **Learnings for future iterations:**
+  - FindNearestWaypoint prevents backtracking when starting mid-path
+  - Update() should be called every frame/tick for smooth navigation
+  - Waypoint delay (Delay property) not yet implemented - TODO: add delay waiting
+  - ReverseAtEnd creates a "ping-pong" pattern (forward then backward)
+  - CheckAndAttemptUnstick called during playback prevents getting stuck on geometry
+  - OnWaypointReached event allows special handling for vendor/repair waypoints
+  - CurrentWaypoint handles reversed index calculation internally
+---

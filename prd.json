@@ -264,8 +264,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "WaypointPlayer class with PlayPath(name/file), Stop, Pause, Resume. Update() handles navigation and waypoint transitions. OverrideLoop, JumpToWaypoint, SkipToNext/Previous methods. Supports Loop and ReverseAtEnd path modes."
     },
     {
       "id": "US-019",
