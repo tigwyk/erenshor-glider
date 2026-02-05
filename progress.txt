@@ -345,3 +345,26 @@
   - OnDestinationReached event allows chaining navigation with other actions
 ---
 
+## 2026-02-05 - US-014
+- What was implemented:
+  - Added stuck detection to Navigation class
+  - Added CheckAndAttemptUnstick() method for periodic stuck checking
+  - Added StuckDetectionThreshold property (default 2 seconds) for time-based detection
+  - Added MaxUnstuckAttempts property (default 3) for retry limit
+  - Added MovementProgressThreshold (default 0.5 units) for minimum movement
+  - Added AttemptUnstick() with progressive strategies: jump, strafe, backup+jump, turn+jump
+  - Added ResetStuckDetection() to clear stuck state when starting new navigation
+  - Added IsStuck property to read current stuck state
+  - Added UnstuckAttempts property to track retry count
+  - OnMovementStuck event fires when max attempts reached
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+- **Learnings for future iterations:**
+  - Stuck detection tracks position over time, not just instantaneous state
+  - MovementProgressThreshold prevents false positives from tiny position adjustments
+  - Progressive unstuck strategies escalate from simple (jump) to complex (turn+jump)
+  - Randomized strafe direction (left/right) prevents predictable unstuck patterns
+  - ResetStuckDetection should be called when starting new navigation to clear previous state
+  - OnMovementStuck event allows higher-level systems to handle persistent stuck situations
+  - CheckAndAttemptUnstick returns true during unstuck attempts, allowing pause of navigation
+---

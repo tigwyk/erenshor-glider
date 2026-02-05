@@ -205,8 +205,8 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CheckAndAttemptUnstick() monitors position changes. Unstuck strategies: jump, strafe, backup+jump, turn+jump. StuckDetectionThreshold, MaxUnstuckAttempts, MovementProgressThreshold properties."
     },
     {
       "id": "US-015",

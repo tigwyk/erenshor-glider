@@ -25,6 +25,42 @@ public class Navigation
     public bool UsePathing { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets the stuck detection threshold in seconds.
+    /// If position hasn't changed after this duration, the bot is considered stuck.
+    /// </summary>
+    public float StuckDetectionThreshold { get; set; } = 2f;
+
+    /// <summary>
+    /// Gets or sets the maximum number of unstuck attempts.
+    /// </summary>
+    public int MaxUnstuckAttempts { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the minimum distance threshold to consider movement as progress.
+    /// </summary>
+    public float MovementProgressThreshold { get; set; } = 0.5f;
+
+    /// <summary>
+    /// Gets the current stuck state.
+    /// </summary>
+    public bool IsStuck { get; private set; }
+
+    /// <summary>
+    /// Gets the number of unstuck attempts made.
+    /// </summary>
+    public int UnstuckAttempts { get; private set; }
+
+    /// <summary>
+    /// Gets the last recorded position for stuck detection.
+    /// </summary>
+    private PlayerPosition? _lastStuckCheckPosition;
+
+    /// <summary>
+    /// Gets the time of the last stuck check.
+    /// </summary>
+    private DateTime _lastStuckCheckTime = DateTime.UtcNow;
+
+    /// <summary>
     /// Creates a new Navigation instance.
     /// </summary>
     public Navigation(InputController inputController, PositionTracker positionTracker)
@@ -69,6 +105,116 @@ public class Navigation
     public bool MoveTo(float x, float y, float z)
     {
         return MoveTo(new PlayerPosition(x, y, z));
+    }
+
+    /// <summary>
+    /// Checks if the bot is stuck and attempts to unstuck.
+    /// Should be called periodically during navigation.
+    /// </summary>
+    /// <returns>True if stuck and attempting to recover, false if not stuck.</returns>
+    public bool CheckAndAttemptUnstick()
+    {
+        var currentPosition = _positionTracker.CurrentPosition;
+        if (currentPosition == null)
+            return false;
+
+        // Check if enough time has passed for a stuck check
+        var timeSinceLastCheck = DateTime.UtcNow - _lastStuckCheckTime;
+        if (timeSinceLastCheck.TotalSeconds < StuckDetectionThreshold)
+            return IsStuck;
+
+        // Update check time and position
+        _lastStuckCheckTime = DateTime.UtcNow;
+
+        // Check if we've made progress
+        if (_lastStuckCheckPosition.HasValue)
+        {
+            float distanceMoved = CalculateDistance(_lastStuckCheckPosition.Value, currentPosition.Value);
+
+            if (distanceMoved < MovementProgressThreshold)
+            {
+                // No significant movement - we might be stuck
+                if (!IsStuck)
+                {
+                    // First detection of being stuck
+                    IsStuck = true;
+                    UnstuckAttempts = 0;
+                }
+
+                // Attempt to unstuck
+                return AttemptUnstick();
+            }
+            else
+            {
+                // We're making progress
+                if (IsStuck)
+                {
+                    // Successfully unstuck
+                    IsStuck = false;
+                    UnstuckAttempts = 0;
+                }
+            }
+        }
+
+        // Update last position for next check
+        _lastStuckCheckPosition = currentPosition.Value;
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to unstuck the bot using various strategies.
+    /// </summary>
+    /// <returns>True if attempting to unstuck, false if max attempts reached.</returns>
+    private bool AttemptUnstick()
+    {
+        if (UnstuckAttempts >= MaxUnstuckAttempts)
+        {
+            // Max attempts reached - report stuck state
+            OnMovementStuck?.Invoke();
+            return false;
+        }
+
+        UnstuckAttempts++;
+
+        // Try different unstuck strategies based on attempt number
+        switch (UnstuckAttempts)
+        {
+            case 1:
+                // First attempt: jump
+                _inputController.Jump();
+                break;
+            case 2:
+                // Second attempt: strafe in random direction
+                if (_random.Next(2) == 0)
+                    _inputController.StrafeLeft(0.5f);
+                else
+                    _inputController.StrafeRight(0.5f);
+                break;
+            case 3:
+                // Third attempt: back up
+                _inputController.MoveBackward(0.5f);
+                _inputController.Jump();
+                break;
+            default:
+                // Last resort: turn around
+                _inputController.TurnRight(0.3f);
+                _inputController.Jump();
+                break;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Resets the stuck detection state.
+    /// Call this when starting a new navigation task.
+    /// </summary>
+    public void ResetStuckDetection()
+    {
+        IsStuck = false;
+        UnstuckAttempts = 0;
+        _lastStuckCheckPosition = null;
+        _lastStuckCheckTime = DateTime.UtcNow;
     }
 
     /// <summary>
