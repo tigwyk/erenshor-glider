@@ -219,8 +219,8 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "FaceTarget() and FaceEntity() methods turn player toward target. CalculateAngleToTarget uses atan2 on X-Z plane. FacingTolerance property (default 10 degrees) controls when to stop turning."
     },
     {
       "id": "US-016",

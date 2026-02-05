@@ -368,3 +368,24 @@
   - OnMovementStuck event allows higher-level systems to handle persistent stuck situations
   - CheckAndAttemptUnstick returns true during unstuck attempts, allowing pause of navigation
 ---
+## 2026-02-05 - US-015
+- What was implemented:
+  - Added FaceTarget(PlayerPosition) method to turn player toward position
+  - Added FaceEntity(EntityInfo) overload to face entities
+  - Added IsFacing() method to check if already facing target within tolerance
+  - Added StopTurning() method to release turn keys
+  - Added FacingTolerance property (default 10 degrees) for angle threshold
+  - CalculateAngleToTarget uses atan2 on X-Z plane for horizontal facing
+  - NormalizeAngleDelta keeps angle difference in [-180, 180] range
+  - GetPlayerRotation stub added - TODO: implement with actual game rotation reading
+  - FaceTarget returns true if turning started, false if already within tolerance
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+- **Learnings for future iterations:**
+  - Facing uses X-Z plane (horizontal) as Y is typically vertical/up
+  - Angle normalization ensures correct turn direction (shortest path)
+  - FacingTolerance prevents overshooting and oscillation when facing target
+  - GetPlayerRotation needs actual implementation from transform.rotation
+  - StopTurning should be called before new turn operations to prevent key stuck states
+  - IsFacing useful for state machine checks before proceeding with actions requiring facing
+---

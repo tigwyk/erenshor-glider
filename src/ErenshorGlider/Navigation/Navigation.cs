@@ -217,6 +217,114 @@ public class Navigation
         _lastStuckCheckTime = DateTime.UtcNow;
     }
 
+    #region Facing
+
+    /// <summary>
+    /// Gets or sets the facing tolerance in degrees.
+    /// The bot will stop turning when within this angle of the target direction.
+    /// </summary>
+    public float FacingTolerance { get; set; } = 10f;
+
+    /// <summary>
+    /// Faces the specified target position.
+    /// </summary>
+    /// <param name="targetPosition">The position to face.</param>
+    /// <returns>True if turning started, false if already facing within tolerance.</returns>
+    public bool FaceTarget(in PlayerPosition targetPosition)
+    {
+        var currentPosition = _positionTracker.CurrentPosition;
+        if (currentPosition == null)
+            return false;
+
+        float currentRotation = GetPlayerRotation();
+        float targetAngle = CalculateAngleToTarget(currentPosition.Value, targetPosition);
+        float angleDifference = NormalizeAngleDelta(targetAngle - currentRotation);
+
+        if (Math.Abs(angleDifference) <= FacingTolerance)
+        {
+            // Already facing within tolerance
+            StopTurning();
+            return false;
+        }
+
+        // Turn in the appropriate direction
+        if (angleDifference > 0)
+            _inputController.TurnRight();
+        else
+            _inputController.TurnLeft();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Faces a specific entity.
+    /// </summary>
+    /// <param name="entityInfo">The entity to face.</param>
+    /// <returns>True if turning started, false if already facing within tolerance.</returns>
+    public bool FaceEntity(in GameState.EntityInfo entityInfo)
+    {
+        return FaceTarget(entityInfo.Position);
+    }
+
+    /// <summary>
+    /// Checks if currently facing the target within tolerance.
+    /// </summary>
+    public bool IsFacing(in PlayerPosition targetPosition)
+    {
+        var currentPosition = _positionTracker.CurrentPosition;
+        if (currentPosition == null)
+            return false;
+
+        float currentRotation = GetPlayerRotation();
+        float targetAngle = CalculateAngleToTarget(currentPosition.Value, targetPosition);
+        float angleDifference = NormalizeAngleDelta(targetAngle - currentRotation);
+
+        return Math.Abs(angleDifference) <= FacingTolerance;
+    }
+
+    /// <summary>
+    /// Stops all turning input.
+    /// </summary>
+    public void StopTurning()
+    {
+        _inputController.ReleaseKey(KeyCode.LeftArrow);
+        _inputController.ReleaseKey(KeyCode.RightArrow);
+    }
+
+    /// <summary>
+    /// Calculates the angle to the target position in degrees.
+    /// </summary>
+    private static float CalculateAngleToTarget(in PlayerPosition from, in PlayerPosition to)
+    {
+        float dx = to.X - from.X;
+        float dz = to.Z - from.Z;
+        return (float)Math.Atan2(dz, dx) * (180f / (float)Math.PI);
+    }
+
+    /// <summary>
+    /// Normalizes an angle difference to the range [-180, 180].
+    /// </summary>
+    private static float NormalizeAngleDelta(float angle)
+    {
+        while (angle > 180f) angle -= 360f;
+        while (angle < -180f) angle += 360f;
+        return angle;
+    }
+
+    /// <summary>
+    /// Gets the player's current rotation in degrees.
+    /// This is a stub - actual implementation would read from the game.
+    /// </summary>
+    private float GetPlayerRotation()
+    {
+        // In Erenshor, this would be read from the player transform's rotation
+        // For now, return 0 as a placeholder
+        // TODO: Implement using GameData.PlayerControl.transform.rotation
+        return 0f;
+    }
+
+    #endregion
+
     /// <summary>
     /// Checks if the current destination has been reached.
     /// </summary>
