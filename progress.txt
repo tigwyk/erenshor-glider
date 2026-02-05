@@ -23,6 +23,15 @@
 - Target tracking: Plugin.PositionTracker.CurrentTargetInfo for cached target info
 - Character.CharacterName for target/character display names
 - Character.MyFaction for hostility (Faction enum: Player, Enemy, Neutral, Friendly)
+- PositionTracker serves as central state tracker for all game state (position, vitals, combat, target, entities, inventory, buffs)
+- readonly struct pattern for immutable game state snapshots (PlayerPosition, PlayerVitals, CombatState, TargetInfo, EntityInfo, ItemInfo, BuffInfo)
+- Event-based architecture for reactive updates (OnPositionChanged, OnVitalsChanged, etc.)
+- Input/ contains InputController for simulated keyboard inputs
+- Navigation/ contains Navigation class for coordinate-based movement
+- Waypoints/ contains Waypoint, WaypointPath, WaypointRecorder, WaypointPlayer for path management
+- Combat/ contains Ability, Condition, RotationEntry, CombatProfile, TargetSelector, RotationExecutor
+- JSON serialization uses System.Text.Json with camelCase naming for files
+- profiles/ and waypoints/ directories for user-editable data files
 
 ---
 
