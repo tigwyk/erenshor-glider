@@ -488,3 +488,21 @@
   - Validate catches missing abilities referenced by rotation entries
   - CombatProfileFileManager mirrors WaypointFileManager pattern for consistency
 ---
+## 2026-02-05 - US-020
+- What was implemented:
+  - US-020 was completed as part of US-019 (Combat profile data model)
+  - CombatProfileFileManager.LoadProfile(name) loads profile by name
+  - LoadFromFile(filePath) loads from specific path
+  - LoadAllProfiles() loads all profiles from directory
+  - GetProfileFiles() returns list of profile JSON files
+  - Validate() checks profile structure and references
+  - Uses ./profiles/ directory by default
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatProfile.cs (created in US-019)
+- **Learnings for future iterations:**
+  - Loader functionality is integral to data model - implemented together
+  - Validate catches missing abilities and empty rotations
+  - Directory created automatically if doesn't exist
+  - Error handling allows partial loading (continues on bad files)
+  - Profiles stored with camelCase JSON naming for readability
+---
