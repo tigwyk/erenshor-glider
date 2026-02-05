@@ -143,6 +143,122 @@ public class InputController
         ReleaseKey(KeyCode.RightArrow);
     }
 
+    #region Targeting
+
+    /// <summary>
+    /// Targets the nearest enemy (Tab key by default).
+    /// </summary>
+    public void TargetNearestEnemy()
+    {
+        PressKey(KeyCode.Tab);
+        System.Threading.Tasks.Task.Delay(50).ContinueWith(_ => ReleaseKey(KeyCode.Tab));
+    }
+
+    /// <summary>
+    /// Clears the current target (Escape key).
+    /// </summary>
+    public void ClearTarget()
+    {
+        PressKey(KeyCode.Escape);
+        System.Threading.Tasks.Task.Delay(50).ContinueWith(_ => ReleaseKey(KeyCode.Escape));
+    }
+
+    /// <summary>
+    /// Targets a specific entity by reference.
+    /// This uses game-specific targeting APIs rather than keyboard input.
+    /// </summary>
+    /// <param name="entityInfo">The entity to target.</param>
+    public void TargetEntity(in GameState.EntityInfo entityInfo)
+    {
+        // For direct entity targeting, we would need to:
+        // 1. Find the actual Character/NPC object matching the EntityInfo
+        // 2. Set GameData.PlayerControl.CurrentTarget to that object
+        // This requires reflection or Harmony patching since CurrentTarget may be private
+        // For now, this is a placeholder for the implementation
+        OnTargetEntityRequested?.Invoke(entityInfo);
+    }
+
+    /// <summary>
+    /// Targets a specific entity by its Unity instance ID.
+    /// </summary>
+    /// <param name="instanceId">The Unity instance ID of the entity.</param>
+    public void TargetEntityById(int instanceId)
+    {
+        OnTargetEntityByIdRequested?.Invoke(instanceId);
+    }
+
+    /// <summary>
+    /// Event raised when a specific entity targeting is requested.
+    /// </summary>
+    public event Action<GameState.EntityInfo>? OnTargetEntityRequested;
+
+    /// <summary>
+    /// Event raised when targeting by instance ID is requested.
+    /// </summary>
+    public event Action<int>? OnTargetEntityByIdRequested;
+
+    #endregion
+
+    #region Interaction
+
+    /// <summary>
+    /// Interacts with the current target (loot, talk, gather).
+    /// Typically the Enter key or F key in MMO-style games.
+    /// </summary>
+    public void Interact()
+    {
+        PressKey(KeyCode.Enter);
+        System.Threading.Tasks.Task.Delay(50).ContinueWith(_ => ReleaseKey(KeyCode.Enter));
+    }
+
+    /// <summary>
+    /// Interacts with a specific entity.
+    /// Combines targeting the entity and then interacting.
+    /// </summary>
+    /// <param name="entityInfo">The entity to interact with.</param>
+    public void InteractWith(in GameState.EntityInfo entityInfo)
+    {
+        TargetEntity(entityInfo);
+        // Small delay to allow target to register
+        System.Threading.Tasks.Task.Delay(100).ContinueWith(_ => Interact());
+    }
+
+    /// <summary>
+    /// Loots the current target's corpse.
+    /// </summary>
+    public void Loot()
+    {
+        // Same as interact for most games
+        Interact();
+    }
+
+    /// <summary>
+    /// Opens a conversation with an NPC.
+    /// </summary>
+    public void Talk()
+    {
+        Interact();
+    }
+
+    /// <summary>
+    /// Gathers a resource node.
+    /// </summary>
+    public void Gather()
+    {
+        Interact();
+    }
+
+    /// <summary>
+    /// Cancels the current interaction (ESC key).
+    /// </summary>
+    public void CancelInteraction()
+    {
+        PressKey(KeyCode.Escape);
+        System.Threading.Tasks.Task.Delay(50).ContinueWith(_ => ReleaseKey(KeyCode.Escape));
+    }
+
+    #endregion
+
     /// <summary>
     /// Presses a key down.
     /// </summary>

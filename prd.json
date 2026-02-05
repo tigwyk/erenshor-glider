@@ -162,8 +162,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added TargetNearestEnemy, ClearTarget, TargetEntity, TargetEntityById methods. Added Interact, InteractWith, Loot, Talk, Gather, CancelInteraction methods. Uses event-based approach for direct entity targeting."
     },
     {
       "id": "US-012",

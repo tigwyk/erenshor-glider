@@ -278,3 +278,23 @@
   - PressKey/ReleaseKey pattern allows for simultaneous key presses (e.g., W + D for diagonal movement)
   - For actual input injection, will need Harmony patch on Unity's Input class or Windows API SendInput
 ---
+
+## 2026-02-05 - US-011
+- What was implemented:
+  - Extended InputController with targeting methods: TargetNearestEnemy (Tab), ClearTarget (Esc)
+  - Added TargetEntity(in EntityInfo) for direct entity targeting via reference
+  - Added TargetEntityById(int instanceId) for targeting by Unity instance ID
+  - Added OnTargetEntityRequested and OnTargetEntityByIdRequested events for integration
+  - Added interaction methods: Interact, Loot, Talk, Gather (all use Enter key)
+  - Added InteractWith(in EntityInfo) for combined targeting + interaction
+  - Added CancelInteraction method (ESC key)
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (modified)
+- **Learnings for future iterations:**
+  - Targeting via Tab key is standard MMO pattern - cycles through nearby enemies
+  - Direct entity targeting requires setting GameData.PlayerControl.CurrentTarget - needs reflection or Harmony
+  - Event-based approach (OnTargetEntityRequested) allows external handlers to implement actual targeting logic
+  - Interaction (Enter) is typically the same key for loot, talk, and gather in Erenshor
+  - InteractWith combines targeting + interaction with 100ms delay for target registration
+  - CancelInteraction uses ESC which also clears target - context-dependent behavior
+---
