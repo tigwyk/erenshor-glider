@@ -1,7 +1,9 @@
 using System;
 using ErenshorGlider.Combat;
+using ErenshorGlider.Configuration;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Mapping;
+using ErenshorGlider.Navigation;
 using ErenshorGlider.Safety;
 using ErenshorGlider.Waypoints;
 
@@ -21,8 +23,12 @@ public class GrindingBot
     private readonly MapDiscoveryController _mapDiscoveryController;
     private readonly PositionTracker _positionTracker;
     private readonly SafetyController _safetyController;
+    private readonly AutoStopController _autoStopController;
 
-    private enum BotState
+    /// <summary>
+    /// Represents the current state of the grinding bot.
+    /// </summary>
+    public enum BotState
     {
         Idle,
         Pathing,
@@ -141,7 +147,8 @@ public class GrindingBot
         DeathController deathController,
         MapDiscoveryController mapDiscoveryController,
         PositionTracker positionTracker,
-        SafetyController safetyController)
+        SafetyController safetyController,
+        AutoStopController autoStopController)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
         _targetSelector = targetSelector ?? throw new ArgumentNullException(nameof(targetSelector));
@@ -152,6 +159,7 @@ public class GrindingBot
         _mapDiscoveryController = mapDiscoveryController ?? throw new ArgumentNullException(nameof(mapDiscoveryController));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
         _safetyController = safetyController ?? throw new ArgumentNullException(nameof(safetyController));
+        _autoStopController = autoStopController ?? throw new ArgumentNullException(nameof(autoStopController));
 
         // Wire up event handlers
         _combatController.OnCombatEnded += HandleCombatEnded;
@@ -163,6 +171,10 @@ public class GrindingBot
         _safetyController.OnEmergencyStopTriggered += HandleEmergencyStop;
         _safetyController.OnPaused += HandlePaused;
         _safetyController.OnResumed += HandleResumed;
+        _autoStopController.OnRuntimeLimitReached += HandleRuntimeLimitReached;
+        _autoStopController.OnStuckTimeLimitReached += HandleStuckTimeLimitReached;
+        _autoStopController.OnStuckStateChanged += HandleStuckStateChanged;
+        _waypointPlayer.OnMovementStuckChanged += HandleMovementStuckChanged;
     }
 
     /// <summary>
@@ -181,6 +193,9 @@ public class GrindingBot
         // Reset death controller state
         _deathController.Reset();
 
+        // Start auto-stop monitoring
+        _autoStopController.StartSession();
+
         // Start waypoint playback
         _waypointPlayer.Play();
 
@@ -197,6 +212,9 @@ public class GrindingBot
             return;
 
         IsRunning = false;
+
+        // Stop auto-stop monitoring
+        _autoStopController.StopSession();
 
         // Save map data before stopping
         _mapDiscoveryController.SaveToDisk();
@@ -245,6 +263,10 @@ public class GrindingBot
 
         // Check if paused - if so, skip all updates
         if (_safetyController.IsPaused)
+            return;
+
+        // Check auto-stop conditions (runtime, stuck time)
+        if (_autoStopController.CheckStopConditions())
             return;
 
         // Update map discovery (always active when enabled)
@@ -567,6 +589,64 @@ public class GrindingBot
             _safetyController.ResetEmergencyStop();
         }
     }
+
+    /// <summary>
+    /// Handles runtime limit reached event from AutoStopController.
+    /// </summary>
+    private void HandleRuntimeLimitReached()
+    {
+        Stop(StopReason.RuntimeLimitReached);
+    }
+
+    /// <summary>
+    /// Handles stuck time limit reached event from AutoStopController.
+    /// </summary>
+    private void HandleStuckTimeLimitReached()
+    {
+        Stop(StopReason.Stuck);
+    }
+
+    /// <summary>
+    /// Handles stuck state changed event from AutoStopController.
+    /// Logs stuck state changes and forwards the event.
+    /// </summary>
+    private void HandleStuckStateChanged(bool isStuck)
+    {
+        // Forward the event if anyone is listening
+        OnStuckStateChanged?.Invoke(isStuck);
+    }
+
+    /// <summary>
+    /// Handles movement stuck state changed event from WaypointPlayer.
+    /// Updates the AutoStopController with the new stuck state.
+    /// </summary>
+    private void HandleMovementStuckChanged(bool isStuck)
+    {
+        _autoStopController.SetStuckState(isStuck);
+    }
+
+    /// <summary>
+    /// Applies configuration from a BotConfig to the bot.
+    /// </summary>
+    /// <param name="config">The configuration to apply.</param>
+    public void ApplyConfig(BotConfig config)
+    {
+        if (config == null)
+            return;
+
+        // Apply session limits
+        MaxDeathCount = config.MaxDeathCount;
+        AutoLoot = config.AutoLoot;
+        AutoRest = true; // Auto rest is always enabled
+        AutoMapping = config.AutoMappingEnabled;
+        _autoStopController.MaxSessionRuntimeMinutes = config.MaxSessionRuntimeMinutes;
+        _autoStopController.MaxStuckTimeSeconds = config.MaxStuckTimeSeconds;
+    }
+
+    /// <summary>
+    /// Event raised when the stuck state changes.
+    /// </summary>
+    public event Action<bool>? OnStuckStateChanged;
 }
 
 /// <summary>

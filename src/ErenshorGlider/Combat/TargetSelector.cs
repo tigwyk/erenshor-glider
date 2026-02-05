@@ -17,13 +17,13 @@ public class TargetSelector
 
     /// <summary>
     /// Gets or sets the maximum level difference for targets.
-    /// Targets with level > player level + MaxLevelAbove are skipped.
+    /// Targets with level higher than player level + MaxLevelAbove are skipped.
     /// </summary>
     public int MaxLevelAbove { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the minimum level difference for targets.
-    /// Targets with level < player level - MaxLevelBelow are skipped.
+    /// Targets with level lower than player level - MaxLevelBelow are skipped.
     /// </summary>
     public int MaxLevelBelow { get; set; } = 10;
 

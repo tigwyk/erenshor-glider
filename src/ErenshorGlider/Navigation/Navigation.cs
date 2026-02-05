@@ -139,6 +139,7 @@ public class Navigation
                     // First detection of being stuck
                     IsStuck = true;
                     UnstuckAttempts = 0;
+                    OnStuckStateChanged?.Invoke(true);
                 }
 
                 // Attempt to unstuck
@@ -152,6 +153,7 @@ public class Navigation
                     // Successfully unstuck
                     IsStuck = false;
                     UnstuckAttempts = 0;
+                    OnStuckStateChanged?.Invoke(false);
                 }
             }
         }
@@ -473,6 +475,11 @@ public class Navigation
     /// Event raised when movement is stuck (no progress).
     /// </summary>
     public event Action? OnMovementStuck;
+
+    /// <summary>
+    /// Event raised when the stuck state changes.
+    /// </summary>
+    public event Action<bool>? OnStuckStateChanged;
 }
 
 /// <summary>

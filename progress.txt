@@ -866,3 +866,52 @@
   - TryParseKeyName handles both enum values and common aliases (ESC, ENTER, SPACE, TAB)
   - The UpdateHotkeys method pattern allows the caller to provide the key polling function (useful for different input systems)
 ---
+
+## 2026-02-05 - US-034
+- What was implemented:
+  - Created AutoStopController class for automatic stopping conditions
+  - Added max session runtime tracking (MaxSessionRuntimeMinutes from BotConfig)
+  - Added max stuck time tracking (MaxStuckTimeSeconds from BotConfig)
+  - Added session state tracking (IsSessionActive, CurrentSessionRuntime, TimeStuck)
+  - Added stuck state tracking (SetStuckState, IsStuck, OnStuckStateChanged event)
+  - Added CheckStopConditions() method that returns true if a stop condition is met
+  - Added GetRemainingRuntime() and GetRemainingStuckTime() helper methods
+  - Added OnRuntimeLimitReached and OnStuckTimeLimitReached events
+  - Integrated AutoStopController into GrindingBot constructor
+  - Added ApplyConfig(BotConfig) method to GrindingBot for configuration
+  - Added HandleRuntimeLimitReached and HandleStuckTimeLimitReached event handlers
+  - Added HandleMovementStuckChanged to forward WaypointPlayer stuck state to AutoStopController
+  - Added OnMovementStuckChanged event to WaypointPlayer
+  - Added OnStuckStateChanged event to Navigation for stuck state notifications
+  - Added System.Text.Json NuGet package for .NET Framework 4.7.2 support
+  - Fixed Navigation namespace/type conflict by using type alias (NavNavigation)
+  - Added Play() method to WaypointPlayer as alias for Resume()
+  - Made GrindingBot.BotState enum public for external access
+  - Added System.Collections.Generic and System.Linq using statements to several files
+- Files changed:
+  - src/ErenshorGlider/Safety/AutoStopController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+  - src/ErenshorGlider/Waypoints/WaypointPlayer.cs (modified)
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+  - src/ErenshorGlider/Combat/CombatController.cs (modified - type alias fix)
+  - src/ErenshorGlider/Combat/LootController.cs (modified - type alias fix)
+  - src/ErenshorGlider/Combat/RotationExecutor.cs (modified - using statement, CalculateDistance fix)
+  - src/ErenshorGlider/Combat/TargetSelector.cs (modified - XML comment fix)
+  - src/ErenshorGlider/GameState/BuffInfo.cs (modified - using statement)
+  - src/ErenshorGlider/Mapping/MapDiscoveryController.cs (modified - using statement)
+  - src/ErenshorGlider/Waypoints/Waypoint.cs (modified - using statement)
+  - src/ErenshorGlider/Waypoints/WaypointRecorder.cs (modified - using statement)
+  - src/ErenshorGlider/ErenshorGlider.csproj (modified - added System.Text.Json package)
+- **Learnings for future iterations:**
+  - AutoStopController provides centralized safety limit monitoring independent of game state
+  - Session runtime is tracked from StartSession() call, not from bot start, allowing for pause/resume
+  - Stuck state tracking relies on Navigation.OnStuckStateChanged event firing on state changes
+  - Navigation namespace conflicts with Navigation class - use type alias (NavNavigation) to avoid
+  - System.Text.Json requires explicit NuGet package for .NET Framework 4.7.2
+  - Using System.Text.Json.Serialization.JsonRequired attribute for required JSON properties
+  - GrindingBot constructor now requires AutoStopController dependency (use SafetyController when constructing)
+  - The codebase has pre-existing compilation issues (20 errors) that should be addressed separately
+  - AutoStopController.CheckStopConditions() should be called in GrindingBot.Update() before other updates
+  - MaxSessionRuntimeMinutes of 0 means no limit (infinite runtime)
+  - MaxStuckTimeSeconds of 0 means no limit (never stop due to stuck)
+---

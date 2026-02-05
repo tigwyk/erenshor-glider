@@ -2,6 +2,7 @@ using System;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
 using ErenshorGlider.Navigation;
+using NavNavigation = ErenshorGlider.Navigation.Navigation;
 
 namespace ErenshorGlider.Waypoints;
 
@@ -10,7 +11,7 @@ namespace ErenshorGlider.Waypoints;
 /// </summary>
 public class WaypointPlayer
 {
-    private readonly Navigation _navigation;
+    private readonly NavNavigation _navigation;
     private readonly PositionTracker _positionTracker;
     private WaypointPath? _currentPath;
     private int _currentWaypointIndex;
@@ -75,12 +76,29 @@ public class WaypointPlayer
     public event Action<WaypointPath>? OnPlaybackStarted;
 
     /// <summary>
+    /// Event raised when movement is stuck (no progress).
+    /// </summary>
+    public event Action<bool>? OnMovementStuckChanged;
+
+    /// <summary>
     /// Creates a new WaypointPlayer.
     /// </summary>
-    public WaypointPlayer(Navigation navigation, PositionTracker positionTracker)
+    public WaypointPlayer(NavNavigation navigation, PositionTracker positionTracker)
     {
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
+
+        // Subscribe to navigation stuck state changes
+        _navigation.OnStuckStateChanged += HandleNavigationStuckStateChanged;
+    }
+
+    /// <summary>
+    /// Handles navigation stuck state changed event.
+    /// </summary>
+    private void HandleNavigationStuckStateChanged(bool isStuck)
+    {
+        // Forward the stuck state change
+        OnMovementStuckChanged?.Invoke(isStuck);
     }
 
     /// <summary>
@@ -144,6 +162,14 @@ public class WaypointPlayer
     {
         if (_currentPath != null)
             _isPlaying = true;
+    }
+
+    /// <summary>
+    /// Starts or resumes playback. Alias for Resume().
+    /// </summary>
+    public void Play()
+    {
+        Resume();
     }
 
     /// <summary>
@@ -281,7 +307,7 @@ public class WaypointPlayer
 
         for (int i = 0; i < _currentPath.Waypoints.Count; i++)
         {
-            float distance = Navigation.CalculateDistance(
+            float distance = NavNavigation.CalculateDistance(
                 currentPosition.Value,
                 _currentPath.Waypoints[i].Position
             );

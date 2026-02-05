@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
+using ErenshorGlider.Navigation;
 
 namespace ErenshorGlider.Combat;
 
@@ -238,7 +239,7 @@ public class RotationExecutor
         if (currentPos == null)
             return float.MaxValue;
 
-        return Navigation.CalculateDistance(currentPos.Value, targetPosition);
+        return Navigation.Navigation.CalculateDistance(currentPos.Value, targetPosition);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
 using ErenshorGlider.Navigation;
+using NavNavigation = ErenshorGlider.Navigation.Navigation;
 
 namespace ErenshorGlider.Combat;
 
@@ -11,7 +12,7 @@ namespace ErenshorGlider.Combat;
 public class CombatController
 {
     private readonly InputController _inputController;
-    private readonly Navigation _navigation;
+    private readonly NavNavigation _navigation;
     private readonly PositionTracker _positionTracker;
     private readonly RotationExecutor _rotationExecutor;
     private readonly TargetSelector _targetSelector;
@@ -84,7 +85,7 @@ public class CombatController
     /// </summary>
     public CombatController(
         InputController inputController,
-        Navigation navigation,
+        NavNavigation navigation,
         PositionTracker positionTracker,
         RotationExecutor rotationExecutor,
         TargetSelector targetSelector)
@@ -92,7 +93,7 @@ public class CombatController
         _inputController = inputController ?? throw new ArgumentNullException(nameof(inputController));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
-        _rotationExecutor = rotationExecutor ?? throw new ArgumentNullException(nameof(rotationExecutor)));
+        _rotationExecutor = rotationExecutor ?? throw new ArgumentNullException(nameof(rotationExecutor));
         _targetSelector = targetSelector ?? throw new ArgumentNullException(nameof(targetSelector));
     }
 
@@ -194,7 +195,7 @@ public class CombatController
         // Move into attack range
         float maxRange = GetMaxAttackRange();
         float distance = _positionTracker.CurrentPosition != null
-            ? Navigation.CalculateDistance(_positionTracker.CurrentPosition.Value, _currentTarget.Value.Position)
+            ? Navigation.Navigation.CalculateDistance(_positionTracker.CurrentPosition.Value, _currentTarget.Value.Position)
             : float.MaxValue;
 
         if (distance > maxRange)
@@ -231,7 +232,7 @@ public class CombatController
 
         // Check if target fled (too far)
         float distance = _positionTracker.CurrentPosition != null
-            ? Navigation.CalculateDistance(_positionTracker.CurrentPosition.Value, _currentTarget.Value.Position)
+            ? Navigation.Navigation.CalculateDistance(_positionTracker.CurrentPosition.Value, _currentTarget.Value.Position)
             : float.MaxValue;
 
         if (distance > MaxChaseDistance)

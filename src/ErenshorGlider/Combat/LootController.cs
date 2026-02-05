@@ -4,6 +4,7 @@ using System.Linq;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
 using ErenshorGlider.Navigation;
+using NavNavigation = ErenshorGlider.Navigation.Navigation;
 
 namespace ErenshorGlider.Combat;
 
@@ -13,7 +14,7 @@ namespace ErenshorGlider.Combat;
 public class LootController
 {
     private readonly InputController _inputController;
-    private readonly Navigation _navigation;
+    private readonly NavNavigation _navigation;
     private readonly PositionTracker _positionTracker;
 
     private EntityInfo? _currentCorpse;
@@ -65,7 +66,7 @@ public class LootController
     /// </summary>
     public LootController(
         InputController inputController,
-        Navigation navigation,
+        NavNavigation navigation,
         PositionTracker positionTracker)
     {
         _inputController = inputController ?? throw new ArgumentNullException(nameof(inputController));
@@ -144,7 +145,7 @@ public class LootController
         if (currentPos == null)
             return;
 
-        float distance = Navigation.CalculateDistance(currentPos.Value, _currentCorpse.Value.Position);
+        float distance = Navigation.Navigation.CalculateDistance(currentPos.Value, _currentCorpse.Value.Position);
 
         // Move to corpse if too far
         if (distance > LootDistance)
