@@ -191,8 +191,8 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Navigation class with MoveTo(x,y,z) and MoveTo(PlayerPosition). Calculates direction using atan2 on X-Z plane. Supports 8 directions with diagonal movement. StoppingDistance property controls when to stop."
     },
     {
       "id": "US-014",

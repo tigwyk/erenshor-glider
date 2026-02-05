@@ -320,3 +320,28 @@
   - SetRandomizationSeed enables reproducible testing while still allowing randomization
   - Minimum delay clamped to 10ms to prevent too-fast inputs that game might ignore
 ---
+## 2026-02-05 - US-013
+- What was implemented:
+  - Created Navigation class for coordinate-based movement
+  - Added MoveTo(x, y, z) and MoveTo(PlayerPosition) methods
+  - Added HasReached and GetDistanceTo helper methods
+  - Added StopMovement method to halt navigation
+  - Added static CalculateDistance and CalculateDistanceSquared methods
+  - CalculateDirection uses atan2 on X-Z plane for horizontal navigation
+  - Supports 8-way movement: Forward, Backward, Left, Right, and 4 diagonals
+  - MoveInDirection combines movement keys for diagonal paths
+  - Added StoppingDistance property (default 2 units) for configurable arrival threshold
+  - Added OnDestinationReached and OnMovementStuck events for state notification
+  - Created NavigationDirection enum for 8 cardinal/intercardinal directions
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (created)
+- **Learnings for future iterations:**
+  - Navigation operates on X-Z plane (horizontal) as Y is typically height/terrain
+  - Angle to direction conversion uses 22.5-degree sectors (360/16 for 8 directions)
+  - Simultaneous key presses (W+D for diagonal) require calling multiple InputController methods
+  - StoppingDistance of 2 units prevents over-correcting at destination
+  - CalculateDistanceSquared is useful for fast comparisons without sqrt overhead
+  - MoveTo returns false if already at target - useful for state machine logic
+  - OnDestinationReached event allows chaining navigation with other actions
+---
+
