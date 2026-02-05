@@ -1,0 +1,52 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider
+.idea/
+*.DotSettings.user
+
+# NuGet
+packages/
+*.nupkg
+project.assets.json
+*.nuget.props
+*.nuget.targets
+
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+!lib/**/*.dll
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User-specific files
+*.rsuser
+*.sln.docstates
+
+# Mono
+mono_crash.*
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# BepInEx specific
+BepInEx/
