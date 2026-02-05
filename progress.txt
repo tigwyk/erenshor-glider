@@ -705,3 +705,44 @@
   - GrindingBot no longer has its own CheckForDeath method (delegated to DeathController)
   - NeedsRebuff flag allows future rotation system to reapply buffs after resurrection
 ---
+
+## 2026-02-05 - US-028 & US-029
+- What was implemented:
+  - Created MapDataStore class for storing discovered map data
+  - Uses in-memory storage with JSON file persistence (mapdata/ directory)
+  - ResourceNodeDiscovery struct: Id, NodeName, X, Y, Z, Zone, DiscoveredAt, LastSeenAt, TimesSeen, RequiredSkill
+  - NpcDiscovery struct: Id, NpcName, X, Y, Z, Zone, IsVendor, HasQuests, DiscoveredAt, LastSeenAt
+  - MobSpawnPoint struct: Id, MobName, X, Y, Z, Zone, Level, Faction, DiscoveredAt, LastSeenAt, TimesSeen
+  - DeduplicationRadius (default 5 units) prevents duplicate entries for same location
+  - RecordResourceNode, RecordNpc, RecordMobSpawn methods for recording discoveries
+  - Updates existing discoveries (LastSeenAt, TimesSeen) instead of creating duplicates
+  - SaveToDisk/LoadFromDisk methods use System.Text.Json with camelCase naming
+  - Separate files: resource_nodes.json, npcs.json, mob_spawns.json
+  - MapDataStatistics struct: ResourceNodeCount, VendorCount, QuestGiverCount, MobSpawnCount
+  - Created MapDiscoveryController for automatic entity scanning
+  - AutoDiscoveryEnabled, RecordResourceNodes, RecordNpcs, RecordMobSpawns toggles
+  - Update() method scans nearby entities from GameStateReader
+  - Session-based recording (HashSet) prevents re-recording same entities
+  - GetRequiredSkillForNode infers skill from node name (Mining, Herbalism, Woodcutting)
+  - OnNodeDiscovered, OnNpcDiscovered, OnMobSpawnDiscovered events
+  - Tracks NodesDiscoveredCount, NpcsDiscoveredCount, MobSpawnsDiscoveredCount
+  - Integrated MapDiscoveryController into GrindingBot
+  - Added AutoMapping toggle (default true)
+  - Added SaveMapData, LoadMapData, GetMapStatistics methods
+  - Auto-saves map data on bot stop
+- Files changed:
+  - src/ErenshorGlider/Mapping/MapDiscovery.cs (created)
+  - src/ErenshorGlider/Mapping/MapDataStore.cs (created)
+  - src/ErenshorGlider/Mapping/MapDiscoveryController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - JSON persistence is simpler than SQLite for this use case (no external dependencies)
+  - MapDataStore uses readonly struct pattern for immutable discovery data
+  - Deduplication uses distance squared comparison for performance (avoid sqrt)
+  - Map data is saved automatically on bot stop to prevent data loss
+  - Session-based recording prevents spam while still allowing updates to existing discoveries
+  - Entity key format "Name_X_Z" provides simple unique identification
+  - Skill inference from node name works for common patterns but may need manual overrides
+  - Zone tracking allows filtering discoveries by location
+  - MapDataStore can be extended with more discovery types (quest items, rare spawns, etc.)
+---

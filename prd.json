@@ -418,8 +418,8 @@
         "Typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MapDataStore uses in-memory storage with JSON persistence (mapdata/ directory). ResourceNodeDiscovery struct tracks node data. MapDiscoveryController scans nearby entities. DeduplicationRadius (default 5 units) prevents duplicates."
     },
     {
       "id": "US-029",
@@ -432,8 +432,8 @@
         "Typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "NpcDiscovery struct tracks NPC data with vendor/quest flags. MobSpawnPoint struct tracks mob spawn data with level and faction. Both stored in MapDataStore with JSON persistence."
     },
     {
       "id": "US-030",
