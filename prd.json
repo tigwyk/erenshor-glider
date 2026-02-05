@@ -91,8 +91,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.CurrentTarget. TargetInfo struct includes HasTarget, Name, Level, Health, Position, Hostility. PositionTracker tracks target at 10Hz."
     },
     {
       "id": "US-007",
