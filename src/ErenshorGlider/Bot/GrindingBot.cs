@@ -15,6 +15,7 @@ public class GrindingBot
     private readonly CombatController _combatController;
     private readonly LootController _lootController;
     private readonly RestController _restController;
+    private readonly DeathController _deathController;
     private readonly PositionTracker _positionTracker;
 
     private enum BotState
@@ -30,7 +31,6 @@ public class GrindingBot
     }
 
     private BotState _currentState = BotState.Idle;
-    private int _deathCount = 0;
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private int _killsCount = 0;
 
@@ -57,12 +57,18 @@ public class GrindingBot
     /// <summary>
     /// Gets the number of deaths this session.
     /// </summary>
-    public int DeathCount => _deathCount;
+    [Obsolete("Use SessionDeathCount instead. This property returns the max death count setting, not the actual death count.")]
+    public int DeathCount => MaxDeathCount;
 
     /// <summary>
     /// Gets the number of kills this session.
     /// </summary>
     public int KillsCount => _killsCount;
+
+    /// <summary>
+    /// Gets the number of deaths this session.
+    /// </summary>
+    public int SessionDeathCount => _deathController.DeathCount;
 
     /// <summary>
     /// Gets the session runtime.
@@ -108,6 +114,7 @@ public class GrindingBot
         CombatController combatController,
         LootController lootController,
         RestController restController,
+        DeathController deathController,
         PositionTracker positionTracker)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
@@ -115,12 +122,16 @@ public class GrindingBot
         _combatController = combatController ?? throw new ArgumentNullException(nameof(combatController));
         _lootController = lootController ?? throw new ArgumentNullException(nameof(lootController));
         _restController = restController ?? throw new ArgumentNullException(nameof(restController));
+        _deathController = deathController ?? throw new ArgumentNullException(nameof(deathController));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
 
         // Wire up event handlers
         _combatController.OnCombatEnded += HandleCombatEnded;
         _lootController.OnLootCompleted += HandleLootCompleted;
         _restController.OnRestCompleted += HandleRestCompleted;
+        _deathController.OnResurrectionCompleted += HandleResurrectionCompleted;
+        _deathController.OnResurrectionFailed += HandleResurrectionFailed;
+        _deathController.OnPlayerDeath += HandlePlayerDeath;
     }
 
     /// <summary>
@@ -134,8 +145,10 @@ public class GrindingBot
         IsRunning = true;
         _currentState = BotState.Pathing;
         _sessionStartTime = DateTime.UtcNow;
-        _deathCount = 0;
         _killsCount = 0;
+
+        // Reset death controller state
+        _deathController.Reset();
 
         // Start waypoint playback
         _waypointPlayer.Play();
@@ -159,6 +172,7 @@ public class GrindingBot
         _combatController.StopCombat();
         _lootController.CancelLooting();
         _restController.StopResting();
+        _deathController.CancelResurrection();
 
         OnStopped?.Invoke(reason);
     }
@@ -171,12 +185,18 @@ public class GrindingBot
         if (!IsRunning)
             return;
 
-        // Check for death
-        if (CheckForDeath())
+        // Update death controller (detects death/resurrection)
+        _deathController.Update();
+
+        // Check for death state transition
+        if (_deathController.IsDead && _currentState != BotState.Dead)
+        {
+            TransitionTo(BotState.Dead);
             return;
+        }
 
         // Check death count limit
-        if (_deathCount >= MaxDeathCount)
+        if (_deathController.DeathCount >= MaxDeathCount)
         {
             Stop(StopReason.DeathLimitReached);
             return;
@@ -335,31 +355,13 @@ public class GrindingBot
     /// </summary>
     private void UpdateDead()
     {
-        // TODO: Implement resurrection logic
-        // For now, just stop the bot
-        Stop(StopReason.PlayerDied);
-    }
-
-    /// <summary>
-    /// Checks if the player died and handles death.
-    /// </summary>
-    private bool CheckForDeath()
-    {
-        var combatState = _positionTracker.CurrentCombatState;
-        if (combatState != null && !combatState.Value.IsAlive)
+        // DeathController handles resurrection
+        // If resurrection fails/times out, the bot will be stopped via event
+        if (!_deathController.IsDead)
         {
-            _deathCount++;
-            OnDeath?.Invoke();
-
-            if (_currentState != BotState.Dead)
-            {
-                TransitionTo(BotState.Dead);
-            }
-
-            return true;
+            // Player has been resurrected, transition to resting to recover
+            TransitionTo(BotState.Resting);
         }
-
-        return false;
     }
 
     /// <summary>
@@ -412,6 +414,41 @@ public class GrindingBot
     {
         _restController.StopResting();
         TransitionTo(BotState.Pathing);
+    }
+
+    /// <summary>
+    /// Handles resurrection completed event.
+    /// </summary>
+    private void HandleResurrectionCompleted(ResurrectResult result)
+    {
+        // After resurrection, transition to resting state to recover
+        // This allows the player to regen health/mana and rebuff if needed
+        if (AutoRest)
+        {
+            TransitionTo(BotState.Resting);
+        }
+        else
+        {
+            TransitionTo(BotState.Pathing);
+        }
+    }
+
+    /// <summary>
+    /// Handles player death event from DeathController.
+    /// </summary>
+    private void HandlePlayerDeath()
+    {
+        // Forward the death event to any listeners
+        OnDeath?.Invoke();
+    }
+
+    /// <summary>
+    /// Handles resurrection failed event.
+    /// </summary>
+    private void HandleResurrectionFailed(ResurrectResult result)
+    {
+        // If resurrection fails, stop the bot
+        Stop(StopReason.PlayerDied);
     }
 }
 
