@@ -805,3 +805,32 @@
   - StartNewSession should be called when bot starts to reset tracking
   - RecordXpGained can track XP difference from StartingXp or incremental gains
 ---
+
+## 2026-02-05 - US-032
+- What was implemented:
+  - Created ActionLog class for logging bot actions
+  - LogEntry readonly struct with Timestamp, Category, Message, Details
+  - LogCategory enum: Info, State, Combat, Loot, Rest, Movement, Error, Warning, Debug
+  - In-memory circular buffer storage (configurable max entries, default 500)
+  - StartFileLogging() / StopFileLogging() for optional file persistence
+  - Log() method for general logging
+  - Convenience methods: Info(), State(), Combat(), AbilityUsed(), TargetSelected(), Loot(), ItemLooted(), Rest(), Movement(), WaypointReached(), Error(), Warning(), Debug()
+  - OnLogEntryAdded event for real-time GUI updates
+  - GetRecentEntries() for getting latest N entries
+  - GetEntriesByCategory() for filtering by category
+  - CircularBuffer<T> internal class for efficient fixed-size storage
+  - Auto-creates log file directory
+  - Session start/end markers in log file
+  - ToString() formats as "[HH:mm:ss] [CATEGORY] Message: Details"
+- Files changed:
+  - src/ErenshorGlider/Statistics/ActionLog.cs (created)
+- **Learnings for future iterations:**
+  - Circular buffer prevents unbounded memory growth while keeping recent entries
+  - File logging is optional and can be toggled with PersistToFile
+  - StreamWriter with AutoFlush ensures logs are written immediately
+  - OnLogEntryAdded event allows GUI to update in real-time without polling
+  - Thread safety with lock statement for concurrent access
+  - Category-based filtering helps with GUI display and log analysis
+  - Session markers in log file help separate bot runs
+  - Convenience methods (State(), Combat(), Loot()) provide consistent logging patterns
+---
