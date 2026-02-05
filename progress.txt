@@ -71,6 +71,34 @@
   - SystemIcons.Application provides a default icon without needing external .ico file
   - Dark theme colors used: Header (45,45,48), Content (30,30,30), similar to VS Code dark theme
 
+## 2026-02-05 - US-036
+- What was implemented:
+  - Created IBotController interface for bot control abstraction
+  - Created MockBotController for development/testing
+  - Created BotControlPanel with Start, Stop, and Pause/Resume buttons
+  - Start button (green) begins bot operation, disabled when running
+  - Stop button (red) halts all activity, disabled when not running
+  - Pause/Resume button (yellow/green) toggles pause state, disabled when not running
+  - State label displays current bot state (Idle, Pathing, etc.)
+  - Hover effects on buttons using LightenColor helper
+  - Events (BotRunningChanged, BotStateChanged) for reactive UI updates
+  - Bot state changes update status bar in MainWindow
+- Files changed:
+  - src/ErenshorGlider.GUI/BotController.cs (created)
+  - src/ErenshorGlider.GUI/Controls/BotControlPanel.cs (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - IBotController interface allows dependency injection and testable design
+  - MockBotController provides development implementation without actual bot
+  - Button state logic: Start enabled = !IsRunning, Stop enabled = IsRunning, Pause enabled = IsRunning
+  - Pause button text and color toggle: Pause (yellow 220,180,80) vs Resume (green 100,180,100)
+  - InvokeRequired pattern essential when bot controller events may come from background threads
+  - BotControlPanel docked to top of ContentPanel for easy layout
+  - Color scheme: Start (100,180,100), Stop (200,80,80), Pause (220,180,80), Resume (100,180,100)
+  - LightenColor helper adds to RGB values (max 255) for hover effect
+  - BotRunningChanged event includes both IsRunning and IsPaused for complete state tracking
+  - Future stories will need real bot controller implementation (IPC with BepInEx plugin)
+
 ---
 
 ## 2026-02-05 - US-001
