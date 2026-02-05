@@ -640,3 +640,35 @@
   - Partial recovery possible if timeout occurs before full recovery
   - Can manually stop rest for quick resume of activities
 ---
+## 2026-02-05 - US-027
+- What was implemented:
+  - Created GrindingBot class as central coordinator for all bot systems
+  - Complete state machine: Idle -> Pathing -> SearchingForTarget -> Pulling -> InCombat -> Looting -> Resting -> repeat
+  - Start() begins bot operation, loads waypoint path and starts tracking
+  - Stop(StopReason) halts all subsystems with reason tracking
+  - Update() method drives state machine transitions
+  - Integrates WaypointPlayer for path following
+  - Integrates TargetSelector for finding targets while patrolling
+  - Integrates CombatController for combat engagement
+  - Integrates LootController for post-combat looting
+  - Integrates RestController for health/mana recovery
+  - CheckForDeath() monitors player death state, increments DeathCount
+  - MaxDeathCount (default 3) safety limit stops bot after too many deaths
+  - AutoLoot (default true) and AutoRest (default true) toggles
+  - KillsCount and SessionRuntime for statistics tracking
+  - OnStateChanged, OnStarted, OnStopped, OnKill, OnDeath events
+  - Event handlers: HandleCombatEnded, HandleLootCompleted, HandleRestCompleted
+  - StopReason enum: Manual, DeathLimitReached, PlayerDied, RuntimeLimitReached, Stuck, BagsFull
+- Files changed:
+  - src/ErenshorGlider/Bot/GrindingBot.cs (created)
+- **Learnings for future iterations:**
+  - GrindingBot is the orchestrator that ties all subsystems together
+  - State transitions are event-driven (combat ends -> loot or rest or path)
+  - WaypointPlayer pauses during combat, resumes after
+  - Target search happens while pathing (don't stop at waypoints to look)
+  - Death handling immediately stops all activity and transitions to Dead state
+  - Statistics (kills, deaths, runtime) tracked for UI display
+  - TODO: Implement resurrection logic in UpdateDead()
+  - TODO: Add runtime limit and stuck detection to stop conditions
+  - TODO: Add bag full + vendor run logic
+---

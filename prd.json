@@ -403,8 +403,8 @@
         "Typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GrindingBot class coordinates WaypointPlayer, TargetSelector, CombatController, LootController, RestController. State machine: Idle, Pathing, SearchingForTarget, Pulling, InCombat, Looting, Resting, Dead. AutoLoot and AutoRest toggles. MaxDeathCount safety limit."
     },
     {
       "id": "US-028",
