@@ -980,4 +980,37 @@
   - AutoStopController.CheckStopConditions() should be called in GrindingBot.Update() before other updates
   - MaxSessionRuntimeMinutes of 0 means no limit (infinite runtime)
   - MaxStuckTimeSeconds of 0 means no limit (never stop due to stuck)
+
+## 2026-02-05 - US-037
+- What was implemented:
+  - Created BotStatus readonly struct with State, TargetName, HasTarget, PositionX/Y/Z, Current/Max Health/Mana
+  - Added IBotStatusProvider interface for status data access
+  - Created StatusDisplayPanel with State, Target, Position labels and Health/Mana progress bars
+  - Health bar color: RGB(180, 60, 60) red
+  - Mana bar color: RGB(60, 100, 180) blue
+  - 10Hz update timer (100ms interval) using Windows Forms Timer
+  - MockBotController implements IBotStatusProvider with simulated activity
+  - Target name turns red when engaged, gray when no target
+  - Position format: "X: 100.5, Y: 10.0, Z: -250.3"
+  - Health/ManaPercent properties calculate percentages automatically
+  - UpdateStatus checks for text changes to reduce flicker
+  - MockBotController has SetTestTarget/SetTestVitals for testing UI
+- Files changed:
+  - src/ErenshorGlider.GUI/BotStatusModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/StatusDisplayPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - readonly struct pattern works well for immutable status snapshots
+  - Windows Forms Timer runs on UI thread, no InvokeRequired needed in Tick handler
+  - Check IsHandleCreated and IsDisposed in Timer Tick to avoid errors after disposal
+  - ProgressBar.Value must be between Minimum and Maximum (clamped in UpdateStatus)
+  - Text change checking before update reduces UI flicker
+  - Health/Mana percentages: (current / max) * 100, handle max=0 case
+  - MockBotController simulates activity when running for UI testing (position changes, regen)
+  - StatusDisplayPanel height ~145px for all elements
+  - Panel background Color.FromArgb(40, 40, 43) matches other panels
+  - Consolas font for coordinates aligns numbers nicely
+  - Target name color change provides visual feedback for combat state
+
 ---
