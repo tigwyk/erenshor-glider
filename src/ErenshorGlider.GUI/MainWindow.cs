@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using ErenshorGlider.GUI.Controls;
 
 namespace ErenshorGlider.GUI;
 
@@ -17,6 +18,7 @@ public class MainWindow : Form
     private readonly Panel _contentPanel;
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _trayContextMenu;
+    private readonly IBotController _botController;
 
     /// <summary>
     /// Gets the main content panel where other UI components can be added.
@@ -46,8 +48,18 @@ public class MainWindow : Form
     /// <summary>
     /// Creates a new MainWindow.
     /// </summary>
-    public MainWindow()
+    public MainWindow() : this(new MockBotController())
     {
+    }
+
+    /// <summary>
+    /// Creates a new MainWindow with the specified bot controller.
+    /// </summary>
+    /// <param name="botController">The bot controller to use.</param>
+    public MainWindow(IBotController botController)
+    {
+        _botController = botController ?? throw new ArgumentNullException(nameof(botController));
+
         // Form properties
         Text = "Erenshor Glider";
         Size = new Size(900, 650);
@@ -68,6 +80,7 @@ public class MainWindow : Form
         // Layout controls
         LayoutControls();
         WireUpEvents();
+        InitializeBotControls();
     }
 
     /// <summary>
@@ -243,6 +256,44 @@ public class MainWindow : Form
                 WindowState = FormWindowState.Minimized;
             }
         };
+
+        // Wire up bot controller events
+        _botController.BotRunningChanged += (s, e) =>
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => HandleBotRunningChanged(s, e)));
+                return;
+            }
+            HandleBotRunningChanged(s, e);
+        };
+    }
+
+    /// <summary>
+    /// Initializes the bot control panel.
+    /// </summary>
+    private void InitializeBotControls()
+    {
+        var botControlPanel = new BotControlPanel(_botController)
+        {
+            Dock = DockStyle.Top
+        };
+        _contentPanel.Controls.Add(botControlPanel);
+    }
+
+    /// <summary>
+    /// Handles bot running state changes.
+    /// </summary>
+    private void HandleBotRunningChanged(object? sender, BotRunningChangedEventArgs e)
+    {
+        if (e.IsRunning)
+        {
+            SetStatus(e.IsPaused ? "Bot paused" : "Bot running");
+        }
+        else
+        {
+            SetStatus("Bot stopped");
+        }
     }
 
     /// <summary>
