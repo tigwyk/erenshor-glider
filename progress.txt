@@ -389,3 +389,27 @@
   - StopTurning should be called before new turn operations to prevent key stuck states
   - IsFacing useful for state machine checks before proceeding with actions requiring facing
 ---
+## 2026-02-05 - US-016
+- What was implemented:
+  - Created Waypoint class with Position, Type, Name, Metadata, Delay properties
+  - Created WaypointType enum: Normal, Vendor, Repair, Node, QuestGiver, QuestTurnIn, RestArea, DangerZone
+  - Created WaypointPath class with Name, Waypoints list, Loop, ReverseAtEnd properties
+  - Added Description, LevelRange, Zone, Metadata, CreatedAt, LastModified fields to WaypointPath
+  - AddWaypoint, RemoveWaypoint, ClearWaypoints methods for path manipulation
+  - Validate() method checks path integrity (name required, min 2 waypoints, vendor names, loop/reverse exclusivity)
+  - SaveToFile/LoadFromFile methods using System.Text.Json
+  - Created WaypointFileManager static class for directory management
+  - GetWaypointFiles, SavePath, LoadPath, LoadAllPaths methods for file operations
+  - SanitizeFileName helper removes invalid characters from filenames
+  - JSON uses camelCase naming convention for compatibility
+- Files changed:
+  - src/ErenshorGlider/Waypoints/Waypoint.cs (created)
+- **Learnings for future iterations:**
+  - WaypointType enum enables special handling for vendors, repairs, quest NPCs
+  - WaypointPath supports both Loop (return to start) and ReverseAtEnd (ping-pong) patterns
+  - Validate() catches common errors before saving/using paths
+  - WaypointFileManager uses ./waypoints/ directory by default
+  - JSON serialization with WriteIndented makes files human-readable for manual editing
+  - LastModified timestamp helps users identify recently updated paths
+  - LevelRange and Zone metadata useful for filtering paths by character level/location
+---

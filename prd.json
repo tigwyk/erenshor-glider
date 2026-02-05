@@ -234,8 +234,8 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Waypoint class with Position, Type (enum), Name, Metadata, Delay. WaypointPath with Name, Waypoints list, Loop, ReverseAtEnd, Description. WaypointFileManager handles save/load with JSON serialization."
     },
     {
       "id": "US-017",
