@@ -10,6 +10,10 @@
 - Target .NET Framework 4.7.2 or .NET Standard 2.0
 - Build with `dotnet build` in project root (requires .NET SDK 8.0+)
 - Plugin entry point is Plugin.cs with [BepInPlugin] attribute
+- Use GameStubs/ for compile-time type safety without game DLLs
+- nuget.config required with BepInEx NuGet feed (https://nuget.bepinex.dev/v3/index.json)
+- GameState/ contains all game state reading logic
+- Position tracking: Plugin.PositionTracker.CurrentPosition for cached position
 
 ---
 
@@ -65,4 +69,27 @@
   - Plugin.cs inherits from BaseUnityPlugin which is a MonoBehaviour
   - Logger is accessible via base.Logger in Awake()
   - Build command: `dotnet build` (requires .NET SDK 8.0+)
+---
+
+## 2026-02-05 - US-003
+- What was implemented:
+  - Created PlayerPosition struct with X, Y, Z coordinates
+  - Created GameStateReader class to read position from GameData.PlayerControl.transform.position
+  - Created PositionTracker MonoBehaviour with 10Hz default update rate (configurable 1-100Hz)
+  - Added GameStubs folder with stub types for compile-time safety without game DLLs
+  - Added nuget.config with BepInEx NuGet feed for package resolution
+  - Integrated PositionTracker into Plugin.Awake()
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerPosition.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (created)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (created)
+  - src/ErenshorGlider/GameStubs/GameData.cs (created)
+  - src/ErenshorGlider/Plugin.cs (modified)
+  - nuget.config (created)
+- **Learnings for future iterations:**
+  - GameStubs approach allows building without game DLLs; swap to real types when Assembly-CSharp.dll is available
+  - BepInEx packages are on separate NuGet feed (https://nuget.bepinex.dev) - must add to nuget.config
+  - Position tracking via Unity Update() loop with Time.deltaTime accumulation for configurable Hz
+  - Use events (OnPositionUpdated) for loose coupling between components
+  - readonly struct for immutable data like positions
 ---

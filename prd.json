@@ -46,8 +46,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.transform.position via stubs for compile-time safety"
     },
     {
       "id": "US-004",
