@@ -834,3 +834,35 @@
   - Session markers in log file help separate bot runs
   - Convenience methods (State(), Combat(), Loot()) provide consistent logging patterns
 ---
+
+## 2026-02-05 - US-033
+- What was implemented:
+  - Created SafetyController class for global hotkey monitoring and emergency stop
+  - F12 default emergency stop hotkey (configurable via SetEmergencyStopHotkey)
+  - F11 default pause/resume hotkey (configurable via SetPauseResumeHotkey)
+  - UpdateHotkeys(Func<KeyCode, bool>) method for key polling each frame
+  - TriggerEmergencyStop() method for programmatic emergency stop
+  - IsPaused property for checking pause state
+  - TogglePause(), Pause(), Resume() methods for pause control
+  - EmergencyStopTriggered flag and EmergencyStopTimestamp for tracking
+  - Events: OnEmergencyStopTriggered, OnPaused, OnResumed
+  - Integrated SafetyController into GrindingBot constructor
+  - Added IsPaused property to GrindingBot (delegates to SafetyController)
+  - Added UpdateHotkeys method to GrindingBot for hotkey polling
+  - Added HandleEmergencyStop, HandlePaused, HandleResumed event handlers
+  - GrindingBot.Update() skips all updates when IsPaused is true
+  - Added StopReason.EmergencyStop enum value
+  - SetEmergencyStopHotkey and SetPauseResumeHotkey support string parsing (F1-F12, ESC, ENTER, SPACE, TAB)
+  - Logs emergency stop event via ActionLog.Warning()
+- Files changed:
+  - src/ErenshorGlider/Safety/SafetyController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - SafetyController uses lock (_lock) for thread safety on hotkey state changes
+  - Hotkey tracking uses edge detection (previous pressed state vs current) to trigger actions only on key down
+  - ActionLog.Warning() is used for emergency stop events for visibility
+  - GrindingBot.Update() checks IsPaused at the start to skip all updates when paused
+  - SafetyController should be created with ActionLog for logging safety events
+  - TryParseKeyName handles both enum values and common aliases (ESC, ENTER, SPACE, TAB)
+  - The UpdateHotkeys method pattern allows the caller to provide the key polling function (useful for different input systems)
+---
