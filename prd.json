@@ -61,8 +61,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.Myself.MyStats for vitals. PositionTracker now tracks both position and vitals at 10Hz."
     },
     {
       "id": "US-005",

@@ -14,6 +14,8 @@
 - nuget.config required with BepInEx NuGet feed (https://nuget.bepinex.dev/v3/index.json)
 - GameState/ contains all game state reading logic
 - Position tracking: Plugin.PositionTracker.CurrentPosition for cached position
+- Vitals tracking: Plugin.PositionTracker.CurrentVitals for cached vitals
+- CharacterStats has: CurrentHP, MaxHP, CurrentMP, MaxMP, Level, CurrentXP, XPToLevel
 
 ---
 
@@ -92,4 +94,27 @@
   - Position tracking via Unity Update() loop with Time.deltaTime accumulation for configurable Hz
   - Use events (OnPositionUpdated) for loose coupling between components
   - readonly struct for immutable data like positions
+---
+
+## 2026-02-05 - US-004
+- What was implemented:
+  - Created PlayerVitals struct with CurrentHealth, MaxHealth, CurrentMana, MaxMana, Level, CurrentXP, XPToLevel
+  - Added percentage helpers (HealthPercent, ManaPercent, XPPercent) and threshold methods
+  - Extended CharacterStats stub with Level, CurrentXP, XPToLevel fields
+  - Added GetPlayerVitals(), GetCachedVitals(), UpdateVitals() to GameStateReader
+  - Added OnVitalsChanged event for reactive updates
+  - Extended PositionTracker to track vitals alongside position at 10Hz
+  - Integrated vitals logging in Plugin.cs
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerVitals.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+  - src/ErenshorGlider/Plugin.cs (modified)
+- **Learnings for future iterations:**
+  - Access vitals via GameData.PlayerControl.Myself.MyStats (character stats component)
+  - PositionTracker serves as the central state tracker - can be extended for other state
+  - Use separate locks for position vs vitals to allow concurrent access
+  - readonly struct pattern works well for immutable game state snapshots
+  - Percentage helpers (e.g., IsHealthBelowPercent) useful for combat/rest decision thresholds
 ---
