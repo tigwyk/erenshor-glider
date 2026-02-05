@@ -1,0 +1,33 @@
+## Codebase Patterns
+- Erenshor is a Unity game using BepInEx 5.x (Mono) for modding
+- Use Harmony patches to hook into game methods (Prefix/Postfix)
+- GameData singleton is the central access point for all game state
+- GameData.PlayerControl.transform.position for player coordinates
+- GameData.PlayerControl.Myself for player Character reference
+- GameData.PlayerControl.CurrentTarget for current target
+- Character.MyStats for health/mana/stats access
+- Use BepInEx.Configuration for mod settings
+- Target .NET Framework 4.7.2 or .NET Standard 2.0
+
+---
+
+## 2026-02-05 - US-001
+- What was implemented:
+  - Researched Erenshor's technical architecture
+  - Documented Unity engine and BepInEx modding framework
+  - Identified key game classes: GameData, Character, PlayerCombat, Hotkeys, Spell, Skill
+  - Documented methods for reading game state (position, health, target, combat)
+  - Documented methods for sending inputs (auto-attack, abilities, movement)
+  - Listed all 6 character classes
+- Files changed:
+  - docs/technical-integration.md (created)
+  - prd.json (committed with project)
+- **Learnings for future iterations:**
+  - Existing mods on GitHub (ErenshorQoL, ExtendedHotbars) are excellent references for API usage
+  - GameData is a static singleton - most game state is accessed through it
+  - CharacterStats likely has CurrentHP, MaxHP, CurrentMP, MaxMP properties (needs verification)
+  - Private methods like Hotkeys.DoHotkeyTask() need reflection to call
+  - Movement input simulation may be needed vs direct position manipulation
+  - NPC.AggroOn() can be hooked to detect when player is attacked
+  - Character.DoDeath() can be hooked to detect deaths
+---
