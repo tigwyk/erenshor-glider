@@ -570,3 +570,73 @@
   - GetDistanceToTarget uses Navigation.CalculateDistance for consistency
   - OnAbilityExecuted event allows UI to show which ability was used
 ---
+## 2026-02-05 - US-023
+- What was implemented:
+  - Created CombatController class for complete combat loop
+  - EngageTarget(in EntityInfo) and FindAndEngage() for starting combat
+  - StopCombat(CombatEndReason) for ending combat with reason tracking
+  - State machine: Idle -> Pulling -> InCombat -> (Looting/Fleeing) -> Idle
+  - Pulling phase: moves into range (GetMaxAttackRange) and faces target
+  - InCombat phase: executes rotation, chases fleeing targets if enabled
+  - CombatTimeout detects stuck fights (default 30 seconds)
+  - ChaseFleeingTargets (default true) and MaxChaseDistance (default 30) control chasing
+  - OnCombatStarted, OnCombatEnded, OnTargetPulled, OnCombatTimeout events
+  - UpdateTargetStatus syncs current target with game state
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatController.cs (created)
+- **Learnings for future iterations:**
+  - CombatController orchestrates Navigation, RotationExecutor, and TargetSelector
+  - Pulling ensures player is in range before starting rotation
+  - Target distance check uses Navigation.CalculateDistance for consistency
+  - GetMaxAttackRadius placeholder - should calculate from rotation abilities
+  - Combat timeout prevents infinite loops on buggy targets
+  - CombatEndReason enum provides context for why combat ended
+  - OnCombatEnded allows other systems to react (e.g., start looting)
+
+## 2026-02-05 - US-024
+- What was implemented:
+  - Created LootController class for corpse looting
+  - LootNearestCorpse() finds and starts looting closest corpse
+  - StartLooting(in EntityInfo) begins looting specific corpse
+  - FindNearestLootableCorpse() and GetLootableCorpses() for loot queries
+  - SkipWhenFull (default true) checks AreBagsFull() before looting
+  - LootDistance (default 2 units) for proximity check
+  - Moves to corpse via Navigation, faces target, then Interacts
+  - MaxLootWaitSeconds (default 5 seconds) prevents infinite waiting
+  - OnLootStarted, OnLootCompleted, OnLootFailed events
+  - LootResult enum: Success, Failed, Timeout, AlreadyLooted
+- Files changed:
+  - src/ErenshorGlider/Combat/LootController.cs (created)
+- **Learnings for future iterations:**
+  - Corpse detection uses EntityInfo.IsCorpse property
+  - Loot completion detected by corpse disappearing from nearby entities
+  - GetFreeSlotCount() allows checking if bags have space before combat
+  - CancelInteraction (ESC key) can cancel looting if stuck
+  - LootController should be called after combat ends (via OnCombatEnded event)
+  - AreBagsFull uses PlayerInventory.IsFull from earlier story
+
+## 2026-02-05 - US-025
+- What was implemented:
+  - Created RestController class for health/mana recovery
+  - NeedsRest() checks health/mana thresholds and combat state
+  - StartResting() begins rest, uses FoodItem/DrinkItem consumables
+  - StopResting(RestResult) ends rest with reason
+  - Update() monitors recovery progress and checks stop conditions
+  - MinHealthPercent (default 50%) and MinManaPercent (default 30%) trigger rest
+  - TargetHealthPercent (default 90%) and TargetManaPercent (default 80%) stop rest
+  - MaxRestDuration (default 60 seconds) prevents infinite resting
+  - UseConsumable() placeholder for food/drink usage
+  - IsFullyRecovered() checks if at 100% health and mana
+  - OnRestStarted, OnRestCompleted events
+  - RestResult enum: FullyRecovered, Manual, Timeout, EnteredCombat, PartiallyRecovered
+- Files changed:
+  - src/ErenshorGlider/Combat/RestController.cs (created)
+- **Learnings for future iterations:**
+  - Rest should only happen when out of combat (checked in NeedsRest)
+  - Entering combat immediately stops rest (safety feature)
+  - Food/drink usage needs inventory integration (TODO: UseConsumable)
+  - RestController should be called between combat loops
+  - OnRestCompleted allows chaining to next activity (e.g., resume grinding)
+  - Partial recovery possible if timeout occurs before full recovery
+  - Can manually stop rest for quick resume of activities
+---

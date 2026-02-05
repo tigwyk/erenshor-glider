@@ -340,8 +340,8 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CombatController class with EngageTarget, FindAndEngage, Update. Pulling phase moves into range and faces target. InCombat executes rotation via RotationExecutor. CombatTimeout detects stuck fights. ChaseFleeingTargets and MaxChaseDistance control chasing behavior."
     },
     {
       "id": "US-024",
@@ -356,8 +356,8 @@
         "Typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "LootController class with LootNearestCorpse, StartLooting, Update. FindNearestLootableCorpse scans nearby entities. Moves to corpse via Navigation. Interacts via InputController. MaxLootWaitSeconds timeout. SkipWhenFull and AreBagsFull checks."
     },
     {
       "id": "US-025",
@@ -371,8 +371,8 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "RestController class with NeedsRest, StartResting, Update. MinHealthPercent/MinManaPercent thresholds. TargetHealthPercent/TargetManaPercent stop conditions. MaxRestDuration timeout. FoodItem/DrinkItem for consumables (placeholder)."
     },
     {
       "id": "US-026",
