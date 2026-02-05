@@ -2,6 +2,7 @@ using System;
 using ErenshorGlider.Combat;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Mapping;
+using ErenshorGlider.Safety;
 using ErenshorGlider.Waypoints;
 
 namespace ErenshorGlider.Bot;
@@ -19,6 +20,7 @@ public class GrindingBot
     private readonly DeathController _deathController;
     private readonly MapDiscoveryController _mapDiscoveryController;
     private readonly PositionTracker _positionTracker;
+    private readonly SafetyController _safetyController;
 
     private enum BotState
     {
@@ -88,6 +90,11 @@ public class GrindingBot
     public bool IsRunning { get; private set; }
 
     /// <summary>
+    /// Gets whether the bot is paused.
+    /// </summary>
+    public bool IsPaused => _safetyController.IsPaused;
+
+    /// <summary>
     /// Event raised when the bot state changes.
     /// </summary>
     public event Action<BotState, BotState>? OnStateChanged;
@@ -113,6 +120,16 @@ public class GrindingBot
     public event Action? OnDeath;
 
     /// <summary>
+    /// Event raised when the bot is paused.
+    /// </summary>
+    public event Action? OnPaused;
+
+    /// <summary>
+    /// Event raised when the bot is resumed.
+    /// </summary>
+    public event Action? OnResumed;
+
+    /// <summary>
     /// Creates a new GrindingBot.
     /// </summary>
     public GrindingBot(
@@ -123,7 +140,8 @@ public class GrindingBot
         RestController restController,
         DeathController deathController,
         MapDiscoveryController mapDiscoveryController,
-        PositionTracker positionTracker)
+        PositionTracker positionTracker,
+        SafetyController safetyController)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
         _targetSelector = targetSelector ?? throw new ArgumentNullException(nameof(targetSelector));
@@ -133,6 +151,7 @@ public class GrindingBot
         _deathController = deathController ?? throw new ArgumentNullException(nameof(deathController));
         _mapDiscoveryController = mapDiscoveryController ?? throw new ArgumentNullException(nameof(mapDiscoveryController));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
+        _safetyController = safetyController ?? throw new ArgumentNullException(nameof(safetyController));
 
         // Wire up event handlers
         _combatController.OnCombatEnded += HandleCombatEnded;
@@ -141,6 +160,9 @@ public class GrindingBot
         _deathController.OnResurrectionCompleted += HandleResurrectionCompleted;
         _deathController.OnResurrectionFailed += HandleResurrectionFailed;
         _deathController.OnPlayerDeath += HandlePlayerDeath;
+        _safetyController.OnEmergencyStopTriggered += HandleEmergencyStop;
+        _safetyController.OnPaused += HandlePaused;
+        _safetyController.OnResumed += HandleResumed;
     }
 
     /// <summary>
@@ -219,6 +241,10 @@ public class GrindingBot
     public void Update()
     {
         if (!IsRunning)
+            return;
+
+        // Check if paused - if so, skip all updates
+        if (_safetyController.IsPaused)
             return;
 
         // Update map discovery (always active when enabled)
@@ -492,6 +518,55 @@ public class GrindingBot
         // If resurrection fails, stop the bot
         Stop(StopReason.PlayerDied);
     }
+
+    /// <summary>
+    /// Handles emergency stop triggered event from SafetyController.
+    /// </summary>
+    private void HandleEmergencyStop()
+    {
+        // Stop the bot immediately with emergency stop reason
+        Stop(StopReason.EmergencyStop);
+    }
+
+    /// <summary>
+    /// Handles paused event from SafetyController.
+    /// </summary>
+    private void HandlePaused()
+    {
+        // Pause all subsystems
+        _waypointPlayer.Pause();
+
+        // Forward the event
+        OnPaused?.Invoke();
+    }
+
+    /// <summary>
+    /// Handles resumed event from SafetyController.
+    /// </summary>
+    private void HandleResumed()
+    {
+        // Resume waypoint player
+        _waypointPlayer.Resume();
+
+        // Forward the event
+        OnResumed?.Invoke();
+    }
+
+    /// <summary>
+    /// Checks hotkey state for safety controls.
+    /// </summary>
+    /// <param name="isKeyDown">Function to check if a key is currently pressed.</param>
+    public void UpdateHotkeys(Func<Input.KeyCode, bool> isKeyDown)
+    {
+        _safetyController.UpdateHotkeys(isKeyDown);
+
+        // If emergency stop was triggered, handle it
+        if (_safetyController.EmergencyStopTriggered && IsRunning)
+        {
+            HandleEmergencyStop();
+            _safetyController.ResetEmergencyStop();
+        }
+    }
 }
 
 /// <summary>
@@ -510,5 +585,7 @@ public enum StopReason
     /// <summary>Got stuck.</summary>
     Stuck,
     /// <summary>Bags are full and no vendor available.</summary>
-    BagsFull
+    BagsFull,
+    /// <summary>Emergency stop was triggered.</summary>
+    EmergencyStop
 }
