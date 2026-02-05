@@ -81,6 +81,7 @@ public class MainWindow : Form
         LayoutControls();
         WireUpEvents();
         InitializeBotControls();
+        InitializeStatusDisplay();
     }
 
     /// <summary>
@@ -279,6 +280,21 @@ public class MainWindow : Form
             Dock = DockStyle.Top
         };
         _contentPanel.Controls.Add(botControlPanel);
+    }
+
+    /// <summary>
+    /// Initializes the status display panel.
+    /// </summary>
+    private void InitializeStatusDisplay()
+    {
+        if (_botController is IBotStatusProvider statusProvider)
+        {
+            var statusDisplay = new StatusDisplayPanel(statusProvider)
+            {
+                Dock = DockStyle.Top
+            };
+            _contentPanel.Controls.Add(statusDisplay);
+        }
     }
 
     /// <summary>

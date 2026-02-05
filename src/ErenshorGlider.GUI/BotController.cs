@@ -102,11 +102,20 @@ public class BotRunningChangedEventArgs : EventArgs
 /// Default implementation of IBotController for development/testing.
 /// TODO: Replace with actual implementation that communicates with the BepInEx plugin.
 /// </summary>
-public class MockBotController : IBotController
+public class MockBotController : IBotController, IBotStatusProvider
 {
     private bool _isRunning;
     private bool _isPaused;
     private string _currentState = "Idle";
+    private string _targetName = string.Empty;
+    private float _positionX = 100.5f;
+    private float _positionY = 10.0f;
+    private float _positionZ = -250.3f;
+    private int _currentHealth = 100;
+    private int _maxHealth = 100;
+    private int _currentMana = 80;
+    private int _maxMana = 100;
+    private readonly Random _random = new Random();
 
     public bool IsRunning => _isRunning;
     public bool IsPaused => _isPaused;
@@ -137,6 +146,7 @@ public class MockBotController : IBotController
         _isPaused = false;
         var previousState = _currentState;
         _currentState = "Idle";
+        _targetName = string.Empty;
         BotStateChanged?.Invoke(this, new BotStateChangedEventArgs(previousState, _currentState));
         BotRunningChanged?.Invoke(this, new BotRunningChangedEventArgs(false));
     }
@@ -157,5 +167,72 @@ public class MockBotController : IBotController
 
         _isPaused = false;
         BotRunningChanged?.Invoke(this, new BotRunningChangedEventArgs(true, false));
+    }
+
+    /// <summary>
+    /// Gets the current bot status snapshot.
+    /// </summary>
+    public BotStatus GetStatus()
+    {
+        // Simulate some activity when running
+        if (_isRunning && !_isPaused)
+        {
+            SimulateActivity();
+        }
+
+        return new BotStatus(
+            _currentState,
+            _targetName,
+            !string.IsNullOrEmpty(_targetName),
+            _positionX, _positionY, _positionZ,
+            _currentHealth, _maxHealth,
+            _currentMana, _maxMana
+        );
+    }
+
+    /// <summary>
+    /// Simulates bot activity for testing purposes.
+    /// </summary>
+    private void SimulateActivity()
+    {
+        // Simulate position changes
+        _positionX += (float)(_random.NextDouble() - 0.5) * 2;
+        _positionZ += (float)(_random.NextDouble() - 0.5) * 2;
+
+        // Simulate target in combat state
+        if (_currentState == "InCombat" && string.IsNullOrEmpty(_targetName))
+        {
+            _targetName = "Test Mob";
+        }
+        else if (_currentState != "InCombat")
+        {
+            _targetName = string.Empty;
+        }
+
+        // Simulate health/mana regeneration
+        if (_currentHealth < _maxHealth)
+            _currentHealth = Math.Min(_maxHealth, _currentHealth + 1);
+        if (_currentMana < _maxMana)
+            _currentMana = Math.Min(_maxMana, _currentMana + 2);
+    }
+
+    /// <summary>
+    /// Sets a simulated target (for testing).
+    /// </summary>
+    public void SetTestTarget(string targetName)
+    {
+        _targetName = targetName;
+        _currentState = "InCombat";
+    }
+
+    /// <summary>
+    /// Sets simulated vitals (for testing).
+    /// </summary>
+    public void SetTestVitals(int health, int maxHealth, int mana, int maxMana)
+    {
+        _currentHealth = health;
+        _maxHealth = maxHealth;
+        _currentMana = mana;
+        _maxMana = maxMana;
     }
 }
