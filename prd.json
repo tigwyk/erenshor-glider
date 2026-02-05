@@ -280,8 +280,8 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Ability class with Id, Name, Keybind, Cooldown, ManaCost, Range. Condition class with Type enum (PlayerHealthPercent, TargetExists, BuffPresent, etc.). RotationEntry links AbilityId to Conditions with Priority. CombatProfile contains Abilities dict and Rotation list."
     },
     {
       "id": "US-020",

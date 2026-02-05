@@ -461,3 +461,30 @@
   - OnWaypointReached event allows special handling for vendor/repair waypoints
   - CurrentWaypoint handles reversed index calculation internally
 ---
+## 2026-02-05 - US-019
+- What was implemented:
+  - Created Ability class with Id, Name, Keybind, Cooldown, TriggersGcd, ManaCost, Range, RequiresTarget, IsChanneled, CastTime
+  - Created Condition class with Type enum, Value, Operator, BuffName, CheckTarget
+  - ConditionType enum: PlayerHealthPercent, PlayerManaPercent, PlayerLevel, TargetHealthPercent, TargetExists, TargetIsHostile, TargetIsDead, InCombat, NotInCombat, BuffPresent, BuffAbsent, BuffStackCount, CanAct
+  - ComparisonOperator enum: Equal, NotEqual, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual
+  - Condition.Evaluate() method checks condition against game state
+  - RotationEntry class with AbilityId, Conditions list, Priority, Enabled, Description
+  - RotationEntry.CanExecute() evaluates all conditions (AND logic)
+  - CombatProfile class with Name, CharacterClass, Description, Abilities dict, Rotation list
+  - GlobalCooldown, UseAutoAttack, MinHealthPercent, MinManaPercent properties
+  - SortedRotation property returns rotation entries sorted by priority
+  - SaveToFile/LoadFromFile using System.Text.Json
+  - Validate() checks profile integrity
+  - CombatProfileFileManager for directory operations (profiles/ directory)
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatProfile.cs (created)
+- **Learnings for future iterations:**
+  - Conditions support both player and target state checking
+  - CheckTarget flag in Condition allows checking target buffs vs player buffs
+  - RotationEntry.Priority determines evaluation order (lower = higher priority)
+  - Abilities dictionary allows reusing ability definitions across rotation entries
+  - GlobalCooldown (GCD) prevents ability spamming
+  - MinHealthPercent/MinManaPercent set thresholds for starting combat
+  - Validate catches missing abilities referenced by rotation entries
+  - CombatProfileFileManager mirrors WaypointFileManager pattern for consistency
+---
