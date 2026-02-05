@@ -1,6 +1,7 @@
 using System;
 using ErenshorGlider.Combat;
 using ErenshorGlider.GameState;
+using ErenshorGlider.Mapping;
 using ErenshorGlider.Waypoints;
 
 namespace ErenshorGlider.Bot;
@@ -16,6 +17,7 @@ public class GrindingBot
     private readonly LootController _lootController;
     private readonly RestController _restController;
     private readonly DeathController _deathController;
+    private readonly MapDiscoveryController _mapDiscoveryController;
     private readonly PositionTracker _positionTracker;
 
     private enum BotState
@@ -53,6 +55,11 @@ public class GrindingBot
     /// Gets or sets whether to enable auto-rest.
     /// </summary>
     public bool AutoRest { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether to enable auto-mapping.
+    /// </summary>
+    public bool AutoMapping { get; set; } = true;
 
     /// <summary>
     /// Gets the number of deaths this session.
@@ -115,6 +122,7 @@ public class GrindingBot
         LootController lootController,
         RestController restController,
         DeathController deathController,
+        MapDiscoveryController mapDiscoveryController,
         PositionTracker positionTracker)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
@@ -123,6 +131,7 @@ public class GrindingBot
         _lootController = lootController ?? throw new ArgumentNullException(nameof(lootController));
         _restController = restController ?? throw new ArgumentNullException(nameof(restController));
         _deathController = deathController ?? throw new ArgumentNullException(nameof(deathController));
+        _mapDiscoveryController = mapDiscoveryController ?? throw new ArgumentNullException(nameof(mapDiscoveryController));
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
 
         // Wire up event handlers
@@ -167,6 +176,9 @@ public class GrindingBot
 
         IsRunning = false;
 
+        // Save map data before stopping
+        _mapDiscoveryController.SaveToDisk();
+
         // Stop all subsystems
         _waypointPlayer.Stop();
         _combatController.StopCombat();
@@ -178,12 +190,42 @@ public class GrindingBot
     }
 
     /// <summary>
+    /// Saves map discovery data to disk.
+    /// </summary>
+    public void SaveMapData()
+    {
+        _mapDiscoveryController.SaveToDisk();
+    }
+
+    /// <summary>
+    /// Loads map discovery data from disk.
+    /// </summary>
+    public void LoadMapData()
+    {
+        _mapDiscoveryController.LoadFromDisk();
+    }
+
+    /// <summary>
+    /// Gets the current map discovery statistics.
+    /// </summary>
+    public MapDataStatistics GetMapStatistics()
+    {
+        return _mapDiscoveryController.GetStatistics();
+    }
+
+    /// <summary>
     /// Updates the bot. Should be called regularly.
     /// </summary>
     public void Update()
     {
         if (!IsRunning)
             return;
+
+        // Update map discovery (always active when enabled)
+        if (AutoMapping)
+        {
+            _mapDiscoveryController.Update();
+        }
 
         // Update death controller (detects death/resurrection)
         _deathController.Update();
