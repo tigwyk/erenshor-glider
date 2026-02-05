@@ -81,6 +81,11 @@ public class Character : MonoBehaviour
     /// Whether the character is dead.
     /// </summary>
     public bool Dead;
+
+    /// <summary>
+    /// The character's buffs/debuffs component.
+    /// </summary>
+    public CharacterBuffs MyBuffs;
 }
 
 /// <summary>
@@ -353,4 +358,68 @@ public enum ItemQuality
     Rare = 3,
     Epic = 4,
     Legendary = 5
+}
+
+/// <summary>
+/// Stub for Erenshor's CharacterBuffs class.
+/// Manages buffs and debuffs on a character.
+/// </summary>
+public class CharacterBuffs : MonoBehaviour
+{
+    /// <summary>
+    /// List of active buffs on this character.
+    /// </summary>
+    public Buff[] ActiveBuffs;
+
+    /// <summary>
+    /// List of active debuffs on this character.
+    /// </summary>
+    public Buff[] ActiveDebuffs;
+}
+
+/// <summary>
+/// Stub for Erenshor's Buff class.
+/// Represents a single buff or debuff.
+/// </summary>
+public class Buff : MonoBehaviour
+{
+    /// <summary>
+    /// The buff's display name.
+    /// </summary>
+    public string BuffName;
+
+    /// <summary>
+    /// Unique ID for this buff type.
+    /// </summary>
+    public string BuffId;
+
+    /// <summary>
+    /// Remaining duration in seconds.
+    /// </summary>
+    public float TimeRemaining;
+
+    /// <summary>
+    /// Max duration of this buff.
+    /// </summary>
+    public float MaxTime;
+
+    /// <summary>
+    /// Current stacks (if applicable).
+    /// </summary>
+    public int Stacks;
+
+    /// <summary>
+    /// Icon index for UI.
+    /// </summary>
+    public int IconIndex;
+
+    /// <summary>
+    /// Whether this is a debuff.
+    /// </summary>
+    public bool IsDebuff;
+
+    /// <summary>
+    /// The caster of this buff.
+    /// </summary>
+    public Character Caster;
 }

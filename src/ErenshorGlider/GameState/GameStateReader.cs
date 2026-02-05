@@ -36,6 +36,14 @@ public class GameStateReader
     private DateTime _lastInventoryUpdate;
     private readonly object _inventoryLock = new();
 
+    private BuffState _lastPlayerBuffs;
+    private DateTime _lastPlayerBuffsUpdate;
+    private readonly object _playerBuffsLock = new();
+
+    private BuffState _lastTargetBuffs;
+    private DateTime _lastTargetBuffsUpdate;
+    private readonly object _targetBuffsLock = new();
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
@@ -65,6 +73,16 @@ public class GameStateReader
     /// Event raised when inventory state changes.
     /// </summary>
     public event Action<PlayerInventory>? OnInventoryChanged;
+
+    /// <summary>
+    /// Event raised when player buffs/debuffs change.
+    /// </summary>
+    public event Action<BuffState>? OnPlayerBuffsChanged;
+
+    /// <summary>
+    /// Event raised when target buffs/debuffs change.
+    /// </summary>
+    public event Action<BuffState>? OnTargetBuffsChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -993,6 +1011,250 @@ public class GameStateReader
             itemId: item?.ItemId,
             maxStackSize: item?.MaxStackSize ?? 1
         );
+    }
+
+    #endregion
+
+    #region Buff/Debuff Reading
+
+    /// <summary>
+    /// Gets the player's current buff/debuff state.
+    /// Returns empty buff state if player is not loaded.
+    /// </summary>
+    public BuffState GetPlayerBuffs()
+    {
+        try
+        {
+            var playerControl = GameData.PlayerControl;
+            if (playerControl == null)
+                return BuffState.Empty;
+
+            var character = playerControl.Myself;
+            if (character == null)
+                return BuffState.Empty;
+
+            return GetBuffStateFromCharacter(character);
+        }
+        catch (Exception)
+        {
+            return BuffState.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Gets the cached player buff state (from last update).
+    /// </summary>
+    public BuffState? GetCachedPlayerBuffs()
+    {
+        lock (_playerBuffsLock)
+        {
+            if (_lastPlayerBuffsUpdate == default)
+                return null;
+
+            return _lastPlayerBuffs;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since player buffs were last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastPlayerBuffsUpdate
+    {
+        get
+        {
+            lock (_playerBuffsLock)
+            {
+                if (_lastPlayerBuffsUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastPlayerBuffsUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the player buff cache and raises events if buffs changed.
+    /// </summary>
+    public bool UpdatePlayerBuffs()
+    {
+        BuffState? oldBuffs;
+        lock (_playerBuffsLock)
+        {
+            oldBuffs = _lastPlayerBuffsUpdate != default ? _lastPlayerBuffs : (BuffState?)null;
+        }
+
+        var newBuffs = GetPlayerBuffs();
+
+        if (oldBuffs == null || HasBuffStateChanged(oldBuffs.Value, newBuffs))
+        {
+            lock (_playerBuffsLock)
+            {
+                _lastPlayerBuffs = newBuffs;
+                _lastPlayerBuffsUpdate = DateTime.UtcNow;
+            }
+            OnPlayerBuffsChanged?.Invoke(newBuffs);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the target's current buff/debuff state.
+    /// Returns empty buff state if no target or target not loaded.
+    /// </summary>
+    public BuffState GetTargetBuffs()
+    {
+        try
+        {
+            var playerControl = GameData.PlayerControl;
+            if (playerControl == null)
+                return BuffState.Empty;
+
+            var target = playerControl.CurrentTarget;
+            if (target == null)
+                return BuffState.Empty;
+
+            return GetBuffStateFromCharacter(target);
+        }
+        catch (Exception)
+        {
+            return BuffState.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Gets the cached target buff state (from last update).
+    /// </summary>
+    public BuffState? GetCachedTargetBuffs()
+    {
+        lock (_targetBuffsLock)
+        {
+            if (_lastTargetBuffsUpdate == default)
+                return null;
+
+            return _lastTargetBuffs;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since target buffs were last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastTargetBuffsUpdate
+    {
+        get
+        {
+            lock (_targetBuffsLock)
+            {
+                if (_lastTargetBuffsUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastTargetBuffsUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the target buff cache and raises events if buffs changed.
+    /// </summary>
+    public bool UpdateTargetBuffs()
+    {
+        BuffState? oldBuffs;
+        lock (_targetBuffsLock)
+        {
+            oldBuffs = _lastTargetBuffsUpdate != default ? _lastTargetBuffs : (BuffState?)null;
+        }
+
+        var newBuffs = GetTargetBuffs();
+
+        if (oldBuffs == null || HasBuffStateChanged(oldBuffs.Value, newBuffs))
+        {
+            lock (_targetBuffsLock)
+            {
+                _lastTargetBuffs = newBuffs;
+                _lastTargetBuffsUpdate = DateTime.UtcNow;
+            }
+            OnTargetBuffsChanged?.Invoke(newBuffs);
+        }
+
+        return true;
+    }
+
+    private static BuffState GetBuffStateFromCharacter(Character character)
+    {
+        var buffsComponent = character.MyBuffs;
+        if (buffsComponent == null)
+            return BuffState.Empty;
+
+        var buffList = new List<BuffInfo>();
+        var debuffList = new List<BuffInfo>();
+
+        // Read active buffs
+        if (buffsComponent.ActiveBuffs != null)
+        {
+            foreach (var buff in buffsComponent.ActiveBuffs)
+            {
+                if (buff != null)
+                {
+                    buffList.Add(CreateBuffInfo(buff));
+                }
+            }
+        }
+
+        // Read active debuffs
+        if (buffsComponent.ActiveDebuffs != null)
+        {
+            foreach (var debuff in buffsComponent.ActiveDebuffs)
+            {
+                if (debuff != null)
+                {
+                    debuffList.Add(CreateBuffInfo(debuff));
+                }
+            }
+        }
+
+        return new BuffState(buffList, debuffList);
+    }
+
+    private static BuffInfo CreateBuffInfo(Buff buff)
+    {
+        return new BuffInfo(
+            name: buff.BuffName ?? "Unknown Buff",
+            buffId: buff.BuffId,
+            remainingDuration: buff.TimeRemaining,
+            maxDuration: buff.MaxTime,
+            stacks: buff.Stacks,
+            iconIndex: buff.IconIndex,
+            isDebuff: buff.IsDebuff
+        );
+    }
+
+    private static bool HasBuffStateChanged(BuffState old, BuffState newState)
+    {
+        if (old.BuffCount != newState.BuffCount ||
+            old.DebuffCount != newState.DebuffCount)
+            return true;
+
+        // Check buffs
+        for (int i = 0; i < newState.Buffs.Count; i++)
+        {
+            var oldBuff = i < old.Buffs.Count ? old.Buffs[i] : default;
+            var newBuff = newState.Buffs[i];
+
+            if (!oldBuff.Equals(newBuff))
+                return true;
+        }
+
+        // Check debuffs
+        for (int i = 0; i < newState.Debuffs.Count; i++)
+        {
+            var oldDebuff = i < old.Debuffs.Count ? old.Debuffs[i] : default;
+            var newDebuff = newState.Debuffs[i];
+
+            if (!oldDebuff.Equals(newDebuff))
+                return true;
+        }
+
+        return false;
     }
 
     #endregion

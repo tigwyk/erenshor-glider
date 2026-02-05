@@ -132,8 +132,8 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses Character.MyBuffs.ActiveBuffs[] and ActiveDebuffs[] for buff/debuff lists. BuffInfo struct includes name, duration, stacks, and debuff flag."
     },
     {
       "id": "US-010",

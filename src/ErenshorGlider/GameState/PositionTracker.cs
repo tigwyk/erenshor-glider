@@ -65,6 +65,16 @@ public class PositionTracker : MonoBehaviour
     public PlayerInventory? CurrentInventory => GameStateReader.GetCachedInventory();
 
     /// <summary>
+    /// Gets the most recent player buff state, or null if unavailable.
+    /// </summary>
+    public BuffState? CurrentPlayerBuffs => GameStateReader.GetCachedPlayerBuffs();
+
+    /// <summary>
+    /// Gets the most recent target buff state, or null if unavailable.
+    /// </summary>
+    public BuffState? CurrentTargetBuffs => GameStateReader.GetCachedTargetBuffs();
+
+    /// <summary>
     /// Gets or sets the radius for nearby entity detection.
     /// </summary>
     public float NearbyEntitiesRadius
@@ -103,6 +113,16 @@ public class PositionTracker : MonoBehaviour
     /// </summary>
     public event Action<PlayerInventory>? OnInventoryUpdated;
 
+    /// <summary>
+    /// Event raised when player buffs/debuffs are updated.
+    /// </summary>
+    public event Action<BuffState>? OnPlayerBuffsUpdated;
+
+    /// <summary>
+    /// Event raised when target buffs/debuffs are updated.
+    /// </summary>
+    public event Action<BuffState>? OnTargetBuffsUpdated;
+
     private void Awake()
     {
         _gameStateReader = new GameStateReader();
@@ -112,6 +132,8 @@ public class PositionTracker : MonoBehaviour
         _gameStateReader.OnTargetInfoChanged += HandleTargetInfoChanged;
         _gameStateReader.OnNearbyEntitiesChanged += HandleNearbyEntitiesChanged;
         _gameStateReader.OnInventoryChanged += HandleInventoryChanged;
+        _gameStateReader.OnPlayerBuffsChanged += HandlePlayerBuffsChanged;
+        _gameStateReader.OnTargetBuffsChanged += HandleTargetBuffsChanged;
     }
 
     private void Update()
@@ -129,6 +151,9 @@ public class PositionTracker : MonoBehaviour
             // Inventory updates less frequently (on loot/vend) - update every 1 second instead of every 0.1s
             // We'll still call it here but with a check inside to throttle
             _gameStateReader?.UpdateInventory();
+            // Buffs/debuffs update - can throttle if needed
+            _gameStateReader?.UpdatePlayerBuffs();
+            _gameStateReader?.UpdateTargetBuffs();
         }
     }
 
@@ -162,6 +187,16 @@ public class PositionTracker : MonoBehaviour
         OnInventoryUpdated?.Invoke(inventory);
     }
 
+    private void HandlePlayerBuffsChanged(BuffState buffState)
+    {
+        OnPlayerBuffsUpdated?.Invoke(buffState);
+    }
+
+    private void HandleTargetBuffsChanged(BuffState buffState)
+    {
+        OnTargetBuffsUpdated?.Invoke(buffState);
+    }
+
     private void OnDestroy()
     {
         if (_gameStateReader != null)
@@ -172,6 +207,8 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader.OnTargetInfoChanged -= HandleTargetInfoChanged;
             _gameStateReader.OnNearbyEntitiesChanged -= HandleNearbyEntitiesChanged;
             _gameStateReader.OnInventoryChanged -= HandleInventoryChanged;
+            _gameStateReader.OnPlayerBuffsChanged -= HandlePlayerBuffsChanged;
+            _gameStateReader.OnTargetBuffsChanged -= HandleTargetBuffsChanged;
         }
     }
 

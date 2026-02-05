@@ -226,3 +226,32 @@
   - Inventory changes less frequently than combat state - could throttle updates separately if needed
   - PlayerInventory struct has helper methods like CountItem for checking consumable quantities
 ---
+
+## 2026-02-05 - US-009
+- What was implemented:
+  - Created BuffInfo struct with Name, BuffId, RemainingDuration, MaxDuration, Stacks, IconIndex, IsDebuff
+  - Added helper properties: DurationPercent, IsExpired, IsDurationBelow, IsDurationAbove
+  - Created BuffState struct with Buffs list, Debuffs list, and combined AllEffects
+  - Added helper methods: HasBuff, HasDebuff, GetBuff, GetDebuff, HasBuffExpiringSoon, HasDebuffExpiringSoon
+  - Extended GameStubs with CharacterBuffs, Buff classes
+  - Added Character.MyBuffs field to access buffs/debuffs component
+  - Added GetPlayerBuffs(), GetCachedPlayerBuffs(), UpdatePlayerBuffs() to GameStateReader
+  - Added GetTargetBuffs(), GetCachedTargetBuffs(), UpdateTargetBuffs() for target buffs
+  - Reads from CharacterBuffs.ActiveBuffs[] and ActiveDebuffs[] arrays
+  - Added OnPlayerBuffsChanged and OnTargetBuffsChanged events for reactive updates
+  - Extended PositionTracker to track player and target buff state
+  - PositionTracker now serves as central state tracker for: position, vitals, combat state, target info, nearby entities, inventory, and buffs/debuffs
+- Files changed:
+  - src/ErenshorGlider/GameState/BuffInfo.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - Character.MyBuffs provides access to CharacterBuffs component
+  - CharacterBuffs.ActiveBuffs[] contains beneficial effects
+  - CharacterBuffs.ActiveDebuffs[] contains harmful effects
+  - BuffInfo uses readonly struct pattern - consistent with other game state types
+  - BuffState has helper methods for checking specific buffs (HasBuff, GetBuff) - useful for rotation decisions
+  - Reading target buffs is important for decisions like "re-apply dot" or "don't over-cap debuffs"
+  - Buff duration tracking (RemainingDuration/MaxDuration) enables pre-rebuffing logic
+---
