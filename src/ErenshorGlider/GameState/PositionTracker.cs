@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ErenshorGlider.GameState;
@@ -54,6 +55,20 @@ public class PositionTracker : MonoBehaviour
     public TargetInfo? CurrentTargetInfo => GameStateReader.GetCachedTargetInfo();
 
     /// <summary>
+    /// Gets the most recent nearby entities list, or null if unavailable.
+    /// </summary>
+    public IReadOnlyList<EntityInfo>? CurrentNearbyEntities => GameStateReader.GetCachedNearbyEntities();
+
+    /// <summary>
+    /// Gets or sets the radius for nearby entity detection.
+    /// </summary>
+    public float NearbyEntitiesRadius
+    {
+        get => GameStateReader.NearbyEntitiesRadius;
+        set => GameStateReader.NearbyEntitiesRadius = value;
+    }
+
+    /// <summary>
     /// Event raised when player position is updated.
     /// </summary>
     public event Action<PlayerPosition>? OnPositionUpdated;
@@ -73,6 +88,11 @@ public class PositionTracker : MonoBehaviour
     /// </summary>
     public event Action<TargetInfo>? OnTargetInfoUpdated;
 
+    /// <summary>
+    /// Event raised when nearby entities list is updated.
+    /// </summary>
+    public event Action<IReadOnlyList<EntityInfo>>? OnNearbyEntitiesUpdated;
+
     private void Awake()
     {
         _gameStateReader = new GameStateReader();
@@ -80,6 +100,7 @@ public class PositionTracker : MonoBehaviour
         _gameStateReader.OnVitalsChanged += HandleVitalsChanged;
         _gameStateReader.OnCombatStateChanged += HandleCombatStateChanged;
         _gameStateReader.OnTargetInfoChanged += HandleTargetInfoChanged;
+        _gameStateReader.OnNearbyEntitiesChanged += HandleNearbyEntitiesChanged;
     }
 
     private void Update()
@@ -93,6 +114,7 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader?.UpdateVitals();
             _gameStateReader?.UpdateCombatState();
             _gameStateReader?.UpdateTargetInfo();
+            _gameStateReader?.UpdateNearbyEntities();
         }
     }
 
@@ -116,6 +138,11 @@ public class PositionTracker : MonoBehaviour
         OnTargetInfoUpdated?.Invoke(targetInfo);
     }
 
+    private void HandleNearbyEntitiesChanged(IReadOnlyList<EntityInfo> entities)
+    {
+        OnNearbyEntitiesUpdated?.Invoke(entities);
+    }
+
     private void OnDestroy()
     {
         if (_gameStateReader != null)
@@ -124,6 +151,7 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader.OnVitalsChanged -= HandleVitalsChanged;
             _gameStateReader.OnCombatStateChanged -= HandleCombatStateChanged;
             _gameStateReader.OnTargetInfoChanged -= HandleTargetInfoChanged;
+            _gameStateReader.OnNearbyEntitiesChanged -= HandleNearbyEntitiesChanged;
         }
     }
 

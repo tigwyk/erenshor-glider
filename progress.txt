@@ -173,3 +173,29 @@
   - Character.transform.position gives target world position (via MonoBehaviour inheritance)
   - PositionTracker now tracks position, vitals, combat state, and target info - serves as central state tracker
 ---
+
+## 2026-02-05 - US-007
+- What was implemented:
+  - Created EntityInfo struct with Name, Type (EntityType enum), Position, Level, Hostility, CurrentHealth, MaxHealth, HealthPercent, IsDead, Distance
+  - Added EntityType enum: Mob, NPC, Node, Corpse
+  - Added helper properties: IsHostile, IsFriendly, IsNeutral, IsMob, IsNPC, IsNode, IsCorpse, CanBeAttacked
+  - Added threshold methods: IsHealthBelowPercent, IsHealthAbovePercent
+  - Extended GameStubs with NPC, SimPlayer, ResourceNode, LootableCorpse classes
+  - Added GetNearbyEntities(), GetCachedNearbyEntities(), UpdateNearbyEntities() to GameStateReader
+  - Scans for Character, NPC, ResourceNode, and LootableCorpse using UnityEngine.Object.FindObjectsOfType
+  - Sorts entities by distance and skips already-looted corpses
+  - Added OnNearbyEntitiesChanged event for reactive updates
+  - Extended PositionTracker to track nearby entities at 10Hz alongside other state
+  - Added NearbyEntitiesRadius property for configurable scan radius (default 50 units)
+- Files changed:
+  - src/ErenshorGlider/GameState/EntityInfo.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - UnityEngine.Object.FindObjectsOfType<T>() is the standard way to find all objects of a type in the scene
+  - Need to be careful about duplicate detection since NPC inherits from Character - check by position to avoid adding same entity twice
+  - Nearby entities scanning is expensive - 50 unit radius with 10Hz update may need tuning based on performance
+  - EntityInfo uses readonly struct pattern for immutable snapshots - consistent with other game state types
+  - PositionTracker now tracks position, vitals, combat state, target info, and nearby entities - central state tracker for all game state
+---

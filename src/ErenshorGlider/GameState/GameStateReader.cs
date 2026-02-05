@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ErenshorGlider.GameStubs;
 using UnityEngine;
 
@@ -26,6 +27,11 @@ public class GameStateReader
     private DateTime _lastTargetInfoUpdate;
     private readonly object _targetInfoLock = new();
 
+    private List<EntityInfo> _lastNearbyEntities = new();
+    private DateTime _lastNearbyEntitiesUpdate;
+    private readonly object _nearbyEntitiesLock = new();
+    private float _nearbyEntitiesRadius = 50f; // Default scan radius
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
@@ -45,6 +51,11 @@ public class GameStateReader
     /// Event raised when target info changes.
     /// </summary>
     public event Action<TargetInfo>? OnTargetInfoChanged;
+
+    /// <summary>
+    /// Event raised when nearby entities list is updated.
+    /// </summary>
+    public event Action<IReadOnlyList<EntityInfo>>? OnNearbyEntitiesChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -501,6 +512,321 @@ public class GameStateReader
             Faction.Neutral => TargetHostility.Neutral,
             _ => TargetHostility.Neutral
         };
+    }
+
+    #endregion
+
+    #region Nearby Entities Reading
+
+    /// <summary>
+    /// Gets or sets the radius for nearby entity detection.
+    /// Default is 50 units.
+    /// </summary>
+    public float NearbyEntitiesRadius
+    {
+        get => _nearbyEntitiesRadius;
+        set => _nearbyEntitiesRadius = Math.Max(1f, value);
+    }
+
+    /// <summary>
+    /// Gets a list of entities within the configured radius.
+    /// Returns an empty list if player is not loaded.
+    /// </summary>
+    /// <param name="radius">Optional radius override. Uses NearbyEntitiesRadius if not specified.</param>
+    public IReadOnlyList<EntityInfo> GetNearbyEntities(float? radius = null)
+    {
+        var scanRadius = radius ?? _nearbyEntitiesRadius;
+        var entities = new List<EntityInfo>();
+
+        try
+        {
+            var playerTransform = GetPlayerControlTransform();
+            if (playerTransform == null)
+                return entities;
+
+            var playerPosition = playerTransform.position;
+            var playerCharacter = GameData.PlayerControl?.Myself;
+
+            // Find all Character objects in the scene
+            var allCharacters = UnityEngine.Object.FindObjectsOfType<Character>();
+            foreach (var character in allCharacters)
+            {
+                // Skip the player
+                if (character == playerCharacter)
+                    continue;
+
+                // Skip null or destroyed objects
+                if (character == null || character.transform == null)
+                    continue;
+
+                var charPosition = character.transform.position;
+                var distance = Vector3.Distance(playerPosition, charPosition);
+
+                // Skip if outside radius
+                if (distance > scanRadius)
+                    continue;
+
+                var entityInfo = CreateEntityInfoFromCharacter(character, distance);
+                entities.Add(entityInfo);
+            }
+
+            // Find all NPC objects (may be a subclass of Character, but search separately for completeness)
+            var allNPCs = UnityEngine.Object.FindObjectsOfType<NPC>();
+            foreach (var npc in allNPCs)
+            {
+                // Skip if already added as Character
+                if (npc == playerCharacter)
+                    continue;
+
+                if (npc == null || npc.transform == null)
+                    continue;
+
+                // Check if already in list (NPC inherits from Character)
+                var npcPosition = npc.transform.position;
+                var distance = Vector3.Distance(playerPosition, npcPosition);
+
+                if (distance > scanRadius)
+                    continue;
+
+                // Only add if not already present (check by position)
+                bool alreadyExists = false;
+                foreach (var existing in entities)
+                {
+                    if (Math.Abs(existing.Position.X - npcPosition.x) < 0.1f &&
+                        Math.Abs(existing.Position.Y - npcPosition.y) < 0.1f &&
+                        Math.Abs(existing.Position.Z - npcPosition.z) < 0.1f)
+                    {
+                        alreadyExists = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyExists)
+                {
+                    var entityInfo = CreateEntityInfoFromNPC(npc, distance);
+                    entities.Add(entityInfo);
+                }
+            }
+
+            // Find resource nodes
+            var allNodes = UnityEngine.Object.FindObjectsOfType<ResourceNode>();
+            foreach (var node in allNodes)
+            {
+                if (node == null || node.transform == null)
+                    continue;
+
+                var nodePosition = node.transform.position;
+                var distance = Vector3.Distance(playerPosition, nodePosition);
+
+                if (distance > scanRadius)
+                    continue;
+
+                var entityInfo = CreateEntityInfoFromNode(node, distance);
+                entities.Add(entityInfo);
+            }
+
+            // Find lootable corpses
+            var allCorpses = UnityEngine.Object.FindObjectsOfType<LootableCorpse>();
+            foreach (var corpse in allCorpses)
+            {
+                if (corpse == null || corpse.transform == null)
+                    continue;
+
+                // Skip already looted corpses
+                if (corpse.IsLooted)
+                    continue;
+
+                var corpsePosition = corpse.transform.position;
+                var distance = Vector3.Distance(playerPosition, corpsePosition);
+
+                if (distance > scanRadius)
+                    continue;
+
+                var entityInfo = CreateEntityInfoFromCorpse(corpse, distance);
+                entities.Add(entityInfo);
+            }
+
+            // Sort by distance
+            entities.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+
+            lock (_nearbyEntitiesLock)
+            {
+                _lastNearbyEntities = entities;
+                _lastNearbyEntitiesUpdate = DateTime.UtcNow;
+            }
+
+            return entities;
+        }
+        catch (Exception)
+        {
+            // Game state not available
+            return entities;
+        }
+    }
+
+    /// <summary>
+    /// Gets the cached nearby entities list (from last update).
+    /// </summary>
+    public IReadOnlyList<EntityInfo>? GetCachedNearbyEntities()
+    {
+        lock (_nearbyEntitiesLock)
+        {
+            if (_lastNearbyEntitiesUpdate == default)
+                return null;
+
+            return _lastNearbyEntities.AsReadOnly();
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since nearby entities were last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastNearbyEntitiesUpdate
+    {
+        get
+        {
+            lock (_nearbyEntitiesLock)
+            {
+                if (_lastNearbyEntitiesUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastNearbyEntitiesUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the nearby entities cache and raises events if the list changed.
+    /// </summary>
+    /// <returns>True if update was successful, false if game state unavailable.</returns>
+    public bool UpdateNearbyEntities()
+    {
+        IReadOnlyList<EntityInfo>? oldEntities;
+        lock (_nearbyEntitiesLock)
+        {
+            oldEntities = _lastNearbyEntitiesUpdate != default
+                ? _lastNearbyEntities.AsReadOnly()
+                : null;
+        }
+
+        var newEntities = GetNearbyEntities();
+
+        if (newEntities.Count == 0 && !IsAvailable)
+            return false;
+
+        if (oldEntities == null || HasNearbyEntitiesChanged(oldEntities, newEntities))
+        {
+            OnNearbyEntitiesChanged?.Invoke(newEntities);
+        }
+
+        return true;
+    }
+
+    private static bool HasNearbyEntitiesChanged(IReadOnlyList<EntityInfo> old, IReadOnlyList<EntityInfo> newList)
+    {
+        if (old.Count != newList.Count)
+            return true;
+
+        // Simple check: compare names and distances
+        for (int i = 0; i < old.Count; i++)
+        {
+            if (old[i].Name != newList[i].Name ||
+                Math.Abs(old[i].Distance - newList[i].Distance) > 0.5f ||
+                old[i].IsDead != newList[i].IsDead ||
+                Math.Abs(old[i].HealthPercent - newList[i].HealthPercent) > 1f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static EntityInfo CreateEntityInfoFromCharacter(Character character, float distance)
+    {
+        var stats = character.MyStats;
+        var position = character.transform.position;
+
+        // Determine entity type based on faction and other properties
+        EntityType entityType;
+        if (character.Dead)
+        {
+            // Could be a corpse if it's an enemy
+            entityType = character.MyFaction == Faction.Enemy ? EntityType.Corpse : EntityType.Mob;
+        }
+        else if (character.MyFaction == Faction.Friendly || character.MyFaction == Faction.Player)
+        {
+            entityType = EntityType.NPC;
+        }
+        else
+        {
+            entityType = EntityType.Mob;
+        }
+
+        return new EntityInfo(
+            name: character.CharacterName ?? "Unknown",
+            type: entityType,
+            position: new PlayerPosition(position),
+            level: stats?.Level ?? 0,
+            hostility: ConvertFactionToHostility(character.MyFaction),
+            currentHealth: stats?.CurrentHP ?? 0,
+            maxHealth: stats?.MaxHP ?? 0,
+            isDead: character.Dead,
+            distance: distance
+        );
+    }
+
+    private static EntityInfo CreateEntityInfoFromNPC(NPC npc, float distance)
+    {
+        var stats = npc.MyStats;
+        var position = npc.transform.position;
+
+        return new EntityInfo(
+            name: npc.CharacterName ?? "Unknown NPC",
+            type: EntityType.NPC,
+            position: new PlayerPosition(position),
+            level: stats?.Level ?? 0,
+            hostility: TargetHostility.Friendly,
+            currentHealth: stats?.CurrentHP ?? 0,
+            maxHealth: stats?.MaxHP ?? 0,
+            isDead: npc.Dead,
+            distance: distance
+        );
+    }
+
+    private static EntityInfo CreateEntityInfoFromNode(ResourceNode node, float distance)
+    {
+        var position = node.transform.position;
+
+        return new EntityInfo(
+            name: node.NodeName ?? "Resource Node",
+            type: EntityType.Node,
+            position: new PlayerPosition(position),
+            level: 0,
+            hostility: TargetHostility.Neutral,
+            currentHealth: 0,
+            maxHealth: 0,
+            isDead: false,
+            distance: distance
+        );
+    }
+
+    private static EntityInfo CreateEntityInfoFromCorpse(LootableCorpse corpse, float distance)
+    {
+        var position = corpse.transform.position;
+        var originalChar = corpse.OriginalCharacter;
+
+        return new EntityInfo(
+            name: corpse.CorpseName ?? originalChar?.CharacterName ?? "Corpse",
+            type: EntityType.Corpse,
+            position: new PlayerPosition(position),
+            level: originalChar?.MyStats?.Level ?? 0,
+            hostility: TargetHostility.Neutral,
+            currentHealth: 0,
+            maxHealth: 0,
+            isDead: true,
+            distance: distance
+        );
     }
 
     #endregion

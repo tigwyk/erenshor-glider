@@ -173,3 +173,80 @@ public enum Faction
     Neutral,
     Friendly
 }
+
+/// <summary>
+/// Stub for Erenshor's NPC class.
+/// NPCs are non-player characters that can be interacted with.
+/// </summary>
+public class NPC : Character
+{
+    /// <summary>
+    /// Whether this NPC is a vendor.
+    /// </summary>
+    public bool IsVendor;
+
+    /// <summary>
+    /// Whether this NPC offers quests.
+    /// </summary>
+    public bool HasQuests;
+
+    /// <summary>
+    /// Called when the NPC aggros on a target.
+    /// </summary>
+    public void AggroOn() { }
+}
+
+/// <summary>
+/// Stub for Erenshor's SimPlayer class.
+/// SimPlayers are AI-controlled party members that simulate other players.
+/// </summary>
+public class SimPlayer : Character
+{
+    /// <summary>
+    /// The class of this sim player.
+    /// </summary>
+    public string CharacterClass;
+}
+
+/// <summary>
+/// Stub for a resource node (ore, herbs, etc.).
+/// In Erenshor, these may be represented differently - adjust as needed.
+/// </summary>
+public class ResourceNode : MonoBehaviour
+{
+    /// <summary>
+    /// The name/type of this resource.
+    /// </summary>
+    public string NodeName;
+
+    /// <summary>
+    /// Whether this node can currently be gathered.
+    /// </summary>
+    public bool CanGather;
+
+    /// <summary>
+    /// The skill required to gather this node.
+    /// </summary>
+    public string RequiredSkill;
+}
+
+/// <summary>
+/// Stub for a lootable corpse.
+/// </summary>
+public class LootableCorpse : MonoBehaviour
+{
+    /// <summary>
+    /// The name of the creature this corpse belongs to.
+    /// </summary>
+    public string CorpseName;
+
+    /// <summary>
+    /// Whether this corpse has been looted.
+    /// </summary>
+    public bool IsLooted;
+
+    /// <summary>
+    /// The original character this corpse came from.
+    /// </summary>
+    public Character OriginalCharacter;
+}

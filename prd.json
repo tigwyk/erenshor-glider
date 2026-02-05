@@ -105,8 +105,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses UnityEngine.Object.FindObjectsOfType to scan for Character, NPC, ResourceNode, and LootableCorpse within radius. EntityInfo struct includes all required properties."
     },
     {
       "id": "US-008",
