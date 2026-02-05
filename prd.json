@@ -387,8 +387,8 @@
         "Typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DeathController class handles death detection via CombatState.IsAlive. Uses InputController.Interact() to release spirit and accept graveyard resurrection. NeedsRebuff flag indicates rebuff needed. Transitions to Resting state after resurrection for recovery."
     },
     {
       "id": "US-027",

@@ -672,3 +672,36 @@
   - TODO: Add runtime limit and stuck detection to stop conditions
   - TODO: Add bag full + vendor run logic
 ---
+
+## 2026-02-05 - US-026
+- What was implemented:
+  - Created DeathController class for handling player death and resurrection
+  - Detects player death via CombatState.IsAlive from PositionTracker
+  - ReleaseSpirit() method uses InputController.Interact() to click release button
+  - AcceptGraveyardResurrection() method accepts graveyard resurrection dialog
+  - AutoReleaseSpirit (default true) automatically releases spirit on death
+  - AutoResurrectAtGraveyard (default true) automatically accepts resurrection
+  - MaxResurrectWaitSeconds (default 30s) timeout for resurrection process
+  - Tracks DeathCount, TimeSinceDeath, and DeathPosition
+  - NeedsRebuff flag indicates player needs rebuffing after resurrection
+  - MarkRebuffed() method clears the rebuff flag
+  - Reset() method clears all death state
+  - OnPlayerDeath, OnResurrectionStarted, OnResurrectionCompleted, OnResurrectionFailed events
+  - ResurrectResult enum: Success, Timeout, Cancelled, Failed
+  - Integrated DeathController into GrindingBot
+  - Added SessionDeathCount property (replaces obsolete DeathCount)
+  - After resurrection, bot transitions to Resting state for recovery
+  - Resurrection failure stops bot with PlayerDied reason
+- Files changed:
+  - src/ErenshorGlider/Combat/DeathController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - DeathController follows the same pattern as other controllers (Combat, Loot, Rest)
+  - Uses InputController.Interact() for UI interactions (release spirit, accept resurrection)
+  - The Enter key is commonly used for UI interactions in Erenshor
+  - Death detection relies on CombatState.IsAlive from PositionTracker
+  - After resurrection, transitioning to Resting state allows health/mana recovery before resuming
+  - DeathCount is tracked in DeathController, not GrindingBot (separation of concerns)
+  - GrindingBot no longer has its own CheckForDeath method (delegated to DeathController)
+  - NeedsRebuff flag allows future rotation system to reapply buffs after resurrection
+---
