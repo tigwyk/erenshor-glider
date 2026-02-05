@@ -492,8 +492,8 @@
         "Typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "SafetyController class with F12 default emergency stop hotkey. UpdateHotkeys(Func<KeyCode, bool>) for key polling. EmergencyStopTriggered flag and StopReason.EmergencyStop enum value added. Logs via ActionLog.Warning()."
     },
     {
       "id": "US-034",
