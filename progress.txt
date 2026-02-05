@@ -8,6 +8,8 @@
 - Character.MyStats for health/mana/stats access
 - Use BepInEx.Configuration for mod settings
 - Target .NET Framework 4.7.2 or .NET Standard 2.0
+- Build with `dotnet build` in project root (requires .NET SDK 8.0+)
+- Plugin entry point is Plugin.cs with [BepInPlugin] attribute
 
 ---
 
@@ -30,4 +32,37 @@
   - Movement input simulation may be needed vs direct position manipulation
   - NPC.AggroOn() can be hooked to detect when player is attacked
   - Character.DoDeath() can be hooked to detect deaths
+---
+
+## 2026-02-05 - US-002
+- What was implemented:
+  - Created C# BepInEx 5.x plugin project structure
+  - Set up ErenshorGlider.sln and ErenshorGlider.csproj with proper dependencies
+  - Configured BepInEx.Core and UnityEngine.Modules NuGet packages
+  - Added Plugin.cs with BepInPlugin attribute and basic initialization
+  - Added PluginInfo.cs with plugin metadata constants
+  - Created folder structure: src/ErenshorGlider/, profiles/, waypoints/
+  - Added .editorconfig for C# code style consistency
+  - Added .gitignore for build artifacts
+  - Added Directory.Build.props for shared build configuration
+  - Created README.md with setup and build instructions
+- Files changed:
+  - ErenshorGlider.sln (created)
+  - src/ErenshorGlider/ErenshorGlider.csproj (created)
+  - src/ErenshorGlider/Plugin.cs (created)
+  - src/ErenshorGlider/PluginInfo.cs (created)
+  - .editorconfig (created)
+  - .gitignore (created)
+  - Directory.Build.props (created)
+  - README.md (created)
+  - profiles/.gitkeep (created)
+  - waypoints/.gitkeep (created)
+- **Learnings for future iterations:**
+  - Project uses SDK-style csproj with .NET Framework 4.7.2 target
+  - BepInEx.Core 5.x and BepInEx.Analyzers packages provide base plugin functionality
+  - UnityEngine.Modules 2022.3.20 provides Unity types (may need adjustment if Erenshor uses older Unity)
+  - BepInEx.PluginInfoProps enables automatic plugin metadata generation
+  - Plugin.cs inherits from BaseUnityPlugin which is a MonoBehaviour
+  - Logger is accessible via base.Logger in Awake()
+  - Build command: `dotnet build` (requires .NET SDK 8.0+)
 ---

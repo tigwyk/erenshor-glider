@@ -32,8 +32,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "C# BepInEx 5.x plugin with .NET 4.7.2. Uses BepInEx.Core and UnityEngine.Modules packages."
     },
     {
       "id": "US-003",
