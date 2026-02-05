@@ -779,3 +779,29 @@
   - Settings are organized by category for easier navigation
   - Hotkey strings can be parsed by InputController for key binding
 ---
+
+## 2026-02-05 - US-031
+- What was implemented:
+  - Created SessionStatistics class for tracking bot session data
+  - Tracks session runtime, kills, deaths, XP gained, items looted, gold earned
+  - Calculates per-hour rates: KillsPerHour, DeathsPerHour, XpPerHour, ItemsPerHour, GoldPerHour
+  - Tracks timestamps: SessionStartTime, LastKillTime, LastDeathTime, LastLootTime
+  - AverageTimeBetweenKills calculates average kill pace
+  - RecordKill(), RecordDeath(), RecordXpGained(), RecordItemLooted(), RecordGoldEarned() methods
+  - StartNewSession() resets all statistics
+  - GetSummary() returns StatisticsSummary snapshot
+  - Events: OnKill, OnDeath, OnXpGained, OnItemLooted, OnGoldEarned
+  - StatisticsSummary readonly struct for immutable snapshots
+  - ToString() methods for formatted output
+  - Time formatting (hours:minutes, minutes:seconds, or seconds only)
+- Files changed:
+  - src/ErenshorGlider/Statistics/SessionStatistics.cs (created)
+- **Learnings for future iterations:**
+  - SessionStatistics can be integrated into GrindingBot for automatic tracking
+  - Per-hour rates use TotalHours for calculation (divides by hours, not minutes)
+  - StatisticsSummary provides a snapshot API for GUI without exposing mutable state
+  - Events allow real-time UI updates without polling
+  - AverageTimeBetweenKills uses ticks for precision, calculated as (lastKill - start) / (kills - 1)
+  - StartNewSession should be called when bot starts to reset tracking
+  - RecordXpGained can track XP difference from StartingXp or incremental gains
+---
