@@ -32,6 +32,44 @@
 - Combat/ contains Ability, Condition, RotationEntry, CombatProfile, TargetSelector, RotationExecutor
 - JSON serialization uses System.Text.Json with camelCase naming for files
 - profiles/ and waypoints/ directories for user-editable data files
+- GUI/ (ErenshorGlider.GUI) is a separate Windows Forms desktop application for bot control
+- GUI uses System.Windows.Forms with UseWindowsForms=true in csproj for .NET Framework 4.7.2
+- MainWindow has dark theme: header (Color 45,45,48), content (30,30,30), status bar matching header
+- NotifyIcon with ContextMenuStrip provides system tray functionality
+- MinimizeToTray pattern: hide form, show notify icon, restore via double-click or context menu
+- FormClosing event with Cancel=true prevents actual close, enabling minimize-to-tray behavior
+- ContentPanel property exposes main panel for child controls (future UI components)
+- SetStatus/SetConnectionStatus methods check InvokeRequired for thread-safe UI updates
+
+---
+
+## 2026-02-05 - US-035
+- What was implemented:
+  - Created Windows Forms desktop application (ErenshorGlider.GUI project)
+  - MainWindow with dark-themed header panel (45,45,48 RGB)
+  - Main content area with padding for future UI components
+  - Status bar with status message and connection status indicator
+  - System tray support with NotifyIcon
+  - Minimize-to-tray behavior on window close
+  - Context menu (Show/Exit) for system tray icon
+  - Balloon tip notifications from tray
+  - Events: MinimizedToTray, RestoredFromTray, ApplicationExiting
+- Files changed:
+  - src/ErenshorGlider.GUI/ErenshorGlider.GUI.csproj (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (created)
+  - src/ErenshorGlider.GUI/Program.cs (created)
+  - ErenshorGlider.sln (modified - added GUI project)
+- **Learnings for future iterations:**
+  - Windows Forms requires UseWindowsForms=true in csproj for .NET SDK-style projects
+  - Target framework net472 matches the BepInEx plugin for consistency
+  - GUID in solution files must use valid hex characters (0-9, A-F) - format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+  - NotifyIcon.Visible should be false by default, only show when minimized
+  - FormClosing with CloseReason.UserClosing allows intercepting close action
+  - InvokeRequired pattern is essential for thread-safe UI updates from background threads
+  - ContentPanel property allows future stories to add controls without modifying MainWindow
+  - The GUI is a separate executable from the BepInEx plugin - will need IPC/communication mechanism
+  - SystemIcons.Application provides a default icon without needing external .ico file
+  - Dark theme colors used: Header (45,45,48), Content (30,30,30), similar to VS Code dark theme
 
 ---
 
