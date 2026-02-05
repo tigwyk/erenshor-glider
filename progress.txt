@@ -1013,4 +1013,33 @@
   - Consolas font for coordinates aligns numbers nicely
   - Target name color change provides visual feedback for combat state
 
+## 2026-02-05 - US-038
+- What was implemented:
+  - Created SessionStatistics readonly struct with Runtime, Kills, Deaths, XpGained, GoldEarned, ItemsLooted
+  - Added ISessionStatisticsProvider interface for statistics access
+  - Created SessionStatisticsPanel with 3-column layout showing 8 statistics
+  - Statistics displayed: Runtime, Kills (with /hr), Deaths, XP Gained, XP/Hour, Gold (with /hr), Gold/Hour, Items Looted
+  - 1Hz update timer (1000ms interval) - slower than status panel since stats change less
+  - MockBotController implements ISessionStatisticsProvider with simulated gains
+  - Per-hour rates: XpPerHour, GoldPerHour, KillsPerHour calculated from TotalHours
+  - FormattedRuntime adapts display based on duration (\"Xh Ym Zs\", \"Ym Zs\", or \"Zs\")
+  - Number formatting with N0 specifier adds thousands separator (e.g., \"1,234\")
+  - Simulated gains: 2% chance per tick of kill with random XP (50-150), gold (1-20), items (0-3)
+- Files changed:
+  - src/ErenshorGlider.GUI/SessionStatisticsModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/SessionStatisticsPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - SessionStatistics uses readonly struct pattern for immutable snapshots
+  - Per-hour rate calculation: value / Runtime.TotalHours, handle division by zero
+  - FormattedRuntime uses conditional display based on hours/minutes presence
+  - 1-second update interval sufficient for statistics (less frequent than status)
+  - Statistics panel layout: 3 columns with ~200px width each, height ~160px
+  - MockBotController simulates activity for UI testing (random gains on each update)
+  - UpdateLabel helper method checks text equality before setting to reduce flicker
+  - Statistics reset on bot start (session tracking, not cumulative)
+  - XP/Gold numbers use N0 format for thousands separation (readability)
+  - Panel docking order: BotControlPanel, StatusDisplayPanel, SessionStatisticsPanel (top to bottom)
+
 ---
