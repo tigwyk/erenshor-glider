@@ -309,8 +309,8 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "TargetSelector class with FindBestTarget() for target selection. BlacklistName/BlacklistType for filtering. MaxLevelAbove/MaxLevelBelow for level range. PrioritizeAttackers for threat priority. MaxWaypointDistance for path adherence."
     },
     {
       "id": "US-022",

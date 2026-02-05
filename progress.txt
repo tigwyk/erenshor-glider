@@ -506,3 +506,29 @@
   - Error handling allows partial loading (continues on bad files)
   - Profiles stored with camelCase JSON naming for readability
 ---
+## 2026-02-05 - US-021
+- What was implemented:
+  - Created TargetSelector class for intelligent target selection
+  - FindBestTarget() returns best target based on multiple criteria
+  - FindBestTarget(radius) overload for limited range search
+  - HasValidTargets() and GetValidTargets() for target queries
+  - BlacklistName(name) and BlacklistType(type) for filtering unwanted targets
+  - ClearBlacklists() removes all filters
+  - MaxLevelAbove (default 3) and MaxLevelBelow (default 10) for level range
+  - MaxSearchRadius (default 50 units) limits search area
+  - MaxWaypointDistance for path adherence (TODO: waypoint distance check)
+  - PrioritizeAttackers (default true) prioritizes threatening targets
+  - CompareTargetPriority sorts by: threat status, distance, level, health
+  - OnTargetSelected and OnNoTargetFound events
+- Files changed:
+  - src/ErenshorGlider/Combat/TargetSelector.cs (created)
+- **Learnings for future iterations:**
+  - CanBeAttacked combines IsMob, IsHostile, and !IsDead checks
+  - Name blacklist uses case-insensitive partial matching (flexible filtering)
+  - Target priority: threat > distance > level (easier first) > health (lower first)
+  - Level range prevents fighting mobs too high or too low
+  - GetValidTargets returns sorted list by distance for manual selection
+  - OnTargetSelected event allows logging/UI update when new target chosen
+  - TODO: Add actual attacking player detection (requires combat state per entity)
+  - TODO: Implement waypoint path distance checking
+---
