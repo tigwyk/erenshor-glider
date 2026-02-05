@@ -39,14 +39,25 @@ public class PositionTracker : MonoBehaviour
     public PlayerPosition? CurrentPosition => GameStateReader.GetCachedPosition();
 
     /// <summary>
+    /// Gets the most recent player vitals, or null if unavailable.
+    /// </summary>
+    public PlayerVitals? CurrentVitals => GameStateReader.GetCachedVitals();
+
+    /// <summary>
     /// Event raised when player position is updated.
     /// </summary>
     public event Action<PlayerPosition>? OnPositionUpdated;
+
+    /// <summary>
+    /// Event raised when player vitals are updated.
+    /// </summary>
+    public event Action<PlayerVitals>? OnVitalsUpdated;
 
     private void Awake()
     {
         _gameStateReader = new GameStateReader();
         _gameStateReader.OnPositionChanged += HandlePositionChanged;
+        _gameStateReader.OnVitalsChanged += HandleVitalsChanged;
     }
 
     private void Update()
@@ -57,6 +68,7 @@ public class PositionTracker : MonoBehaviour
         {
             _timeSinceLastUpdate = 0f;
             _gameStateReader?.UpdatePosition();
+            _gameStateReader?.UpdateVitals();
         }
     }
 
@@ -65,11 +77,17 @@ public class PositionTracker : MonoBehaviour
         OnPositionUpdated?.Invoke(position);
     }
 
+    private void HandleVitalsChanged(PlayerVitals vitals)
+    {
+        OnVitalsUpdated?.Invoke(vitals);
+    }
+
     private void OnDestroy()
     {
         if (_gameStateReader != null)
         {
             _gameStateReader.OnPositionChanged -= HandlePositionChanged;
+            _gameStateReader.OnVitalsChanged -= HandleVitalsChanged;
         }
     }
 

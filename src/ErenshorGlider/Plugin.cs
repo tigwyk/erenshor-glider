@@ -25,13 +25,20 @@ public class Plugin : BaseUnityPlugin
         // Initialize position tracker (updates at 10Hz by default)
         PositionTracker = gameObject.AddComponent<PositionTracker>();
         PositionTracker.OnPositionUpdated += OnPlayerPositionUpdated;
+        PositionTracker.OnVitalsUpdated += OnPlayerVitalsUpdated;
 
-        Logger.LogInfo("Position tracker initialized (10Hz update rate)");
+        Logger.LogInfo("Position and vitals tracker initialized (10Hz update rate)");
     }
 
     private void OnPlayerPositionUpdated(PlayerPosition position)
     {
         // Log position changes at debug level (can be disabled via BepInEx config)
         Logger.LogDebug($"Player position: {position}");
+    }
+
+    private void OnPlayerVitalsUpdated(PlayerVitals vitals)
+    {
+        // Log vitals changes at debug level (can be disabled via BepInEx config)
+        Logger.LogDebug($"Player vitals: {vitals}");
     }
 }

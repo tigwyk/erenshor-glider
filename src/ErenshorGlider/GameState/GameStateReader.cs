@@ -6,7 +6,7 @@ namespace ErenshorGlider.GameState;
 
 /// <summary>
 /// Reads game state from Erenshor via the GameData singleton.
-/// Provides a clean API for accessing player position and other game state.
+/// Provides a clean API for accessing player position, vitals, and other game state.
 /// </summary>
 public class GameStateReader
 {
@@ -14,10 +14,19 @@ public class GameStateReader
     private DateTime _lastPositionUpdate;
     private readonly object _positionLock = new();
 
+    private PlayerVitals _lastVitals;
+    private DateTime _lastVitalsUpdate;
+    private readonly object _vitalsLock = new();
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
     public event Action<PlayerPosition>? OnPositionChanged;
+
+    /// <summary>
+    /// Event raised when player vitals change.
+    /// </summary>
+    public event Action<PlayerVitals>? OnVitalsChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -111,6 +120,111 @@ public class GameStateReader
                Math.Abs(old.Z - newPos.Z) > epsilon;
     }
 
+    #region Vitals Reading
+
+    /// <summary>
+    /// Gets the player's current vitals (health, mana, level, XP).
+    /// Returns null if player is not loaded.
+    /// </summary>
+    public PlayerVitals? GetPlayerVitals()
+    {
+        var stats = GetPlayerStats();
+        if (stats == null)
+            return null;
+
+        var vitals = new PlayerVitals(
+            currentHealth: stats.CurrentHP,
+            maxHealth: stats.MaxHP,
+            currentMana: stats.CurrentMP,
+            maxMana: stats.MaxMP,
+            level: stats.Level,
+            currentXP: stats.CurrentXP,
+            xpToLevel: stats.XPToLevel
+        );
+
+        lock (_vitalsLock)
+        {
+            _lastVitals = vitals;
+            _lastVitalsUpdate = DateTime.UtcNow;
+        }
+
+        return vitals;
+    }
+
+    /// <summary>
+    /// Gets the player's cached vitals (from last update).
+    /// Useful for checking vitals without polling the game.
+    /// </summary>
+    public PlayerVitals? GetCachedVitals()
+    {
+        lock (_vitalsLock)
+        {
+            if (_lastVitalsUpdate == default)
+                return null;
+
+            return _lastVitals;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since vitals were last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastVitalsUpdate
+    {
+        get
+        {
+            lock (_vitalsLock)
+            {
+                if (_lastVitalsUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastVitalsUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the vitals cache and raises events if vitals changed.
+    /// This should be called at the desired update rate (e.g., 10Hz or higher).
+    /// </summary>
+    /// <returns>True if vitals were updated successfully, false if game state unavailable.</returns>
+    public bool UpdateVitals()
+    {
+        var newVitals = GetPlayerVitals();
+        if (newVitals == null)
+            return false;
+
+        // Check if vitals actually changed
+        PlayerVitals? oldVitals;
+        lock (_vitalsLock)
+        {
+            oldVitals = _lastVitalsUpdate != default ? _lastVitals : (PlayerVitals?)null;
+        }
+
+        if (oldVitals == null || HasVitalsChanged(oldVitals.Value, newVitals.Value))
+        {
+            OnVitalsChanged?.Invoke(newVitals.Value);
+        }
+
+        return true;
+    }
+
+    private static bool HasVitalsChanged(PlayerVitals old, PlayerVitals newVitals)
+    {
+        const float epsilon = 0.01f;
+        return Math.Abs(old.CurrentHealth - newVitals.CurrentHealth) > epsilon ||
+               Math.Abs(old.MaxHealth - newVitals.MaxHealth) > epsilon ||
+               Math.Abs(old.CurrentMana - newVitals.CurrentMana) > epsilon ||
+               Math.Abs(old.MaxMana - newVitals.MaxMana) > epsilon ||
+               old.Level != newVitals.Level ||
+               Math.Abs(old.CurrentXP - newVitals.CurrentXP) > epsilon ||
+               Math.Abs(old.XPToLevel - newVitals.XPToLevel) > epsilon;
+    }
+
+    #endregion
+
+    #region Private Helpers
+
     /// <summary>
     /// Attempts to get the PlayerControl transform from the game.
     /// Returns null if not available.
@@ -130,4 +244,26 @@ public class GameStateReader
             return null;
         }
     }
+
+    /// <summary>
+    /// Attempts to get the player's CharacterStats from the game.
+    /// Returns null if not available.
+    /// </summary>
+    private static CharacterStats? GetPlayerStats()
+    {
+        try
+        {
+            // GameData.PlayerControl.Myself is the player's Character component
+            // Character.MyStats gives us the CharacterStats with HP, MP, Level, XP
+            var playerControl = GameData.PlayerControl;
+            return playerControl?.Myself?.MyStats;
+        }
+        catch (Exception)
+        {
+            // Game state not available (e.g., not in game, loading screen)
+            return null;
+        }
+    }
+
+    #endregion
 }

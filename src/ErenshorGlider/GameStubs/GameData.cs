@@ -82,6 +82,21 @@ public class CharacterStats : MonoBehaviour
     /// Maximum mana points.
     /// </summary>
     public float MaxMP;
+
+    /// <summary>
+    /// Character level.
+    /// </summary>
+    public int Level;
+
+    /// <summary>
+    /// Current experience points.
+    /// </summary>
+    public float CurrentXP;
+
+    /// <summary>
+    /// Experience points required for next level.
+    /// </summary>
+    public float XPToLevel;
 }
 
 /// <summary>
