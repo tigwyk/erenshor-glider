@@ -324,8 +324,8 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "RotationExecutor class with LoadProfile(profile/name) and ExecuteNextAbility(). Tracks GCD and individual ability cooldowns. Evaluates rotation entry conditions before casting. ParseKeybind handles '1'-'9' and 'F1'-'F12' formats."
     },
     {
       "id": "US-023",

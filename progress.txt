@@ -532,3 +532,32 @@
   - TODO: Add actual attacking player detection (requires combat state per entity)
   - TODO: Implement waypoint path distance checking
 ---
+## 2026-02-05 - US-022
+- What was implemented:
+  - Created RotationExecutor class for combat rotation execution
+  - LoadProfile(profile) and LoadProfile(name) for loading combat profiles
+  - ExecuteNextAbility() evaluates rotation and executes best available ability
+  - IsCasting property checks if GCD is active
+  - Tracks individual ability cooldowns in _abilityLastUsed dictionary
+  - Tracks GCD in _lastGcdTrigger timestamp
+  - Checks mana cost before attempting ability
+  - Checks target requirement and presence
+  - Checks ability range vs target distance
+  - Evaluates all RotationEntry conditions via CanExecute()
+  - ParseKeybind() supports '1'-'9' and 'F1'-'F12' keybind formats
+  - GetRemainingCooldown() returns cooldown time for specific ability
+  - ClearCooldowns() resets all tracking
+  - OnAbilityExecuted, OnNoAbilityReady, OnProfileLoaded events
+  - UseAutoAttack property for auto-attack between abilities
+- Files changed:
+  - src/ErenshorGlider/Combat/RotationExecutor.cs (created)
+- **Learnings for future iterations:**
+  - SortedRotation returns entries sorted by Priority (lower = higher priority)
+  - GCD check happens before any ability evaluation
+  - Ability cooldowns are per-execution, not per-rotation pass
+  - CanAct check ensures not casting and not dead before ability use
+  - Keybind parsing is extensible for more formats (Shift+1, Ctrl+2, etc.)
+  - TODO: Implement actual auto-attack functionality
+  - GetDistanceToTarget uses Navigation.CalculateDistance for consistency
+  - OnAbilityExecuted event allows UI to show which ability was used
+---
