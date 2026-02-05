@@ -746,3 +746,36 @@
   - Zone tracking allows filtering discoveries by location
   - MapDataStore can be extended with more discovery types (quest items, rare spawns, etc.)
 ---
+
+## 2026-02-05 - US-030
+- What was implemented:
+  - Created BotConfig class with comprehensive bot configuration
+  - Combat settings: MinHealthPercentForCombat, MinManaPercentForCombat, MaxDeathCount, CombatTimeoutSeconds, ChaseFleeingTargets, MaxChaseDistance, MaxAttackRange
+  - Target selection: MaxLevelAbove, MaxLevelBelow, MaxSearchRadius, MaxWaypointDistance, PrioritizeAttackers, BlacklistedMobNames, BlacklistedTypes
+  - Rest and recovery: MinHealthPercentToRest, MinManaPercentToRest, TargetHealthPercentAfterRest, TargetManaPercentAfterRest, MaxRestDurationSeconds, FoodItem, DrinkItem
+  - Looting: AutoLoot, LootDistance, MaxLootWaitSeconds, SkipLootWhenFull, MinFreeBagSlots
+  - Navigation: NavigationStoppingDistance, StuckDetectionThresholdSeconds, MaxUnstuckAttempts, MovementProgressThreshold, FacingToleranceDegrees
+  - Waypoints: MinWaypointDistance, MinWaypointRecordIntervalSeconds
+  - Input: InputDelayMs, InputRandomizationRangeMs
+  - Death: AutoReleaseSpirit, AutoResurrectAtGraveyard, MaxResurrectWaitSeconds, PostResurrectDelaySeconds
+  - Map discovery: AutoMappingEnabled, RecordResourceNodes, RecordNpcs, RecordMobSpawns, MapDeduplicationRadius
+  - File paths: CombatProfilePath, WaypointPath, MapDataDirectory, LogFilePath
+  - Hotkeys: EmergencyStopHotkey (F12), PauseResumeHotkey (F11)
+  - Session limits: MaxSessionRuntimeMinutes, MaxStuckTimeSeconds
+  - Created ConfigManager for loading/saving configs
+  - Load() merges with defaults for missing values (returns defaults if file doesn't exist)
+  - Save() writes to JSON with camelCase naming
+  - CreateDefault() creates a default config file
+  - Uses System.Text.Json for serialization
+- Files changed:
+  - src/ErenshorGlider/Configuration/BotConfig.cs (created)
+- **Learnings for future iterations:**
+  - BotConfig consolidates all magic numbers into one place
+  - Default values are defined in property initializers for easy maintenance
+  - ConfigManager.Load() handles missing files gracefully by returning defaults
+  - JSON format is human-readable for manual editing
+  - Lists (BlacklistedMobNames, BlacklistedTypes) are initialized to prevent null
+  - ConfigManager can be extended with validation and schema versioning
+  - Settings are organized by category for easier navigation
+  - Hotkey strings can be parsed by InputController for key binding
+---
