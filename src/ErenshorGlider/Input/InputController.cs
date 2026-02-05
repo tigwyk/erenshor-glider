@@ -259,6 +259,105 @@ public class InputController
 
     #endregion
 
+    #region Abilities
+
+    /// <summary>
+    /// Activates an ability by its keybind slot (1-9).
+    /// </summary>
+    /// <param name="slot">The hotbar slot number (1-9).</param>
+    /// <param name="delayMs">Optional delay after press in milliseconds.</param>
+    public void UseAbilitySlot(int slot, int delayMs = 50)
+    {
+        KeyCode key = slot switch
+        {
+            1 => KeyCode.Alpha1,
+            2 => KeyCode.Alpha2,
+            3 => KeyCode.Alpha3,
+            4 => KeyCode.Alpha4,
+            5 => KeyCode.Alpha5,
+            6 => KeyCode.Alpha6,
+            7 => KeyCode.Alpha7,
+            8 => KeyCode.Alpha8,
+            9 => KeyCode.Alpha9,
+            _ => KeyCode.Alpha1
+        };
+
+        int actualDelay = ApplyRandomization(delayMs);
+        PressKey(key);
+        System.Threading.Tasks.Task.Delay(actualDelay).ContinueWith(_ => ReleaseKey(key));
+    }
+
+    /// <summary>
+    /// Activates an ability by its keybind.
+    /// </summary>
+    /// <param name="key">The key bound to the ability.</param>
+    /// <param name="delayMs">Optional delay after press in milliseconds.</param>
+    public void UseAbility(KeyCode key, int delayMs = 50)
+    {
+        int actualDelay = ApplyRandomization(delayMs);
+        PressKey(key);
+        System.Threading.Tasks.Task.Delay(actualDelay).ContinueWith(_ => ReleaseKey(key));
+    }
+
+    /// <summary>
+    /// Activates an ability by its spell/skill ID.
+    /// This requires game-specific APIs to trigger the ability directly.
+    /// </summary>
+    /// <param name="abilityId">The spell/skill ID.</param>
+    public void UseAbilityById(string abilityId)
+    {
+        OnAbilityByIdRequested?.Invoke(abilityId);
+    }
+
+    /// <summary>
+    /// Event raised when ability activation by ID is requested.
+    /// </summary>
+    public event Action<string>? OnAbilityByIdRequested;
+
+    #endregion
+
+    #region Humanization
+
+    /// <summary>
+    /// Gets or sets the input delay in milliseconds.
+    /// </summary>
+    public int InputDelayMs { get; set; } = 50;
+
+    /// <summary>
+    /// Gets or sets the randomization range for input delay in milliseconds.
+    /// Humanization adds +/- this amount to the base delay.
+    /// </summary>
+    public int RandomizationRangeMs { get; set; } = 25;
+
+    /// <summary>
+    /// Gets or sets the random number generator for humanization.
+    /// </summary>
+    public Random RandomGenerator { get; set; } = new();
+
+    /// <summary>
+    /// Applies randomization to a delay value for humanization.
+    /// </summary>
+    /// <param name="baseDelayMs">The base delay in milliseconds.</param>
+    /// <returns>The randomized delay.</returns>
+    private int ApplyRandomization(int baseDelayMs)
+    {
+        if (RandomizationRangeMs <= 0)
+            return baseDelayMs;
+
+        int variation = RandomGenerator.Next(-RandomizationRangeMs, RandomizationRangeMs + 1);
+        return Math.Max(10, baseDelayMs + variation);
+    }
+
+    /// <summary>
+    /// Sets the randomization seed for reproducible behavior.
+    /// </summary>
+    public void SetRandomizationSeed(int seed)
+    {
+        RandomGenerator = new Random(seed);
+    }
+
+    #endregion
+
     /// <summary>
     /// Presses a key down.
     /// </summary>

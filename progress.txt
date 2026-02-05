@@ -298,3 +298,25 @@
   - InteractWith combines targeting + interaction with 100ms delay for target registration
   - CancelInteraction uses ESC which also clears target - context-dependent behavior
 ---
+
+## 2026-02-05 - US-012
+- What was implemented:
+  - Added UseAbilitySlot(int slot, delayMs) for activating abilities by hotbar slot (1-9)
+  - Added UseAbility(KeyCode key, delayMs) for custom keybind activation
+  - Added UseAbilityById(string abilityId) for direct spell/skill activation via game API
+  - Added OnAbilityByIdRequested event for integration with game-specific ability systems
+  - Added InputDelayMs property (default 50ms) for configurable input delay
+  - Added RandomizationRangeMs property (default 25ms) for humanization variance
+  - Added RandomGenerator property with SetRandomizationSeed method for reproducible behavior
+  - ApplyRandomization method adds +/- variance to delays for human-like input
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (modified)
+- **Learnings for future iterations:**
+  - Ability slots 1-9 map to Alpha1-Alpha9 keycodes for standard hotbar
+  - Direct ability activation by ID requires game-specific API - uses event pattern for extensibility
+  - Humanization through random delay variation makes bot behavior less detectable
+  - InputDelayMs controls base key press duration before release
+  - RandomizationRangeMs adds +/- variance to each input for human-like inconsistency
+  - SetRandomizationSeed enables reproducible testing while still allowing randomization
+  - Minimum delay clamped to 10ms to prevent too-fast inputs that game might ignore
+---
