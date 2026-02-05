@@ -255,3 +255,26 @@
   - Reading target buffs is important for decisions like "re-apply dot" or "don't over-cap debuffs"
   - Buff duration tracking (RemainingDuration/MaxDuration) enables pre-rebuffing logic
 ---
+
+## 2026-02-05 - US-010
+- What was implemented:
+  - Created InputController class for sending simulated keyboard inputs
+  - Added movement methods: MoveForward, MoveBackward, StrafeLeft, StrafeRight, TurnLeft, TurnRight, Jump
+  - Added StopAllMovement method to release all movement keys
+  - Added PressKey/ReleaseKey methods for fine-grained control
+  - Added IsKeyPressed method to check current key state
+  - Added OnKeyStateChanged event for tracking key changes
+  - Created KeyCode enum with W, A, S, D, Space, arrows, number keys, F-keys, Tab, Enter, Escape
+  - All movement methods support optional duration parameter for hold-and-release
+  - Internal KeyStates dictionary tracks currently pressed keys
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (created)
+- **Learnings for future iterations:**
+  - Input simulation in BepInEx typically requires Harmony patching Input.GetKey/GetKeyDown
+  - The current implementation uses a key state tracker that will be patched into Unity's input system
+  - Duration-based movement (async) uses Task.Delay for timed release
+  - KeyCode enum covers all game-relevant keys including ability bar (1-9) and targeting (Tab)
+  - OnKeyStateChanged event enables other systems to react to input changes
+  - PressKey/ReleaseKey pattern allows for simultaneous key presses (e.g., W + D for diagonal movement)
+  - For actual input injection, will need Harmony patch on Unity's Input class or Windows API SendInput
+---

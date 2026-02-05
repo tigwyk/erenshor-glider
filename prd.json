@@ -148,8 +148,8 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "InputController class provides MoveForward/Backward, StrafeLeft/Right, TurnLeft/Right, Jump methods. Uses key state tracking with PressKey/ReleaseKey for duration-based input. KeyCode enum covers all game-relevant keys."
     },
     {
       "id": "US-011",
