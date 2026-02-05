@@ -199,3 +199,30 @@
   - EntityInfo uses readonly struct pattern for immutable snapshots - consistent with other game state types
   - PositionTracker now tracks position, vitals, combat state, target info, and nearby entities - central state tracker for all game state
 ---
+
+## 2026-02-05 - US-008
+- What was implemented:
+  - Created ItemInfo struct with Name, Quantity, Quality (ItemQuality enum), SlotIndex, ItemId, MaxStackSize
+  - Added ItemQuality enum: Poor, Common, Uncommon, Rare, Epic, Legendary
+  - Added helper properties: IsCommon, IsUncommonOrBetter, IsRareOrBetter, IsEpicOrBetter, IsFullStack, CanStackMore
+  - Created PlayerInventory struct with TotalSlots, FreeSlots, UsedSlots, Items list
+  - Added helper methods: IsFull, IsNearlyFull, HasFreeSlots, CountItem, HasItem, GetItemsOfQuality, FillPercent
+  - Extended GameStubs with PlayerInventory, InventorySlot, Item classes and ItemQuality enum
+  - Added GetPlayerInventory(), GetCachedInventory(), UpdateInventory() to GameStateReader
+  - Scans GameData.PlayerInv.ALLSLOTS[] for items, counting free slots and building item list
+  - Added OnInventoryChanged event for reactive updates
+  - Extended PositionTracker to track inventory state alongside other game state
+  - PositionTracker now serves as central state tracker for: position, vitals, combat state, target info, nearby entities, and inventory
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerInventory.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - GameData.PlayerInv.ALLSLOTS[] provides array of all inventory slots
+  - PlayerInventory.Empty is a static reference for comparing empty slots
+  - ItemInfo uses readonly struct pattern - consistent with other game state types
+  - Inventory includes quality information - useful for filtering vendor trash (poor quality items)
+  - Inventory changes less frequently than combat state - could throttle updates separately if needed
+  - PlayerInventory struct has helper methods like CountItem for checking consumable quantities
+---

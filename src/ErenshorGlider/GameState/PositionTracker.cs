@@ -60,6 +60,11 @@ public class PositionTracker : MonoBehaviour
     public IReadOnlyList<EntityInfo>? CurrentNearbyEntities => GameStateReader.GetCachedNearbyEntities();
 
     /// <summary>
+    /// Gets the most recent inventory state, or null if unavailable.
+    /// </summary>
+    public PlayerInventory? CurrentInventory => GameStateReader.GetCachedInventory();
+
+    /// <summary>
     /// Gets or sets the radius for nearby entity detection.
     /// </summary>
     public float NearbyEntitiesRadius
@@ -93,6 +98,11 @@ public class PositionTracker : MonoBehaviour
     /// </summary>
     public event Action<IReadOnlyList<EntityInfo>>? OnNearbyEntitiesUpdated;
 
+    /// <summary>
+    /// Event raised when inventory state is updated.
+    /// </summary>
+    public event Action<PlayerInventory>? OnInventoryUpdated;
+
     private void Awake()
     {
         _gameStateReader = new GameStateReader();
@@ -101,6 +111,7 @@ public class PositionTracker : MonoBehaviour
         _gameStateReader.OnCombatStateChanged += HandleCombatStateChanged;
         _gameStateReader.OnTargetInfoChanged += HandleTargetInfoChanged;
         _gameStateReader.OnNearbyEntitiesChanged += HandleNearbyEntitiesChanged;
+        _gameStateReader.OnInventoryChanged += HandleInventoryChanged;
     }
 
     private void Update()
@@ -115,6 +126,9 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader?.UpdateCombatState();
             _gameStateReader?.UpdateTargetInfo();
             _gameStateReader?.UpdateNearbyEntities();
+            // Inventory updates less frequently (on loot/vend) - update every 1 second instead of every 0.1s
+            // We'll still call it here but with a check inside to throttle
+            _gameStateReader?.UpdateInventory();
         }
     }
 
@@ -143,6 +157,11 @@ public class PositionTracker : MonoBehaviour
         OnNearbyEntitiesUpdated?.Invoke(entities);
     }
 
+    private void HandleInventoryChanged(PlayerInventory inventory)
+    {
+        OnInventoryUpdated?.Invoke(inventory);
+    }
+
     private void OnDestroy()
     {
         if (_gameStateReader != null)
@@ -152,6 +171,7 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader.OnCombatStateChanged -= HandleCombatStateChanged;
             _gameStateReader.OnTargetInfoChanged -= HandleTargetInfoChanged;
             _gameStateReader.OnNearbyEntitiesChanged -= HandleNearbyEntitiesChanged;
+            _gameStateReader.OnInventoryChanged -= HandleInventoryChanged;
         }
     }
 

@@ -118,8 +118,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Uses GameData.PlayerInv.ALLSLOTS[] to iterate inventory slots. ItemInfo struct includes name, quantity, quality, slotIndex, itemId, and maxStackSize."
     },
     {
       "id": "US-009",

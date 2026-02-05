@@ -32,6 +32,10 @@ public class GameStateReader
     private readonly object _nearbyEntitiesLock = new();
     private float _nearbyEntitiesRadius = 50f; // Default scan radius
 
+    private PlayerInventory _lastInventory;
+    private DateTime _lastInventoryUpdate;
+    private readonly object _inventoryLock = new();
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
@@ -56,6 +60,11 @@ public class GameStateReader
     /// Event raised when nearby entities list is updated.
     /// </summary>
     public event Action<IReadOnlyList<EntityInfo>>? OnNearbyEntitiesChanged;
+
+    /// <summary>
+    /// Event raised when inventory state changes.
+    /// </summary>
+    public event Action<PlayerInventory>? OnInventoryChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -826,6 +835,163 @@ public class GameStateReader
             maxHealth: 0,
             isDead: true,
             distance: distance
+        );
+    }
+
+    #endregion
+
+    #region Inventory Reading
+
+    /// <summary>
+    /// Gets the player's current inventory state.
+    /// Returns empty inventory if player is not loaded.
+    /// </summary>
+    public PlayerInventory GetPlayerInventory()
+    {
+        try
+        {
+            var playerInv = GameData.PlayerInv;
+            if (playerInv == null)
+                return PlayerInventory.Empty;
+
+            var allSlots = playerInv.ALLSLOTS;
+            if (allSlots == null)
+                return PlayerInventory.Empty;
+
+            int totalSlots = allSlots.Length;
+            int freeSlots = 0;
+            var items = new List<ItemInfo>();
+
+            for (int i = 0; i < allSlots.Length; i++)
+            {
+                var slot = allSlots[i];
+                if (slot == null)
+                {
+                    // Null slot might indicate an unavailable slot
+                    continue;
+                }
+
+                if (slot.Item == null || slot.Item == PlayerInventory.Empty)
+                {
+                    freeSlots++;
+                }
+                else
+                {
+                    var itemInfo = CreateItemInfoFromSlot(slot, i);
+                    items.Add(itemInfo);
+                }
+            }
+
+            var inventory = new PlayerInventory(
+                totalSlots: totalSlots,
+                freeSlots: freeSlots,
+                items: items
+            );
+
+            lock (_inventoryLock)
+            {
+                _lastInventory = inventory;
+                _lastInventoryUpdate = DateTime.UtcNow;
+            }
+
+            return inventory;
+        }
+        catch (Exception)
+        {
+            // Game state not available
+            return PlayerInventory.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Gets the cached inventory state (from last update).
+    /// Useful for checking inventory without polling the game.
+    /// </summary>
+    public PlayerInventory? GetCachedInventory()
+    {
+        lock (_inventoryLock)
+        {
+            if (_lastInventoryUpdate == default)
+                return null;
+
+            return _lastInventory;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since inventory was last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastInventoryUpdate
+    {
+        get
+        {
+            lock (_inventoryLock)
+            {
+                if (_lastInventoryUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastInventoryUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the inventory cache and raises events if inventory changed.
+    /// </summary>
+    /// <returns>True if inventory was updated successfully, false if game state unavailable.</returns>
+    public bool UpdateInventory()
+    {
+        PlayerInventory? oldInventory;
+        lock (_inventoryLock)
+        {
+            oldInventory = _lastInventoryUpdate != default ? _lastInventory : (PlayerInventory?)null;
+        }
+
+        var newInventory = GetPlayerInventory();
+
+        if (oldInventory == null || HasInventoryChanged(oldInventory.Value, newInventory))
+        {
+            OnInventoryChanged?.Invoke(newInventory);
+        }
+
+        return true;
+    }
+
+    private static bool HasInventoryChanged(PlayerInventory old, PlayerInventory newInventory)
+    {
+        // Quick check: slot counts
+        if (old.TotalSlots != newInventory.TotalSlots ||
+            old.FreeSlots != newInventory.FreeSlots)
+            return true;
+
+        // Check item count
+        if (old.Items.Count != newInventory.Items.Count)
+            return true;
+
+        // Detailed item comparison (for changes in quantity or new items)
+        for (int i = 0; i < newInventory.Items.Count; i++)
+        {
+            var oldItem = i < old.Items.Count ? old.Items[i] : default;
+            var newItem = newInventory.Items[i];
+
+            if (!oldItem.Equals(newItem))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static ItemInfo CreateItemInfoFromSlot(InventorySlot slot, int slotIndex)
+    {
+        var item = slot.Item;
+
+        return new ItemInfo(
+            name: item?.ItemName ?? "Unknown Item",
+            quantity: slot.Quantity,
+            quality: item?.Quality ?? ItemQuality.Common,
+            slotIndex: slotIndex,
+            itemId: item?.ItemId,
+            maxStackSize: item?.MaxStackSize ?? 1
         );
     }
 

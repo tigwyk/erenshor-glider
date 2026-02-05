@@ -29,6 +29,11 @@ public static class GameData
     /// The player combat controller.
     /// </summary>
     public static PlayerCombat PlayerCombat;
+
+    /// <summary>
+    /// The player inventory controller.
+    /// </summary>
+    public static PlayerInventory PlayerInv;
 }
 
 /// <summary>
@@ -249,4 +254,103 @@ public class LootableCorpse : MonoBehaviour
     /// The original character this corpse came from.
     /// </summary>
     public Character OriginalCharacter;
+}
+
+/// <summary>
+/// Stub for Erenshor's PlayerInventory class.
+/// Handles the player's bag/inventory system.
+/// </summary>
+public class PlayerInventory : MonoBehaviour
+{
+    /// <summary>
+    /// Array of all inventory slots.
+    /// </summary>
+    public InventorySlot[] ALLSLOTS;
+
+    /// <summary>
+    /// Empty item reference for comparison.
+    /// </summary>
+    public static Item Empty;
+
+    /// <summary>
+    /// The total number of inventory slots available.
+    /// </summary>
+    public int SlotCount;
+}
+
+/// <summary>
+/// Stub for an inventory slot.
+/// Represents a single slot in the player's bags.
+/// </summary>
+public class InventorySlot : MonoBehaviour
+{
+    /// <summary>
+    /// The item in this slot (null if empty).
+    /// </summary>
+    public Item Item;
+
+    /// <summary>
+    /// The quantity/stack size of the item.
+    /// </summary>
+    public int Quantity;
+
+    /// <summary>
+    /// The slot index.
+    /// </summary>
+    public int SlotIndex;
+}
+
+/// <summary>
+/// Stub for Erenshor's Item class.
+/// Represents an item in the game.
+/// </summary>
+public class Item : MonoBehaviour
+{
+    /// <summary>
+    /// The item's display name.
+    /// </summary>
+    public string ItemName;
+
+    /// <summary>
+    /// The item's unique ID.
+    /// </summary>
+    public string ItemId;
+
+    /// <summary>
+    /// The item's quality/rarity.
+    /// </summary>
+    public ItemQuality Quality;
+
+    /// <summary>
+    /// The maximum stack size for this item.
+    /// </summary>
+    public int MaxStackSize;
+
+    /// <summary>
+    /// Whether this item is a junk item (poor quality).
+    /// </summary>
+    public bool IsJunk;
+
+    /// <summary>
+    /// The item's icon/sprite for UI display.
+    /// </summary>
+    public UnityEngine.Sprite Icon;
+
+    /// <summary>
+    /// The item's description/tooltip text.
+    /// </summary>
+    public string Description;
+}
+
+/// <summary>
+/// Stub for Erenshor's ItemQuality enum.
+/// </summary>
+public enum ItemQuality
+{
+    Poor = 0,
+    Common = 1,
+    Uncommon = 2,
+    Rare = 3,
+    Epic = 4,
+    Legendary = 5
 }
