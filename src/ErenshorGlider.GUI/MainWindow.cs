@@ -295,6 +295,15 @@ public class MainWindow : Form
             };
             _contentPanel.Controls.Add(statusDisplay);
         }
+
+        if (_botController is ISessionStatisticsProvider statsProvider)
+        {
+            var statsPanel = new SessionStatisticsPanel(statsProvider)
+            {
+                Dock = DockStyle.Top
+            };
+            _contentPanel.Controls.Add(statsPanel);
+        }
     }
 
     /// <summary>

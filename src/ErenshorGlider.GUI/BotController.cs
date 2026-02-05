@@ -102,7 +102,7 @@ public class BotRunningChangedEventArgs : EventArgs
 /// Default implementation of IBotController for development/testing.
 /// TODO: Replace with actual implementation that communicates with the BepInEx plugin.
 /// </summary>
-public class MockBotController : IBotController, IBotStatusProvider
+public class MockBotController : IBotController, IBotStatusProvider, ISessionStatisticsProvider
 {
     private bool _isRunning;
     private bool _isPaused;
@@ -116,6 +116,14 @@ public class MockBotController : IBotController, IBotStatusProvider
     private int _currentMana = 80;
     private int _maxMana = 100;
     private readonly Random _random = new Random();
+
+    // Statistics tracking
+    private DateTime _sessionStartTime = DateTime.UtcNow;
+    private int _kills;
+    private int _deaths;
+    private int _xpGained;
+    private int _goldEarned;
+    private int _itemsLooted;
 
     public bool IsRunning => _isRunning;
     public bool IsPaused => _isPaused;
@@ -132,6 +140,12 @@ public class MockBotController : IBotController, IBotStatusProvider
         _isRunning = true;
         _isPaused = false;
         _currentState = "Pathing";
+        _sessionStartTime = DateTime.UtcNow;
+        _kills = 0;
+        _deaths = 0;
+        _xpGained = 0;
+        _goldEarned = 0;
+        _itemsLooted = 0;
         BotRunningChanged?.Invoke(this, new BotRunningChangedEventArgs(true));
         BotStateChanged?.Invoke(this, new BotStateChangedEventArgs("Idle", _currentState));
         return true;
@@ -191,6 +205,25 @@ public class MockBotController : IBotController, IBotStatusProvider
     }
 
     /// <summary>
+    /// Gets the current session statistics snapshot.
+    /// </summary>
+    public SessionStatistics GetStatistics()
+    {
+        var runtime = _isRunning
+            ? DateTime.UtcNow - _sessionStartTime
+            : TimeSpan.Zero;
+
+        return new SessionStatistics(
+            runtime,
+            _kills,
+            _deaths,
+            _xpGained,
+            _goldEarned,
+            _itemsLooted
+        );
+    }
+
+    /// <summary>
     /// Simulates bot activity for testing purposes.
     /// </summary>
     private void SimulateActivity()
@@ -214,6 +247,15 @@ public class MockBotController : IBotController, IBotStatusProvider
             _currentHealth = Math.Min(_maxHealth, _currentHealth + 1);
         if (_currentMana < _maxMana)
             _currentMana = Math.Min(_maxMana, _currentMana + 2);
+
+        // Simulate statistics (random gains for testing)
+        if (_random.Next(100) < 2) // 2% chance per tick
+        {
+            _kills++;
+            _xpGained += _random.Next(50, 150);
+            _goldEarned += _random.Next(1, 20);
+            _itemsLooted += _random.Next(0, 3);
+        }
     }
 
     /// <summary>
