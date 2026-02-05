@@ -58,6 +58,11 @@ public class PlayerControl : MonoBehaviour
 public class Character : MonoBehaviour
 {
     /// <summary>
+    /// The character's display name.
+    /// </summary>
+    public string CharacterName;
+
+    /// <summary>
     /// The character's stats component.
     /// </summary>
     public CharacterStats MyStats;

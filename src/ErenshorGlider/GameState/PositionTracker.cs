@@ -49,6 +49,11 @@ public class PositionTracker : MonoBehaviour
     public CombatState? CurrentCombatState => GameStateReader.GetCachedCombatState();
 
     /// <summary>
+    /// Gets the most recent target info, or null if unavailable.
+    /// </summary>
+    public TargetInfo? CurrentTargetInfo => GameStateReader.GetCachedTargetInfo();
+
+    /// <summary>
     /// Event raised when player position is updated.
     /// </summary>
     public event Action<PlayerPosition>? OnPositionUpdated;
@@ -63,12 +68,18 @@ public class PositionTracker : MonoBehaviour
     /// </summary>
     public event Action<CombatState>? OnCombatStateUpdated;
 
+    /// <summary>
+    /// Event raised when target info is updated.
+    /// </summary>
+    public event Action<TargetInfo>? OnTargetInfoUpdated;
+
     private void Awake()
     {
         _gameStateReader = new GameStateReader();
         _gameStateReader.OnPositionChanged += HandlePositionChanged;
         _gameStateReader.OnVitalsChanged += HandleVitalsChanged;
         _gameStateReader.OnCombatStateChanged += HandleCombatStateChanged;
+        _gameStateReader.OnTargetInfoChanged += HandleTargetInfoChanged;
     }
 
     private void Update()
@@ -81,6 +92,7 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader?.UpdatePosition();
             _gameStateReader?.UpdateVitals();
             _gameStateReader?.UpdateCombatState();
+            _gameStateReader?.UpdateTargetInfo();
         }
     }
 
@@ -99,6 +111,11 @@ public class PositionTracker : MonoBehaviour
         OnCombatStateUpdated?.Invoke(combatState);
     }
 
+    private void HandleTargetInfoChanged(TargetInfo targetInfo)
+    {
+        OnTargetInfoUpdated?.Invoke(targetInfo);
+    }
+
     private void OnDestroy()
     {
         if (_gameStateReader != null)
@@ -106,6 +123,7 @@ public class PositionTracker : MonoBehaviour
             _gameStateReader.OnPositionChanged -= HandlePositionChanged;
             _gameStateReader.OnVitalsChanged -= HandleVitalsChanged;
             _gameStateReader.OnCombatStateChanged -= HandleCombatStateChanged;
+            _gameStateReader.OnTargetInfoChanged -= HandleTargetInfoChanged;
         }
     }
 

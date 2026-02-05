@@ -22,6 +22,10 @@ public class GameStateReader
     private DateTime _lastCombatStateUpdate;
     private readonly object _combatStateLock = new();
 
+    private TargetInfo _lastTargetInfo;
+    private DateTime _lastTargetInfoUpdate;
+    private readonly object _targetInfoLock = new();
+
     /// <summary>
     /// Event raised when player position changes.
     /// </summary>
@@ -36,6 +40,11 @@ public class GameStateReader
     /// Event raised when combat state changes.
     /// </summary>
     public event Action<CombatState>? OnCombatStateChanged;
+
+    /// <summary>
+    /// Event raised when target info changes.
+    /// </summary>
+    public event Action<TargetInfo>? OnTargetInfoChanged;
 
     /// <summary>
     /// Gets whether the game state is currently available (player is loaded).
@@ -341,6 +350,157 @@ public class GameStateReader
         return old.InCombat != newState.InCombat ||
                old.IsCasting != newState.IsCasting ||
                old.IsAlive != newState.IsAlive;
+    }
+
+    #endregion
+
+    #region Target Info Reading
+
+    /// <summary>
+    /// Gets information about the player's current target.
+    /// Returns TargetInfo with HasTarget=false if no target or player not loaded.
+    /// </summary>
+    public TargetInfo GetTargetInfo()
+    {
+        try
+        {
+            var playerControl = GameData.PlayerControl;
+            if (playerControl == null)
+                return TargetInfo.NoTarget;
+
+            var target = playerControl.CurrentTarget;
+            if (target == null)
+            {
+                var noTarget = TargetInfo.NoTarget;
+                UpdateTargetInfoCache(noTarget);
+                return noTarget;
+            }
+
+            var stats = target.MyStats;
+            var targetTransform = target.transform;
+
+            var targetInfo = new TargetInfo(
+                hasTarget: true,
+                name: target.CharacterName ?? "Unknown",
+                level: stats?.Level ?? 0,
+                currentHealth: stats?.CurrentHP ?? 0,
+                maxHealth: stats?.MaxHP ?? 0,
+                position: targetTransform != null
+                    ? new PlayerPosition(targetTransform.position)
+                    : new PlayerPosition(0, 0, 0),
+                hostility: ConvertFactionToHostility(target.MyFaction),
+                isDead: target.Dead
+            );
+
+            UpdateTargetInfoCache(targetInfo);
+            return targetInfo;
+        }
+        catch (Exception)
+        {
+            // Game state not available
+            return TargetInfo.NoTarget;
+        }
+    }
+
+    /// <summary>
+    /// Gets the cached target info (from last update).
+    /// Useful for checking target without polling the game.
+    /// </summary>
+    public TargetInfo? GetCachedTargetInfo()
+    {
+        lock (_targetInfoLock)
+        {
+            if (_lastTargetInfoUpdate == default)
+                return null;
+
+            return _lastTargetInfo;
+        }
+    }
+
+    /// <summary>
+    /// Gets the time since target info was last updated.
+    /// </summary>
+    public TimeSpan TimeSinceLastTargetInfoUpdate
+    {
+        get
+        {
+            lock (_targetInfoLock)
+            {
+                if (_lastTargetInfoUpdate == default)
+                    return TimeSpan.MaxValue;
+
+                return DateTime.UtcNow - _lastTargetInfoUpdate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the target info cache and raises events if target changed.
+    /// This should be called at the desired update rate (e.g., 10Hz or higher).
+    /// </summary>
+    /// <returns>True if target info was updated successfully, false if game state unavailable.</returns>
+    public bool UpdateTargetInfo()
+    {
+        var newTargetInfo = GetTargetInfo();
+
+        // Check if target info actually changed
+        TargetInfo? oldTargetInfo;
+        lock (_targetInfoLock)
+        {
+            oldTargetInfo = _lastTargetInfoUpdate != default ? _lastTargetInfo : (TargetInfo?)null;
+        }
+
+        if (oldTargetInfo == null || HasTargetInfoChanged(oldTargetInfo.Value, newTargetInfo))
+        {
+            OnTargetInfoChanged?.Invoke(newTargetInfo);
+        }
+
+        return true;
+    }
+
+    private void UpdateTargetInfoCache(TargetInfo targetInfo)
+    {
+        lock (_targetInfoLock)
+        {
+            _lastTargetInfo = targetInfo;
+            _lastTargetInfoUpdate = DateTime.UtcNow;
+        }
+    }
+
+    private static bool HasTargetInfoChanged(TargetInfo old, TargetInfo newInfo)
+    {
+        const float epsilon = 0.01f;
+
+        // Target presence changed
+        if (old.HasTarget != newInfo.HasTarget)
+            return true;
+
+        // No target in both cases
+        if (!old.HasTarget && !newInfo.HasTarget)
+            return false;
+
+        // Check individual properties
+        return old.Name != newInfo.Name ||
+               old.Level != newInfo.Level ||
+               Math.Abs(old.CurrentHealth - newInfo.CurrentHealth) > epsilon ||
+               Math.Abs(old.MaxHealth - newInfo.MaxHealth) > epsilon ||
+               old.Hostility != newInfo.Hostility ||
+               old.IsDead != newInfo.IsDead ||
+               HasPositionChanged(
+                   new PlayerPosition(old.Position.X, old.Position.Y, old.Position.Z),
+                   new PlayerPosition(newInfo.Position.X, newInfo.Position.Y, newInfo.Position.Z));
+    }
+
+    private static TargetHostility ConvertFactionToHostility(Faction faction)
+    {
+        return faction switch
+        {
+            Faction.Enemy => TargetHostility.Hostile,
+            Faction.Friendly => TargetHostility.Friendly,
+            Faction.Player => TargetHostility.Friendly,
+            Faction.Neutral => TargetHostility.Neutral,
+            _ => TargetHostility.Neutral
+        };
     }
 
     #endregion
