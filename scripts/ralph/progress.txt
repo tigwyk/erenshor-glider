@@ -128,3 +128,30 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-005
+- Added auto-attack functionality to CombatController
+- Added UseAutoAttack property (default true)
+- EnableAutoAttack() calls GameData.PlayerCombat.ForceAttackOn() for immediate effect
+- DisableAutoAttack() checks InCombat state before calling ToggleAttack()
+- Auto-attack enabled in EngageTarget() when UseAutoAttack=true and target is hostile
+- Auto-attack disabled in StopCombat() for all combat end reasons
+- Null safety checks for PlayerCombat
+- Try/catch for graceful error handling during scene transitions
+- Conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Combat/CombatController.cs - Added auto-attack functionality with conditional compilation
+
+**Learnings for future iterations:**
+- GameData.PlayerCombat.ForceAttackOn() immediately enables auto-attack
+- GameData.PlayerCombat.ToggleAttack() toggles the current state
+- GameData.PlayerCombat.InCombat indicates whether auto-attack is currently enabled
+- Check target hostility (TargetHostility.Hostile) before enabling auto-attack to avoid attacking friendly targets
+- Disable auto-attack on all combat end conditions to prevent unwanted attacks after combat
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---

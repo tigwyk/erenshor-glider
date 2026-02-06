@@ -84,8 +84,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added UseAutoAttack property (default true). EnableAutoAttack() calls ForceAttackOn() for immediate effect. DisableAutoAttack() checks InCombat state before calling ToggleAttack(). Auto-attack enabled in EngageTarget() for hostile targets, disabled in StopCombat(). Null safety and try/catch for graceful error handling."
     },
     {
       "id": "US-006",
