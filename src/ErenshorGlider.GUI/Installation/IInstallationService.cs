@@ -70,6 +70,24 @@ public interface IInstallationService
     /// <param name="progress">Optional progress reporter for the download and installation.</param>
     /// <returns>The result of the update operation.</returns>
     Task<InstallationResult> UpdatePluginAsync(string erenshorPath, IProgress<DownloadProgress>? progress = null);
+
+    /// <summary>
+    /// Checks whether the Erenshor game is currently running.
+    /// </summary>
+    /// <returns>True if the game is running, false otherwise.</returns>
+    bool IsGameRunning();
+
+    /// <summary>
+    /// Launches the Erenshor game.
+    /// </summary>
+    /// <param name="erenshorPath">The path to the Erenshor installation.</param>
+    /// <returns>The result of the launch operation.</returns>
+    Task<GameLaunchResult> LaunchGameAsync(string erenshorPath);
+
+    /// <summary>
+    /// Event raised when the game process exits.
+    /// </summary>
+    event EventHandler? GameExited;
 }
 
 /// <summary>
@@ -168,6 +186,47 @@ public class DownloadProgress
             TotalBytes = totalBytes,
             Percentage = totalBytes > 0 ? (int)((bytesReceived * 100) / totalBytes) : -1
         };
+    }
+}
+
+/// <summary>
+/// Represents the result of a game launch operation.
+/// </summary>
+public class GameLaunchResult
+{
+    /// <summary>
+    /// Gets whether the launch was successful.
+    /// </summary>
+    public bool Success { get; private set; }
+
+    /// <summary>
+    /// Gets the error message if the launch failed.
+    /// </summary>
+    public string? ErrorMessage { get; private set; }
+
+    /// <summary>
+    /// Gets the process ID of the launched game, if successful.
+    /// </summary>
+    public int ProcessId { get; private set; }
+
+    /// <summary>
+    /// Creates a successful result.
+    /// </summary>
+    /// <param name="processId">The process ID of the launched game.</param>
+    /// <returns>A successful launch result.</returns>
+    public static GameLaunchResult Succeeded(int processId)
+    {
+        return new GameLaunchResult { Success = true, ProcessId = processId };
+    }
+
+    /// <summary>
+    /// Creates a failed result.
+    /// </summary>
+    /// <param name="errorMessage">The error message describing the failure.</param>
+    /// <returns>A failed launch result.</returns>
+    public static GameLaunchResult Failed(string errorMessage)
+    {
+        return new GameLaunchResult { Success = false, ErrorMessage = errorMessage };
     }
 }
 

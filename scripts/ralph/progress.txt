@@ -56,4 +56,21 @@ Feature: Automated BepInEx installation and plugin management
   - Report progress as percentage of total work (download + install)
   - Backup strategy: copy existing file to .backup before overwriting
   - Clean up temp files after installation (ignore cleanup errors)
+
+## Fri Feb  7 12:00:00 PST 2026 - US-008
+- Implemented game process management
+- Added IsGameRunning method to check for Erenshor.exe process
+- Added LaunchGameAsync method to start the game process
+- Created GameLaunchResult class with Success, ErrorMessage, ProcessId properties
+- Added GameExited event for process termination notification
+- Monitors game process in background thread using ThreadPool
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added IsGameRunning, LaunchGameAsync, GameExited event, GameLaunchResult)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented process management with background monitoring)
+- **Learnings for future iterations:**
+  - Use System.Diagnostics.Process.GetProcessesByName() to check if process is running
+  - Use ProcessStartInfo with UseShellExecute=true for launching game executables
+  - Process monitoring requires background thread - use ThreadPool.QueueUserWorkItem
+  - Track process instance in class field for cleanup and monitoring
+  - Dispose process after exit to free resources
 ---

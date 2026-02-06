@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ErenshorGlider.GUI.Installation;
@@ -20,6 +22,12 @@ public class InstallationService : IInstallationService, IDisposable
 
     private readonly HttpClient _httpClient;
     private bool _disposed;
+    private Process? _gameProcess;
+
+    /// <summary>
+    /// Event raised when the game process exits.
+    /// </summary>
+    public event EventHandler? GameExited;
 
     /// <summary>
     /// Gets the cache directory for downloaded files.
@@ -637,6 +645,126 @@ public class InstallationService : IInstallationService, IDisposable
         catch (Exception ex)
         {
             return InstallationResult.Failed($"Update failed: " + ex.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    public bool IsGameRunning()
+    {
+        // Check if we have a tracked process that's still running
+        if (_gameProcess != null && !_gameProcess.HasExited)
+        {
+            return true;
+        }
+
+        // Also check for any Erenshor.exe process
+        var processes = Process.GetProcessesByName("Erenshor");
+        if (processes.Length > 0)
+        {
+            // Clean up our tracked process if it's no longer valid
+            if (_gameProcess != null && _gameProcess.HasExited)
+            {
+                _gameProcess = null;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    public async Task<GameLaunchResult> LaunchGameAsync(string erenshorPath)
+    {
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            return GameLaunchResult.Failed("Erenshor path cannot be empty.");
+        }
+
+        if (!Directory.Exists(erenshorPath))
+        {
+            return GameLaunchResult.Failed($"Erenshor directory not found: {erenshorPath}");
+        }
+
+        string exePath = Path.Combine(erenshorPath, "Erenshor.exe");
+        if (!File.Exists(exePath))
+        {
+            return GameLaunchResult.Failed($"Erenshor.exe not found at: {exePath}");
+        }
+
+        // Check if game is already running
+        if (IsGameRunning())
+        {
+            return GameLaunchResult.Failed("Erenshor is already running.");
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = exePath,
+                WorkingDirectory = erenshorPath,
+                UseShellExecute = true
+            };
+
+            var process = Process.Start(startInfo);
+
+            if (process == null)
+            {
+                return GameLaunchResult.Failed("Failed to start game process.");
+            }
+
+            // Store the process for monitoring
+            _gameProcess = process;
+
+            // Set up event handler for process exit
+            // Note: EnableRaisingEvents must be set on the thread that created the process
+            // We'll use a background thread to monitor the process
+            ThreadPool.QueueUserWorkItem(_ => MonitorGameProcess(process));
+
+            return GameLaunchResult.Succeeded(process.Id);
+        }
+        catch (Exception ex)
+        {
+            return GameLaunchResult.Failed($"Failed to launch game: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Monitors the game process and raises the GameExited event when it terminates.
+    /// </summary>
+    /// <param name="process">The process to monitor.</param>
+    private void MonitorGameProcess(Process process)
+    {
+        try
+        {
+            process.WaitForExit();
+
+            // Raise the event on the UI thread if possible
+            if (GameExited != null)
+            {
+                GameExited.Invoke(this, EventArgs.Empty);
+            }
+
+            // Clear our tracked process
+            if (_gameProcess == process)
+            {
+                _gameProcess = null;
+            }
+        }
+        catch
+        {
+            // Ignore errors in monitoring
+        }
+        finally
+        {
+            try
+            {
+                process.Dispose();
+            }
+            catch
+            {
+                // Ignore dispose errors
+            }
         }
     }
 
