@@ -499,7 +499,7 @@ public class SetupWizard : Form
                    "• Launch Erenshor from the main window\n" +
                    "• Configure combat profiles and waypoints\n" +
                    "• Start the bot and automate your gameplay\n\n" +
-                   "Click 'Launch Game' to start Erenshor, or 'Finish' to close this wizard.",
+                   "Click 'Finish' to close this wizard.",
             ForeColor = Color.FromArgb(220, 220, 220),
             Font = _normalFont,
             Location = new Point(50, 100),
@@ -510,7 +510,7 @@ public class SetupWizard : Form
         content.Controls.AddRange(new Control[] { successLabel, messageLabel });
         _contentPanel.Controls.Add(content);
 
-        _nextButton.Text = "Launch Game";
+        _nextButton.Text = "Finish";
     }
 
     /// <summary>
@@ -620,8 +620,21 @@ public class SetupWizard : Form
 
         if (_currentStep == 4)
         {
-            // Complete - launch game
-            await LaunchGame();
+            // Complete - ask if user wants to launch game
+            var result = MessageBox.Show(
+                "Setup complete! Would you like to launch Erenshor now?",
+                "Launch Game",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                await LaunchGame();
+            }
+            else
+            {
+                Close();
+            }
             return;
         }
 
@@ -829,7 +842,7 @@ public class SetupWizard : Form
     private void UpdateButtonStates()
     {
         _backButton.Enabled = _currentStep > 0;
-        _nextButton.Text = _currentStep == 4 ? "Launch Game" : "Next >";
+        _nextButton.Text = _currentStep == 4 ? "Finish" : "Next >";
     }
 
     /// <summary>
