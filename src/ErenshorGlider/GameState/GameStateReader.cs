@@ -1003,10 +1003,17 @@ public class GameStateReader
     {
         var item = slot.Item;
 
+        // Convert GameStubs.ItemQuality to GameState.ItemQuality
+        GameState.ItemQuality quality = GameState.ItemQuality.Common;
+        if (item?.Quality != null)
+        {
+            quality = (GameState.ItemQuality)item.Quality;
+        }
+
         return new ItemInfo(
             name: item?.ItemName ?? "Unknown Item",
             quantity: slot.Quantity,
-            quality: item?.Quality ?? ItemQuality.Common,
+            quality: quality,
             slotIndex: slotIndex,
             itemId: item?.ItemId,
             maxStackSize: item?.MaxStackSize ?? 1

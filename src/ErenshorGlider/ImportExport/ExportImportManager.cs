@@ -22,7 +22,9 @@ public enum ImportResult
     /// <summary>Validation failed.</summary>
     ValidationFailed,
     /// <summary>Import was cancelled.</summary>
-    Cancelled
+    Cancelled,
+    /// <summary>Import failed for other reasons.</summary>
+    Failed
 }
 
 /// <summary>

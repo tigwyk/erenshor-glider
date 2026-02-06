@@ -90,10 +90,10 @@ public class RestController
             return false;
 
         // Check if below minimum thresholds
-        if (vitals.HealthPercent < MinHealthPercent)
+        if (vitals.Value.HealthPercent < MinHealthPercent)
             return true;
 
-        if (vitals.ManaPercent < MinManaPercent)
+        if (vitals.Value.ManaPercent < MinManaPercent)
             return true;
 
         return false;
@@ -151,8 +151,8 @@ public class RestController
         var vitals = _positionTracker.CurrentVitals;
         if (vitals != null)
         {
-            bool healthRecovered = vitals.HealthPercent >= TargetHealthPercent;
-            bool manaRecovered = vitals.ManaPercent >= TargetManaPercent;
+            bool healthRecovered = vitals.Value.HealthPercent >= TargetHealthPercent;
+            bool manaRecovered = vitals.Value.ManaPercent >= TargetManaPercent;
 
             if (healthRecovered && manaRecovered)
             {
@@ -198,7 +198,7 @@ public class RestController
         if (vitals == null)
             return true;
 
-        return vitals.HealthPercent >= 100f && vitals.ManaPercent >= 100f;
+        return vitals.Value.HealthPercent >= 100f && vitals.Value.ManaPercent >= 100f;
     }
 }
 
