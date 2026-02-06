@@ -190,3 +190,35 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-007
+- Implemented RestController.UseConsumable() with real game API
+- Searches GameData.PlayerInv.ALLSLOTS[] for matching item by name
+- Uses case-insensitive string comparison for item name matching
+- Implements FindItemHotkeySlot() to determine which keybind to press
+  - Food items (bread, meat, fish, food, apple, cheese) -> slot 1
+  - Drink items (water, potion, drink, juice, milk, ale) -> slot 2
+  - Other consumables -> slot 3 (default)
+- Uses InputController.UseAbilitySlot() to activate the item
+- Returns bool for success/failure
+- Null safety checks for PlayerInv and ALLSLOTS array
+- Try/catch for graceful error handling during scene transitions
+- Conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
+- Added IsFoodItem() and IsDrinkItem() helper methods
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Combat/RestController.cs - Implemented UseConsumable() with inventory search and slot detection
+
+**Learnings for future iterations:**
+- GameData.PlayerInv.ALLSLOTS[] contains all inventory slots
+- InventorySlot.Item.ItemName is the item's display name
+- Use StringComparison.OrdinalIgnoreCase for robust item name matching
+- Item-to-hotkey mapping is heuristic-based; full implementation would track player's action bar setup
+- Food/drink detection via keyword matching is a practical approach for MVP
+- UseAbilitySlot() accepts slot numbers 1-9 corresponding to keyboard keys
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---

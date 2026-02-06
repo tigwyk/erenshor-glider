@@ -117,8 +117,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented UseConsumable() to search inventory by name, determine hotkey slot via heuristic (food=slot1, drink=slot2, other=slot3), and use InputController.UseAbilitySlot(). IsFoodItem() and IsDrinkItem() helpers detect common consumable types. Null safety and try/catch for graceful error handling. Returns bool for success/failure."
     },
     {
       "id": "US-008",
