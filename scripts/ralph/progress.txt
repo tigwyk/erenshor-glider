@@ -146,6 +146,27 @@ Feature: Automated BepInEx installation and plugin management
   - Auto-detect from Steam via _installationService.DetectErenshorPathAsync()
   - Validate path contains Erenshor.exe before proceeding
 
+## Fri Feb  7 16:00:00 PST 2026 - US-013
+- Added manual directory browser dialog to InstallationService
+- Added BrowseForErenshorPathAsync method to IInstallationService interface
+- Implemented in InstallationService using FolderBrowserDialog
+- Validates selected path contains Erenshor.exe before returning
+- Returns validated path or null if cancelled/invalid
+- Shows clear error message for invalid selection via MessageBox
+- Uses SynchronizationContext to show dialog on UI thread
+- Added System.Windows.Forms using to InstallationService.cs
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added method to interface)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented method)
+- **Learnings for future iterations:**
+  - FolderBrowserDialog requires STAThread, but our service may be called from different threads
+  - Use WindowsFormsSynchronizationContext.Current to detect if we're on UI thread
+  - Use syncContext.Send() to execute code on UI thread
+  - Service layer showing UI dialogs is a pattern to avoid in future - keep UI in UI layer
+  - ValidateErenshorPath is private static - could be made public for reuse
+  - MessageBox with MessageBoxIcon.Warning for validation errors
+  - ShowNewFolderButton = false prevents users from creating new folders (we want existing install only)
+
 ## Fri Feb  7 14:00:00 PST 2026 - US-011
 - Added installation buttons to main window
 - Added InstallPlugin button (blue) to MainWindow header area

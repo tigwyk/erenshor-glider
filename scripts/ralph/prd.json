@@ -229,8 +229,8 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added BrowseForErenshorPathAsync method to IInstallationService and InstallationService. Uses FolderBrowserDialog for directory selection, validates Erenshor.exe exists, shows error message on invalid selection. Uses SynchronizationContext to show dialog on UI thread."
     },
     {
       "id": "US-014",
