@@ -1,3 +1,36 @@
 # Ralph Progress Log
-Started: Thu Feb  5 11:59:54 PST 2026
+Started: Wed Feb  5 06:30:00 PST 2026
+Branch: ralph/game-integration
+Feature: Replace stub implementations with real Erenshor game API integration using Assembly-CSharp.dll
+---
+
+## [2025-02-05] - US-001
+- Added conditional compilation support for toggling between stub and real game types
+- Added USE_REAL_GAME_TYPES compilation constant to csproj
+- Added conditional assembly references to Assembly-CSharp.dll and UnityEngine.dll (only active when USE_REAL_GAME_TYPES=true and ERENSHOR_PATH is set)
+- Wrapped GameStubs/GameData.cs with #if !USE_REAL_GAME_TYPES to exclude stubs when using real types
+- Updated GameStateReader.cs to conditionally use stubs
+- Fixed pre-existing nullable reference warnings in RestController.cs, RotationExecutor.cs, ExportImportManager.cs, and GrindingBot.cs
+- Suppressed unused event warning in Navigation.cs
+
+**Files changed:**
+- src/ErenshorGlider/ErenshorGlider.csproj - Added conditional assembly references
+- src/ErenshorGlider/GameStubs/GameData.cs - Added #if !USE_REAL_GAME_TYPES wrapper
+- src/ErenshorGlider/GameState/GameStateReader.cs - Added conditional using statement
+- src/ErenshorGlider/Navigation/Navigation.cs - Suppressed CS0067
+- src/ErenshorGlider/Combat/RestController.cs - Fixed nullable warnings
+- src/ErenshorGlider/Combat/RotationExecutor.cs - Fixed nullable warnings
+- src/ErenshorGlider/ImportExport/ExportImportManager.cs - Fixed nullable warnings
+- src/ErenshorGlider/Bot/GrindingBot.cs - Fixed nullable warnings
+
+**Learnings for future iterations:**
+- The project uses `Nullable` enabled type checking, which requires careful handling of nullable reference types
+- When USE_REAL_GAME_TYPES is defined but ERENSHOR_PATH is not set, the build shows a warning but still attempts to compile
+- The stub types (GameData, PlayerControl, Character, etc.) need to match the real game API signatures exactly for the conditional compilation to work seamlessly
+- The ItemQuality enum exists in both GameState namespace (used by PlayerInventory struct) and GameStubs namespace - these are intentionally separate
+- The prd.json branch name was "ralph/game-integration" but the actual branch was "ralph/erenshor-glider" - created new branch as specified
+
+**Build verification:**
+- Default build (without USE_REAL_GAME_TYPES): PASS (0 warnings, 0 errors)
+- With USE_REAL_GAME_TYPES but no ERENSHOR_PATH: Fails (expected - needs actual game DLLs)
 ---

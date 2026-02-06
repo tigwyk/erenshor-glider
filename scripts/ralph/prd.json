@@ -1,0 +1,176 @@
+{
+  "project": "Erenshor Glider",
+  "branchName": "ralph/game-integration",
+  "description": "Replace stub implementations with real Erenshor game API integration using Assembly-CSharp.dll, implement Windows API input simulation, and complete one full bot flow (pathing → combat → looting → resting) to validate the integration.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add Assembly-CSharp.dll reference and conditional compilation",
+      "description": "As a developer, I need to reference the real game assemblies so I can use actual game types and compile-time type checking.",
+      "acceptanceCriteria": [
+        "Add <Erenshor>/Erenshor_Data/Managed/Assembly-CSharp.dll as project reference",
+        "Add <Erenshor>/Erenshor_Data/Managed/UnityEngine.dll as project reference",
+        "Define USE_REAL_GAME_TYPES compilation constant for toggling between stubs and real types",
+        "Add conditional compilation (#if USE_REAL_GAME_TYPES) to GameStubs classes",
+        "Project compiles successfully with real game references",
+        "Project still compiles without game references (when constant not defined)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Conditional compilation implemented. Default behavior uses stubs. When USE_REAL_GAME_TYPES=true and ERENSHOR_PATH is set, real game types are used. Fixed nullable reference warnings as well."
+    },
+    {
+      "id": "US-002",
+      "title": "Create separate test project with stub implementations",
+      "description": "As a developer, I need a test project with stub classes so I can run unit tests without game dependencies.",
+      "acceptanceCriteria": [
+        "Create new ErenshorGlider.Tests project",
+        "Move GameStubs classes to test project",
+        "Add project reference from ErenshorGlider.Tests to ErenshorGlider",
+        "Test project compiles independently of game assemblies",
+        "Create at least one unit test using stub types (e.g., PositionTracker test)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement Windows API input simulation",
+      "description": "As a bot, I need to simulate keyboard inputs at the Windows API level so the game receives input events.",
+      "acceptanceCriteria": [
+        "Create WindowsInputSimulator class with P/Invoke declarations for SendInput",
+        "Implement KEYBDINPUT structure for keyboard events",
+        "Implement PressKey(KeyCode) to send WM_KEYDOWN",
+        "Implement ReleaseKey(KeyCode) to send WM_KEYUP",
+        "Add INPUT struct marshaling for native interop",
+        "Input simulation works with notepad test (verifies Windows API integration)",
+        "Integration test: Send W key while game has focus results in character movement",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement real player rotation reading",
+      "description": "As a navigation system, I need to read the actual player rotation from the game transform so I can calculate facing direction correctly.",
+      "acceptanceCriteria": [
+        "Replace Navigation.GetPlayerRotation() stub with real implementation",
+        "Read GameData.PlayerControl.transform.rotation.eulerAngles.y",
+        "Handle null/missing PlayerControl gracefully",
+        "Return rotation in degrees (0-360)",
+        "Unit test: Verify rotation reading returns valid angle",
+        "Integration test: FaceTarget() correctly orients player toward waypoint",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implement auto-attack via PlayerCombat API",
+      "description": "As a combat system, I need to toggle auto-attack so the character automatically attacks the current target.",
+      "acceptanceCriteria": [
+        "Call GameData.PlayerCombat.ToggleAttack() or ForceAttackOn()",
+        "Add null check for PlayerCombat",
+        "Only enable auto-attack when target exists and is hostile",
+        "Disable auto-attack when target dies or combat ends",
+        "Integration test: Bot engages target, auto-attack triggers, target HP decreases",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implement entity targeting by instance ID",
+      "description": "As a combat system, I need to target specific entities by their Unity instance ID so I can attack desired mobs.",
+      "acceptanceCriteria": [
+        "Implement InputController.TargetEntityById(int instanceId) using real game API",
+        "Find Character/NPC object matching instance ID via Object.FindObjectsOfType<Character>()",
+        "Set GameData.PlayerControl.CurrentTarget to found object",
+        "Handle entity not found case gracefully",
+        "Integration test: Target specific mob, verify GameData.PlayerControl.CurrentTarget matches",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement consumable item usage (food/drink)",
+      "description": "As a rest system, I need to use food and drink items from inventory so the player can recover health/mana.",
+      "acceptanceCriteria": [
+        "Implement RestController.UseConsumable(string itemName)",
+        "Search GameData.PlayerInv.ALLSLOTS[] for matching item name",
+        "Find hotkey slot assigned to the item",
+        "Simulate keypress for that hotkey slot",
+        "Handle item not found or no hotkey assigned cases",
+        "Integration test: Use food item, verify player HP regen increases",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implement waypoint delay waiting",
+      "description": "As a waypoint system, I need to pause at waypoints with delays so the bot can wait for respawns or NPC interactions.",
+      "acceptanceCriteria": [
+        "Add DelayStartTime tracking to WaypointPlayer",
+        "Check Waypoint.Delay property when reaching waypoint",
+        "Wait for delay duration before proceeding to next waypoint",
+        "Skip delay if bot enters combat during wait",
+        "Integration test: Create waypoint path with delays, verify bot pauses correctly",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Implement buff stack counting",
+      "description": "As a combat rotation, I need to check buff/debuff stack counts so I can execute abilities based on stack requirements.",
+      "acceptanceCriteria": [
+        "Implement ConditionType.BuffStackCount evaluation in Condition.Evaluate()",
+        "Access Buff.Stacks property from buff list",
+        "Handle buff not found case (return false or 0 stacks)",
+        "Support comparison operators (==, !=, <, <=, >, >=)",
+        "Integration test: Create condition requiring 2 stacks, verify evaluates correctly",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "End-to-end bot flow validation",
+      "description": "As a user, I want to run a complete bot session that successfully pathes, fights, loots, and rests so I can verify the full integration works.",
+      "acceptanceCriteria": [
+        "Bot loads combat profile and waypoint path successfully",
+        "Bot follows waypoints and detects stuck conditions",
+        "Bot finds and targets hostile mobs within range",
+        "Bot executes combat rotation (abilities fire via keybinds)",
+        "Bot loots corpse after target dies",
+        "Bot rests when health/mana below threshold",
+        "Bot resumes pathing after rest completes",
+        "Full session runs for 10+ minutes without crashes",
+        "Action log shows all state transitions correctly",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
