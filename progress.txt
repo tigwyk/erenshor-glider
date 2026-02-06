@@ -1386,3 +1386,39 @@
   - Uses System.Text.Json with camelCase naming for consistency
   - Directory.CreateDirectory() ensures output directories exist before export
   - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-049
+- What was implemented:
+  - Added ExportToJSON() method to MapDataStore for standalone export
+  - MapDataExport wrapper class with metadata: Version, ExportedAt, ExportedBy, Zone
+  - Export includes all ResourceNodes, Npcs, MobSpawns with full timestamps
+  - Each discovery includes: DiscoveredAt, LastSeenAt, TimesSeen, position data
+  - ResourceNodeDiscovery includes RequiredSkill field (Mining, Herbalism, Woodcutting)
+  - NpcDiscovery includes IsVendor, HasQuests flags
+  - MobSpawnPoint includes Level, Faction, TimesSeen
+  - ToJson() method returns JSON string for programmatic access
+  - ExportToJSON(filePath, overwrite) for file export with control
+  - Default export path: exports/mapdata_TIMESTAMP.json
+  - overwrite=false by default prevents accidental data loss
+  - Export includes Statistics summary (counts of each type)
+  - Thread-safe with lock (_lock) for concurrent access
+- Files changed:
+  - src/ErenshorGlider/Mapping/MapDataStore.cs (modified - added ExportToJSON, ToJson, MapDataExport class)
+  - prd.json (modified - US-049 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - MapDataExport wrapper provides consistent export format with metadata
+  - Timestamps (DiscoveredAt, LastSeenAt) included for temporal analysis
+  - TimesSeen counter indicates how often node/mob has been confirmed
+  - RequiredSkill field in ResourceNodeDiscovery helps with gathering planning
+  - IsVendor/HasQuests flags in NpcDiscovery enable vendor/quest routing
+  - Level and Faction in MobSpawnPoint help with combat planning
+  - ToJson() useful for API responses or clipboard copy
+  - ExportToJSON() useful for file backup or sharing
+  - Export file auto-named with timestamp (yyyyMMdd_HHmmss) for uniqueness
+  - Uses System.Text.Json with WriteIndented for human-readable output
+  - Note: PRD mentioned SQLite but implementation uses JSON (consistent with other data)
+  - Thread-safe lock ensures export doesn't interfere with recording
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check

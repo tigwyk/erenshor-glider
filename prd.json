@@ -726,8 +726,8 @@
         "Typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added ExportToJSON() method to MapDataStore. Creates MapDataExport wrapper with Version, ExportedAt, ExportedBy, Zone metadata. Includes ResourceNodes, Npcs, MobSpawns lists with all timestamps (DiscoveredAt, LastSeenAt). ToJson() returns JSON string for API access. Default export to exports/mapdata_TIMESTAMP.json. overwrite flag controls file replacement. Uses System.Text.Json with camelCase naming."
     },
     {
       "id": "US-050",

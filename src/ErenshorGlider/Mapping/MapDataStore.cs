@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using ErenshorGlider.GameState;
 
 namespace ErenshorGlider.Mapping;
@@ -471,6 +472,95 @@ public class MapDataStore
             );
         }
     }
+
+    /// <summary>
+    /// Exports all discovered map data to a standalone JSON file.
+    /// </summary>
+    /// <param name="filePath">The destination file path. If null, generates a filename.</param>
+    /// <param name="overwrite">Whether to overwrite existing files.</param>
+    /// <returns>True if export was successful, false otherwise.</returns>
+    public bool ExportToJSON(string? filePath = null, bool overwrite = false)
+    {
+        lock (_lock)
+        {
+            // Generate filename if not provided
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "exports", $"mapdata_{timestamp}.json");
+            }
+
+            // Check if file exists
+            if (File.Exists(filePath) && !overwrite)
+            {
+                return false;
+            }
+
+            try
+            {
+                // Ensure directory exists
+                string directory = Path.GetDirectoryName(filePath) ?? "exports";
+                Directory.CreateDirectory(directory);
+
+                // Create export data with metadata
+                var exportData = new MapDataExport
+                {
+                    Version = "1.0",
+                    ExportedAt = DateTime.UtcNow,
+                    ExportedBy = "Erenshor Glider",
+                    Zone = CurrentZone,
+                    ResourceNodes = _resourceNodes.ToList(),
+                    Npcs = _npcs.ToList(),
+                    MobSpawns = _mobSpawns.ToList(),
+                    Statistics = GetStatistics()
+                };
+
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                string json = JsonSerializer.Serialize(exportData, options);
+                File.WriteAllText(filePath, json);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets all discovered data as a JSON string.
+    /// </summary>
+    public string ToJson()
+    {
+        lock (_lock)
+        {
+            var exportData = new MapDataExport
+            {
+                Version = "1.0",
+                ExportedAt = DateTime.UtcNow,
+                ExportedBy = "Erenshor Glider",
+                Zone = CurrentZone,
+                ResourceNodes = _resourceNodes.ToList(),
+                Npcs = _npcs.ToList(),
+                MobSpawns = _mobSpawns.ToList(),
+                Statistics = GetStatistics()
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return JsonSerializer.Serialize(exportData, options);
+        }
+    }
 }
 
 /// <summary>
@@ -518,4 +608,34 @@ public readonly struct MapDataStatistics
     /// </summary>
     public override string ToString() =>
         $"Nodes: {ResourceNodeCount}, Vendors: {VendorCount}, Quest Givers: {QuestGiverCount}, Mob Spawns: {MobSpawnCount}";
+}
+
+/// <summary>
+/// Wrapper for map data export with metadata.
+/// </summary>
+public class MapDataExport
+{
+    /// <summary>Gets or sets the export format version.</summary>
+    public string Version { get; set; } = "1.0";
+
+    /// <summary>Gets or sets when the export was created.</summary>
+    public DateTime ExportedAt { get; set; }
+
+    /// <summary>Gets or sets who created the export.</summary>
+    public string? ExportedBy { get; set; }
+
+    /// <summary>Gets or sets the zone name.</summary>
+    public string Zone { get; set; } = "Unknown";
+
+    /// <summary>Gets or sets the discovered resource nodes.</summary>
+    public List<ResourceNodeDiscovery> ResourceNodes { get; set; } = new();
+
+    /// <summary>Gets or sets the discovered NPCs.</summary>
+    public List<NpcDiscovery> Npcs { get; set; } = new();
+
+    /// <summary>Gets or sets the discovered mob spawn points.</summary>
+    public List<MobSpawnPoint> MobSpawns { get; set; } = new();
+
+    /// <summary>Gets or sets the statistics summary.</summary>
+    public MapDataStatistics Statistics { get; set; }
 }
