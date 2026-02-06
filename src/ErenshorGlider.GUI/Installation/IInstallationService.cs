@@ -62,6 +62,14 @@ public interface IInstallationService
     /// </summary>
     /// <returns>The result of the update check.</returns>
     Task<UpdateCheckResult> CheckForUpdatesAsync();
+
+    /// <summary>
+    /// Updates the plugin to the latest version from GitHub.
+    /// </summary>
+    /// <param name="erenshorPath">The path to the Erenshor installation.</param>
+    /// <param name="progress">Optional progress reporter for the download and installation.</param>
+    /// <returns>The result of the update operation.</returns>
+    Task<InstallationResult> UpdatePluginAsync(string erenshorPath, IProgress<DownloadProgress>? progress = null);
 }
 
 /// <summary>

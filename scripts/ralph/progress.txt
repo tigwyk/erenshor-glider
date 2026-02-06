@@ -39,4 +39,21 @@ Feature: Automated BepInEx installation and plugin management
   - Version.Parse() requires version format (e.g., "1.0.0"), strip 'v' prefix if present
   - Use null-forgiving operator (!) when compiler can't recognize null check guards
   - Static factory methods pattern (UpdateAvailable, NoUpdate, Failed) for result objects
+
+## Fri Feb  7 11:30:00 PST 2026 - US-007
+- Implemented plugin download and update installation
+- Added UpdatePluginAsync method that downloads and installs the latest plugin DLL
+- Downloads from GitHub releases API, finds ErenshorGlider.dll asset
+- Backs up existing DLL before installation (creates .backup file)
+- Reports progress during download (0-50%) and installation (50-100%)
+- Handles download failures and file lock errors gracefully
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added UpdatePluginAsync to interface)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented UpdatePluginAsync with GitHub download)
+- **Learnings for future iterations:**
+  - Download to temp file in cache directory first, then copy to destination
+  - Use HttpCompletionOption.ResponseHeadersRead for streaming large downloads
+  - Report progress as percentage of total work (download + install)
+  - Backup strategy: copy existing file to .backup before overwriting
+  - Clean up temp files after installation (ignore cleanup errors)
 ---

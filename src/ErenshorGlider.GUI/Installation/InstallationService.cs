@@ -494,6 +494,152 @@ public class InstallationService : IInstallationService, IDisposable
         }
     }
 
+    /// <inheritdoc />
+    public async Task<InstallationResult> UpdatePluginAsync(string erenshorPath, IProgress<DownloadProgress>? progress = null)
+    {
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            return InstallationResult.Failed("Erenshor path cannot be empty.");
+        }
+
+        if (!Directory.Exists(erenshorPath))
+        {
+            return InstallationResult.Failed($"Erenshor directory not found: {erenshorPath}");
+        }
+
+        try
+        {
+            // First, check for updates to get the download URL
+            progress?.Report(DownloadProgress.Create(0, 0));
+
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            var response = await _httpClient.GetAsync(GitHubReleasesUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return InstallationResult.Failed($"Unable to fetch release information. Status: {response.StatusCode}");
+            }
+
+            string json = await response.Content.ReadAsStringAsync();
+            var releaseData = JsonSerializer.Deserialize<JsonElement>(json);
+
+            // Get download URL for the DLL asset
+            string? downloadUrl = null;
+            string? latestVersion = null;
+
+            if (releaseData.TryGetProperty("tag_name", out var tagProp))
+            {
+                latestVersion = tagProp.GetString()?.TrimStart('v');
+            }
+
+            if (releaseData.TryGetProperty("assets", out var assetsProp) && assetsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var asset in assetsProp.EnumerateArray())
+                {
+                    if (asset.TryGetProperty("name", out var nameProp))
+                    {
+                        string assetName = nameProp.GetString() ?? "";
+                        if (assetName.Contains("ErenshorGlider") && assetName.EndsWith(".dll"))
+                        {
+                            if (asset.TryGetProperty("browser_download_url", out var urlProp))
+                            {
+                                downloadUrl = urlProp.GetString();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                return InstallationResult.Failed("Could not find plugin DLL in latest release assets.");
+            }
+
+            // Download the plugin DLL
+            progress?.Report(DownloadProgress.Create(0, 0));
+
+            string tempDllPath = Path.Combine(CacheDirectory, "ErenshorGlider_update.dll");
+
+            using (var downloadResponse = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
+            {
+                downloadResponse.EnsureSuccessStatusCode();
+
+                long totalBytes = downloadResponse.Content.Headers.ContentLength ?? 0;
+                var buffer = new byte[8192];
+                long bytesRead = 0;
+
+                using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync())
+                using (var fileStream = new FileStream(tempDllPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    int read;
+                    while ((read = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer, 0, read);
+                        bytesRead += read;
+
+                        // Report download progress (0-50% for download, 50-100% for installation)
+                        if (totalBytes > 0)
+                        {
+                            progress?.Report(DownloadProgress.Create(bytesRead / 2, totalBytes));
+                        }
+                    }
+                }
+            }
+
+            progress?.Report(DownloadProgress.Create(50, 100));
+
+            // Ensure plugins directory exists
+            string pluginsPath = Path.Combine(erenshorPath, "BepInEx", "plugins");
+            if (!Directory.Exists(pluginsPath))
+            {
+                Directory.CreateDirectory(pluginsPath);
+            }
+
+            // Backup existing plugin DLL
+            string pluginDllPath = Path.Combine(pluginsPath, "ErenshorGlider.dll");
+            string backupPath = pluginDllPath + ".backup";
+
+            if (File.Exists(pluginDllPath))
+            {
+                File.Copy(pluginDllPath, backupPath, overwrite: true);
+            }
+
+            // Install the new DLL
+            File.Copy(tempDllPath, pluginDllPath, overwrite: true);
+
+            // Clean up temporary file
+            try
+            {
+                File.Delete(tempDllPath);
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+
+            progress?.Report(DownloadProgress.Create(100, 100));
+
+            string versionInfo = string.IsNullOrEmpty(latestVersion)
+                ? "Plugin updated successfully"
+                : $"Plugin updated to version {latestVersion}";
+
+            return InstallationResult.Succeeded(versionInfo);
+        }
+        catch (HttpRequestException ex)
+        {
+            return InstallationResult.Failed($"Download failed: " + ex.Message);
+        }
+        catch (IOException ex) when (IsFileLockException(ex))
+        {
+            return InstallationResult.Failed("Installation failed: File is locked. Please ensure Erenshor is not running.");
+        }
+        catch (Exception ex)
+        {
+            return InstallationResult.Failed($"Update failed: " + ex.Message);
+        }
+    }
+
     /// <summary>
     /// Disposes of resources used by the service.
     /// </summary>
