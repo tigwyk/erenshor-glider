@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using ErenshorGlider.GUI.Controls;
+using ErenshorGlider.GUI.Installation;
 
 namespace ErenshorGlider.GUI;
 
@@ -20,6 +21,9 @@ public class MainWindow : Form
     private readonly ContextMenuStrip _trayContextMenu;
     private readonly IBotController _botController;
     private readonly Button _settingsButton;
+    private readonly Button _installPluginButton;
+    private readonly Button _launchGameButton;
+    private readonly IInstallationService? _installationService;
 
     /// <summary>
     /// Gets the main content panel where other UI components can be added.
@@ -49,7 +53,7 @@ public class MainWindow : Form
     /// <summary>
     /// Creates a new MainWindow.
     /// </summary>
-    public MainWindow() : this(new MockBotController())
+    public MainWindow() : this(new MockBotController(), null)
     {
     }
 
@@ -57,9 +61,19 @@ public class MainWindow : Form
     /// Creates a new MainWindow with the specified bot controller.
     /// </summary>
     /// <param name="botController">The bot controller to use.</param>
-    public MainWindow(IBotController botController)
+    public MainWindow(IBotController botController) : this(botController, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates a new MainWindow with the specified bot controller and installation service.
+    /// </summary>
+    /// <param name="botController">The bot controller to use.</param>
+    /// <param name="installationService">The installation service to use.</param>
+    public MainWindow(IBotController botController, IInstallationService? installationService)
     {
         _botController = botController ?? throw new ArgumentNullException(nameof(botController));
+        _installationService = installationService;
 
         // Form properties
         Text = "Erenshor Glider";
@@ -72,6 +86,8 @@ public class MainWindow : Form
         _headerPanel = CreateHeaderPanel();
         _titleLabel = CreateTitleLabel();
         _settingsButton = CreateSettingsButton();
+        _installPluginButton = CreateInstallPluginButton();
+        _launchGameButton = CreateLaunchGameButton();
         _contentPanel = CreateContentPanel();
         _statusStrip = CreateStatusStrip();
         _statusLabel = CreateStatusLabel();
@@ -138,6 +154,66 @@ public class MainWindow : Form
         button.MouseEnter += (s, e) => button.BackColor = Color.FromArgb(80, 80, 85);
         button.MouseLeave += (s, e) => button.BackColor = Color.FromArgb(60, 60, 65);
         button.Click += (s, e) => ShowSettingsDialog();
+        return button;
+    }
+
+    /// <summary>
+    /// Creates the Install Plugin button in the header.
+    /// </summary>
+    private Button CreateInstallPluginButton()
+    {
+        var button = new Button
+        {
+            Text = "Install Plugin",
+            BackColor = Color.FromArgb(70, 130, 180),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            Size = new Size(110, 30),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand,
+            Enabled = _installationService != null
+        };
+        button.MouseEnter += (s, e) =>
+        {
+            if (button.Enabled)
+                button.BackColor = Color.FromArgb(90, 150, 200);
+        };
+        button.MouseLeave += (s, e) =>
+        {
+            button.BackColor = Color.FromArgb(70, 130, 180);
+        };
+        button.Click += async (s, e) => await HandleInstallPluginClick();
+        return button;
+    }
+
+    /// <summary>
+    /// Creates the Launch Game button in the header.
+    /// </summary>
+    private Button CreateLaunchGameButton()
+    {
+        var button = new Button
+        {
+            Text = "Launch Game",
+            BackColor = Color.FromArgb(100, 160, 100),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            Size = new Size(110, 30),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand,
+            Enabled = _installationService != null
+        };
+        button.MouseEnter += (s, e) =>
+        {
+            if (button.Enabled)
+                button.BackColor = Color.FromArgb(120, 180, 120);
+        };
+        button.MouseLeave += (s, e) =>
+        {
+            button.BackColor = Color.FromArgb(100, 160, 100);
+        };
+        button.Click += async (s, e) => await HandleLaunchGameClick();
         return button;
     }
 
@@ -237,12 +313,19 @@ public class MainWindow : Form
     /// </summary>
     private void LayoutControls()
     {
-        // Add title and settings button to header
+        // Add title and buttons to header
         _titleLabel.Dock = DockStyle.Left;
-        _titleLabel.Width = Width - 120;
+        _titleLabel.Width = Width - 370; // Make room for 3 buttons
+
+        // Position buttons from right to left
         _settingsButton.Location = new Point(Width - 120, 10);
+        _launchGameButton.Location = new Point(Width - 240, 10);
+        _installPluginButton.Location = new Point(Width - 360, 10);
+
         _headerPanel.Controls.Add(_titleLabel);
         _headerPanel.Controls.Add(_settingsButton);
+        _headerPanel.Controls.Add(_installPluginButton);
+        _headerPanel.Controls.Add(_launchGameButton);
 
         // Add controls to form
         Controls.Add(_contentPanel);
@@ -298,6 +381,20 @@ public class MainWindow : Form
             }
             HandleBotRunningChanged(s, e);
         };
+
+        // Wire up installation service events
+        if (_installationService != null)
+        {
+            _installationService.GameExited += (s, e) =>
+            {
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() => UpdateGameRunningButtons(false)));
+                    return;
+                }
+                UpdateGameRunningButtons(false);
+            };
+        }
     }
 
     /// <summary>
@@ -518,5 +615,211 @@ public class MainWindow : Form
 
         form.Controls.Add(settingsPanel);
         form.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Handles the Install Plugin button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleInstallPluginClick()
+    {
+        if (_installationService == null)
+        {
+            MessageBox.Show(
+                "Installation service is not available.",
+                "Installation Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        var erenshorPath = _installationService.Config?.ErenshorPath;
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            MessageBox.Show(
+                "Erenshor installation path is not configured. Please configure it in Settings.",
+                "Path Not Configured",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        // Check if game is running
+        if (_installationService.IsGameRunning())
+        {
+            MessageBox.Show(
+                "Cannot install plugin while Erenshor is running. Please close the game first.",
+                "Game Running",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            // Get the current GUI directory to find the plugin DLL
+            var guiDirectory = System.IO.Path.GetDirectoryName(Application.ExecutablePath);
+            var pluginDllPath = System.IO.Path.Combine(guiDirectory!, "ErenshorGlider.dll");
+
+            if (!System.IO.File.Exists(pluginDllPath))
+            {
+                MessageBox.Show(
+                    $"Plugin DLL not found at: {pluginDllPath}",
+                    "File Not Found",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            // Show progress dialog
+            using var progressDialog = CreateProgressDialog("Installing Plugin...");
+            progressDialog.Show(this);
+
+            var result = await _installationService.InstallPluginAsync(pluginDllPath, erenshorPath!);
+
+            progressDialog.Close();
+
+            if (result.Success)
+            {
+                MessageBox.Show(
+                    $"Plugin installed successfully!\n\n{result.Details ?? "The plugin has been copied to the BepInEx/plugins folder."}",
+                    "Installation Complete",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"Failed to install plugin:\n{result.ErrorMessage}",
+                    "Installation Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred during installation:\n{ex.Message}",
+                "Installation Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Handles the Launch Game button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleLaunchGameClick()
+    {
+        if (_installationService == null)
+        {
+            MessageBox.Show(
+                "Installation service is not available.",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        var erenshorPath = _installationService.Config?.ErenshorPath;
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            MessageBox.Show(
+                "Erenshor installation path is not configured. Please configure it in Settings.",
+                "Path Not Configured",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        // Check if game is already running
+        if (_installationService.IsGameRunning())
+        {
+            MessageBox.Show(
+                "Erenshor is already running!",
+                "Game Running",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            var result = await _installationService.LaunchGameAsync(erenshorPath!);
+
+            if (result.Success)
+            {
+                SetStatus("Game launched");
+                UpdateGameRunningButtons(true);
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"Failed to launch Erenshor:\n{result.ErrorMessage}",
+                    "Launch Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred while launching the game:\n{ex.Message}",
+                "Launch Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Updates button states when game running status changes.
+    /// </summary>
+    /// <param name="isRunning">True if game is running.</param>
+    private void UpdateGameRunningButtons(bool isRunning)
+    {
+        _launchGameButton.Enabled = !isRunning && _installationService != null;
+        _launchGameButton.Text = isRunning ? "Game Running" : "Launch Game";
+        _installPluginButton.Enabled = !isRunning && _installationService != null;
+    }
+
+    /// <summary>
+    /// Creates a simple progress dialog.
+    /// </summary>
+    /// <param name="message">The message to display.</param>
+    /// <returns>A progress dialog form.</returns>
+    private Form CreateProgressDialog(string message)
+    {
+        var form = new Form
+        {
+            Text = "Please Wait",
+            Size = new Size(350, 120),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            ShowInTaskbar = false,
+            BackColor = Color.FromArgb(30, 30, 30),
+            ForeColor = Color.White
+        };
+
+        var label = new Label
+        {
+            Text = message,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 10F)
+        };
+
+        var progressBar = new ProgressBar
+        {
+            Dock = DockStyle.Bottom,
+            Height = 8,
+            Style = ProgressBarStyle.Marquee
+        };
+
+        form.Controls.Add(label);
+        form.Controls.Add(progressBar);
+
+        return form;
     }
 }
