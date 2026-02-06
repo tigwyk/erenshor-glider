@@ -1,0 +1,121 @@
+{
+  "name": "Warrior",
+  "characterClass": "Warrior",
+  "description": "Basic warrior combat profile with auto-attack priority and health-based defensive abilities.",
+  "globalCooldown": 1.5,
+  "useAutoAttack": true,
+  "minHealthPercent": 30,
+  "minManaPercent": 0,
+  "abilities": {
+    "heroicStrike": {
+      "id": "heroicStrike",
+      "name": "Heroic Strike",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 15,
+      "range": 5,
+      "requiresTarget": true
+    },
+    "charge": {
+      "id": "charge",
+      "name": "Charge",
+      "keybind": "2",
+      "cooldown": 15,
+      "triggersGcd": false,
+      "manaCost": 10,
+      "range": 25,
+      "requiresTarget": true
+    },
+    "bloodthirst": {
+      "id": "bloodthirst",
+      "name": "Bloodthirst",
+      "keybind": "3",
+      "cooldown": 6,
+      "triggersGcd": true,
+      "manaCost": 0,
+      "range": 5,
+      "requiresTarget": true
+    },
+    "shieldBlock": {
+      "id": "shieldBlock",
+      "name": "Shield Block",
+      "keybind": "4",
+      "cooldown": 30,
+      "triggersGcd": false,
+      "manaCost": 10,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "battleShout": {
+      "id": "battleShout",
+      "name": "Battle Shout",
+      "keybind": "5",
+      "cooldown": 60,
+      "triggersGcd": true,
+      "manaCost": 20,
+      "range": 0,
+      "requiresTarget": false
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "battleShout",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Battle Shout"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Keep Battle Shout buff up at all times"
+    },
+    {
+      "abilityId": "charge",
+      "conditions": [
+        {
+          "type": "NotInCombat"
+        },
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "TargetHealthPercent",
+          "value": 100,
+          "operator": "Equal"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Charge into combat when starting fight"
+    },
+    {
+      "abilityId": "shieldBlock",
+      "conditions": [
+        {
+          "type": "PlayerHealthPercent",
+          "value": 50,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Use Shield Block when low health"
+    },
+    {
+      "abilityId": "bloodthirst",
+      "conditions": [],
+      "priority": 4,
+      "enabled": true,
+      "description": "Use Bloodthirst on cooldown for healing"
+    },
+    {
+      "abilityId": "heroicStrike",
+      "conditions": [],
+      "priority": 5,
+      "enabled": true,
+      "description": "Spam Heroic Strike as main attack"
+    }
+  ]
+}

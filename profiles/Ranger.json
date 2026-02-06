@@ -1,0 +1,150 @@
+{
+  "name": "Ranger",
+  "characterClass": "Ranger",
+  "description": "Basic ranger combat profile with bow attacks and pet management.",
+  "globalCooldown": 1.0,
+  "useAutoAttack": true,
+  "minHealthPercent": 25,
+  "minManaPercent": 10,
+  "abilities": {
+    "aimedShot": {
+      "id": "aimedShot",
+      "name": "Aimed Shot",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 40,
+      "range": 35,
+      "requiresTarget": true,
+      "castTime": 3
+    },
+    "arcaneShot": {
+      "id": "arcaneShot",
+      "name": "Arcane Shot",
+      "keybind": "2",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 25,
+      "range": 30,
+      "requiresTarget": true
+    },
+    "serpentSting": {
+      "id": "serpentSting",
+      "name": "Serpent Sting",
+      "keybind": "3",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 30,
+      "requiresTarget": true
+    },
+    " huntersMark": {
+      "id": "huntersMark",
+      "name": "Hunter's Mark",
+      "keybind": "4",
+      "cooldown": 0,
+      "triggersGcd": false,
+      "manaCost": 15,
+      "range": 100,
+      "requiresTarget": true
+    },
+    "aspectOfTheHawk": {
+      "id": "aspectOfTheHawk",
+      "name": "Aspect of the Hawk",
+      "keybind": "5",
+      "cooldown": 0,
+      "triggersGcd": false,
+      "manaCost": 35,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "callPet": {
+      "id": "callPet",
+      "name": "Call Pet",
+      "keybind": "6",
+      "cooldown": 0,
+      "triggersGcd": false,
+      "manaCost": 0,
+      "range": 0,
+      "requiresTarget": false,
+      "castTime": 5
+    },
+    "mendPet": {
+      "id": "mendPet",
+      "name": "Mend Pet",
+      "keybind": "7",
+      "cooldown": 10,
+      "triggersGcd": false,
+      "manaCost": 50,
+      "range": 20,
+      "requiresTarget": false
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "aspectOfTheHawk",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Aspect of the Hawk"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Keep Aspect of the Hawk active"
+    },
+    {
+      "abilityId": "huntersMark",
+      "conditions": [
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "TargetHealthPercent",
+          "value": 100,
+          "operator": "Equal"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Apply Hunter's Mark at start of fight"
+    },
+    {
+      "abilityId": "serpentSting",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Serpent Sting"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Keep Serpent Sting DoT up"
+    },
+    {
+      "abilityId": "aimedShot",
+      "conditions": [
+        {
+          "type": "TargetHealthPercent",
+          "value": 80,
+          "operator": "GreaterThan"
+        },
+        {
+          "type": "PlayerManaPercent",
+          "value": 50,
+          "operator": "GreaterThan"
+        }
+      ],
+      "priority": 4,
+      "enabled": true,
+      "description": "Use Aimed Shot for burst when safe"
+    },
+    {
+      "abilityId": "arcaneShot",
+      "conditions": [],
+      "priority": 5,
+      "enabled": true,
+      "description": "Arcane Shot as filler ability"
+    }
+  ]
+}

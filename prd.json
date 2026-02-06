@@ -742,8 +742,8 @@
         "Typecheck passes"
       ],
       "priority": 50,
-      "passes": false,
-      "notes": "Requires knowing Erenshor classes from US-001 research"
+      "passes": true,
+      "notes": "Created 6 baseline combat profiles: Warrior (melee with heroic strike, charge, bloodthirst, shield block, battle shout), Mage (frost bolt rotation with frost armor, arcane intellect, evocation), Rogue (stealth opener with backstab, sinister strike, eviscerate, slice and dice), Cleric (smite and heals with power word shield, renew, inner fire), Ranger (aimed shot, arcane shot, serpent sting, aspect of the hawk), Necromancer (shadow bolt with corruption, curse of agony, drain life, fear). All include buff maintenance and defensive abilities."
     }
   ]
 }

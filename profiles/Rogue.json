@@ -1,0 +1,139 @@
+{
+  "name": "Rogue",
+  "characterClass": "Rogue",
+  "description": "Basic rogue combat profile with stealth opener and combo point builders.",
+  "globalCooldown": 1.0,
+  "useAutoAttack": true,
+  "minHealthPercent": 25,
+  "minManaPercent": 20,
+  "abilities": {
+    "sinisterStrike": {
+      "id": "sinisterStrike",
+      "name": "Sinister Strike",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 45,
+      "range": 5,
+      "requiresTarget": true
+    },
+    "backstab": {
+      "id": "backstab",
+      "name": "Backstab",
+      "keybind": "2",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 60,
+      "range": 5,
+      "requiresTarget": true
+    },
+    "eviscerate": {
+      "id": "eviscerate",
+      "name": "Eviscerate",
+      "keybind": "3",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 35,
+      "range": 5,
+      "requiresTarget": true
+    },
+    "stealth": {
+      "id": "stealth",
+      "name": "Stealth",
+      "keybind": "4",
+      "cooldown": 10,
+      "triggersGcd": false,
+      "manaCost": 0,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "evasion": {
+      "id": "evasion",
+      "name": "Evasion",
+      "keybind": "5",
+      "cooldown": 300,
+      "triggersGcd": false,
+      "manaCost": 30,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "sliceAndDice": {
+      "id": "sliceAndDice",
+      "name": "Slice and Dice",
+      "keybind": "6",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 25,
+      "range": 5,
+      "requiresTarget": true
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "evasion",
+      "conditions": [
+        {
+          "type": "PlayerHealthPercent",
+          "value": 40,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Use Evasion defensively when low health"
+    },
+    {
+      "abilityId": "stealth",
+      "conditions": [
+        {
+          "type": "NotInCombat"
+        },
+        {
+          "type": "BuffAbsent",
+          "buffName": "Stealth"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Enter Stealth before starting combat"
+    },
+    {
+      "abilityId": "backstab",
+      "conditions": [
+        {
+          "type": "BuffPresent",
+          "buffName": "Stealth"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Backstab as stealth opener"
+    },
+    {
+      "abilityId": "sinisterStrike",
+      "conditions": [],
+      "priority": 4,
+      "enabled": true,
+      "description": "Build combo points with Sinister Strike"
+    },
+    {
+      "abilityId": "sliceAndDice",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Slice and Dice"
+        }
+      ],
+      "priority": 5,
+      "enabled": true,
+      "description": "Keep Slice and Dice finisher up"
+    },
+    {
+      "abilityId": "eviscerate",
+      "conditions": [],
+      "priority": 6,
+      "enabled": true,
+      "description": "Eviscerate as main finisher"
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "name": "Mage",
+  "characterClass": "Mage",
+  "description": "Basic mage combat profile with frost bolt rotation and mana management.",
+  "globalCooldown": 1.5,
+  "useAutoAttack": false,
+  "minHealthPercent": 20,
+  "minManaPercent": 30,
+  "abilities": {
+    "frostBolt": {
+      "id": "frostBolt",
+      "name": "Frost Bolt",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 25,
+      "range": 30,
+      "requiresTarget": true,
+      "castTime": 2.5
+    },
+    "fireball": {
+      "id": "fireball",
+      "name": "Fireball",
+      "keybind": "2",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 40,
+      "range": 35,
+      "requiresTarget": true,
+      "castTime": 3
+    },
+    "iceLance": {
+      "id": "iceLance",
+      "name": "Ice Lance",
+      "keybind": "3",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 15,
+      "range": 20,
+      "requiresTarget": true
+    },
+    "frostNova": {
+      "id": "frostNova",
+      "name": "Frost Nova",
+      "keybind": "4",
+      "cooldown": 25,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 10,
+      "requiresTarget": false
+    },
+    "frostArmor": {
+      "id": "frostArmor",
+      "name": "Frost Armor",
+      "keybind": "5",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 35,
+      "range": 0,
+      "requiresTarget": false,
+      "castTime": 1
+    },
+    "arcaneIntellect": {
+      "id": "arcaneIntellect",
+      "name": "Arcane Intellect",
+      "keybind": "6",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 50,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "evocation": {
+      "id": "evocation",
+      "name": "Evocation",
+      "keybind": "7",
+      "cooldown": 480,
+      "triggersGcd": false,
+      "manaCost": 0,
+      "range": 0,
+      "requiresTarget": false,
+      "isChanneled": true,
+      "castTime": 8
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "arcaneIntellect",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Arcane Intellect"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Keep Arcane Intellect buff active"
+    },
+    {
+      "abilityId": "frostArmor",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Frost Armor"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Keep Frost Armor active"
+    },
+    {
+      "abilityId": "evocation",
+      "conditions": [
+        {
+          "type": "NotInCombat"
+        },
+        {
+          "type": "PlayerManaPercent",
+          "value": 40,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Evocate to restore mana when out of combat"
+    },
+    {
+      "abilityId": "frostNova",
+      "conditions": [
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "TargetHealthPercent",
+          "value": 100,
+          "operator": "Equal"
+        }
+      ],
+      "priority": 4,
+      "enabled": true,
+      "description": "Frost Nova at start of fight to slow enemy"
+    },
+    {
+      "abilityId": "iceLance",
+      "conditions": [
+        {
+          "type": "BuffPresent",
+          "buffName": "Frozen"
+        }
+      ],
+      "priority": 5,
+      "enabled": true,
+      "description": "Use Ice Lance when target is frozen"
+    },
+    {
+      "abilityId": "frostBolt",
+      "conditions": [],
+      "priority": 6,
+      "enabled": true,
+      "description": "Main damage spell - Frost Bolt"
+    },
+    {
+      "abilityId": "fireball",
+      "conditions": [
+        {
+          "type": "PlayerManaPercent",
+          "value": 60,
+          "operator": "GreaterThan"
+        },
+        {
+          "type": "TargetHealthPercent",
+          "value": 30,
+          "operator": "GreaterThan"
+        }
+      ],
+      "priority": 7,
+      "enabled": true,
+      "description": "Use Fireball for burst damage when safe"
+    }
+  ]
+}
