@@ -115,3 +115,4 @@ profiles/*
 waypoints/*
 !profiles/.gitkeep
 !waypoints/.gitkeep
+.claude/
