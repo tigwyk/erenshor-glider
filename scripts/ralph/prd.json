@@ -193,8 +193,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added InstallPlugin and LaunchGame buttons to MainWindow header. Buttons disable when game is running. Shows confirmation/error dialogs. Added IInstallationService constructor parameter."
     },
     {
       "id": "US-012",

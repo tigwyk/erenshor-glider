@@ -116,4 +116,30 @@ Feature: Automated BepInEx installation and plugin management
   - ShortenPath utility keeps filename visible and truncates directory with "..." prefix
   - Panel background color: Color.FromArgb(40, 40, 43) for consistency
   - Button hover effect lightens color by 20 RGB units
+
+## Fri Feb  7 14:00:00 PST 2026 - US-011
+- Added installation buttons to main window
+- Added InstallPlugin button (blue) to MainWindow header area
+- Added LaunchGame button (green) to MainWindow header area
+- Buttons disable when game is running via UpdateGameRunningButtons method
+- Install button shows confirmation message on success
+- Launch button starts Erenshor.exe from configured path
+- Shows error dialog if Erenshor path not configured
+- Styled buttons to match existing theme
+- Added IInstallationService parameter to MainWindow constructor (nullable for backward compatibility)
+- Added HandleInstallPluginClick async handler with progress dialog
+- Added HandleLaunchGameClick async handler
+- Added CreateProgressDialog for showing progress during operations
+- Wired up GameExited event to re-enable buttons when game closes
+- Files changed:
+  - src/ErenshorGlider.GUI/MainWindow.cs (added buttons, handlers, service parameter)
+- **Learnings for future iterations:**
+  - MainWindow constructor overload pattern: add new parameters with default null for backward compatibility
+  - Button layout in header: position from right to left with fixed X coordinates
+  - Header needs more width (370px instead of 120px) when adding multiple buttons
+  - Progress dialog pattern: CreateProgressDialog returns Form with ProgressBar in Marquee style
+  - Use `using var` for progress dialog to ensure proper disposal
+  - MessageBox icons: Information for success, Warning for missing config, Error for failures
+  - Check IsGameRunning before both install and launch operations
+  - Get plugin DLL path from Application.ExecutablePath directory
 ---
