@@ -37,6 +37,8 @@ public interface IBotController
     /// Event raised when the bot state changes.
     /// </summary>
     event EventHandler<BotStateChangedEventArgs>? BotStateChanged;
+
+    /// <summary>
     /// Event raised when the bot starts or stops.
     /// </summary>
     event EventHandler<BotRunningChangedEventArgs>? BotRunningChanged;

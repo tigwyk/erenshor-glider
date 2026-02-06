@@ -21,74 +21,74 @@ public class SettingsPanel : Panel
     private BotConfig _workingConfig;
 
     // Combat tab controls
-    private NumericUpDown _minHealthCombat;
-    private NumericUpDown _minManaCombat;
-    private NumericUpDown _maxDeathCount;
-    private NumericUpDown _combatTimeout;
-    private CheckBox _chaseFleeing;
-    private NumericUpDown _maxChaseDistance;
-    private NumericUpDown _maxAttackRange;
+    private NumericUpDown? _minHealthCombat;
+    private NumericUpDown? _minManaCombat;
+    private NumericUpDown? _maxDeathCount;
+    private NumericUpDown? _combatTimeout;
+    private CheckBox? _chaseFleeing;
+    private NumericUpDown? _maxChaseDistance;
+    private NumericUpDown? _maxAttackRange;
 
     // Target selection tab controls
-    private NumericUpDown _maxLevelAbove;
-    private NumericUpDown _maxLevelBelow;
-    private NumericUpDown _maxSearchRadius;
-    private NumericUpDown _maxWaypointDistance;
-    private CheckBox _prioritizeAttackers;
-    private TextBox _blacklistedMobs;
-    private TextBox _blacklistedTypes;
+    private NumericUpDown? _maxLevelAbove;
+    private NumericUpDown? _maxLevelBelow;
+    private NumericUpDown? _maxSearchRadius;
+    private NumericUpDown? _maxWaypointDistance;
+    private CheckBox? _prioritizeAttackers;
+    private TextBox? _blacklistedMobs;
+    private TextBox? _blacklistedTypes;
 
     // Rest and recovery tab controls
-    private NumericUpDown _minHealthRest;
-    private NumericUpDown _minManaRest;
-    private NumericUpDown _targetHealthRest;
-    private NumericUpDown _targetManaRest;
-    private NumericUpDown _maxRestDuration;
-    private TextBox _foodItem;
-    private TextBox _drinkItem;
+    private NumericUpDown? _minHealthRest;
+    private NumericUpDown? _minManaRest;
+    private NumericUpDown? _targetHealthRest;
+    private NumericUpDown? _targetManaRest;
+    private NumericUpDown? _maxRestDuration;
+    private TextBox? _foodItem;
+    private TextBox? _drinkItem;
 
     // Looting tab controls
-    private CheckBox _autoLoot;
-    private NumericUpDown _lootDistance;
-    private NumericUpDown _maxLootWait;
-    private CheckBox _skipLootWhenFull;
-    private NumericUpDown _minFreeBagSlots;
+    private CheckBox? _autoLoot;
+    private NumericUpDown? _lootDistance;
+    private NumericUpDown? _maxLootWait;
+    private CheckBox? _skipLootWhenFull;
+    private NumericUpDown? _minFreeBagSlots;
 
     // Navigation tab controls
-    private NumericUpDown _stoppingDistance;
-    private NumericUpDown _stuckThreshold;
-    private NumericUpDown _maxUnstuckAttempts;
-    private NumericUpDown _movementProgress;
-    private NumericUpDown _facingTolerance;
+    private NumericUpDown? _stoppingDistance;
+    private NumericUpDown? _stuckThreshold;
+    private NumericUpDown? _maxUnstuckAttempts;
+    private NumericUpDown? _movementProgress;
+    private NumericUpDown? _facingTolerance;
 
     // Waypoints tab controls
-    private NumericUpDown _minWaypointDistance;
-    private NumericUpDown _minWaypointInterval;
+    private NumericUpDown? _minWaypointDistance;
+    private NumericUpDown? _minWaypointInterval;
 
     // Input tab controls
-    private NumericUpDown _inputDelay;
-    private NumericUpDown _inputRandomization;
+    private NumericUpDown? _inputDelay;
+    private NumericUpDown? _inputRandomization;
 
     // Death tab controls
-    private CheckBox _autoReleaseSpirit;
-    private CheckBox _autoResurrectGraveyard;
-    private NumericUpDown _maxResurrectWait;
-    private NumericUpDown _postResurrectDelay;
+    private CheckBox? _autoReleaseSpirit;
+    private CheckBox? _autoResurrectGraveyard;
+    private NumericUpDown? _maxResurrectWait;
+    private NumericUpDown? _postResurrectDelay;
 
     // Map discovery tab controls
-    private CheckBox _autoMappingEnabled;
-    private CheckBox _recordResourceNodes;
-    private CheckBox _recordNpcs;
-    private CheckBox _recordMobSpawns;
-    private NumericUpDown _mapDedupeRadius;
+    private CheckBox? _autoMappingEnabled;
+    private CheckBox? _recordResourceNodes;
+    private CheckBox? _recordNpcs;
+    private CheckBox? _recordMobSpawns;
+    private NumericUpDown? _mapDedupeRadius;
 
     // Hotkeys tab controls
-    private ComboBox _emergencyStopHotkey;
-    private ComboBox _pauseResumeHotkey;
+    private ComboBox? _emergencyStopHotkey;
+    private ComboBox? _pauseResumeHotkey;
 
     // Session limits tab controls
-    private NumericUpDown _maxSessionRuntime;
-    private NumericUpDown _maxStuckTime;
+    private NumericUpDown? _maxSessionRuntime;
+    private NumericUpDown? _maxStuckTime;
 
     /// <summary>
     /// Creates a new SettingsPanel.
@@ -574,6 +574,7 @@ public class SettingsPanel : Panel
     /// <summary>
     /// Loads current configuration values into the controls.
     /// </summary>
+#nullable disable
     private void LoadCurrentConfig()
     {
         var config = _workingConfig;
@@ -648,6 +649,7 @@ public class SettingsPanel : Panel
         _maxSessionRuntime.Value = config.MaxSessionRuntimeMinutes;
         _maxStuckTime.Value = (decimal)config.MaxStuckTimeSeconds;
     }
+#nullable enable
 
     /// <summary>
     /// Sets the selected hotkey in a combo box.
@@ -661,6 +663,7 @@ public class SettingsPanel : Panel
     /// <summary>
     /// Handles the Save button click.
     /// </summary>
+#nullable disable
     private void HandleSave()
     {
         try
@@ -754,6 +757,7 @@ public class SettingsPanel : Panel
             SetStatus($"Error saving settings: {ex.Message}", Color.FromArgb(255, 100, 100));
         }
     }
+#nullable enable
 
     /// <summary>
     /// Handles the Reset button click.
@@ -766,7 +770,7 @@ public class SettingsPanel : Panel
     }
 
     /// <summary>
-    /// Parses a comma-separated list into a List<string>.
+    /// Parses a comma-separated list into a List&lt;string&gt;.
     /// </summary>
     private List<string> ParseCommaSeparatedList(string text)
     {
