@@ -23,11 +23,14 @@ public interface IBotController
     string CurrentState { get; }
 
     /// <summary>
+    /// Gets the action log provider.
+    /// </summary>
+    IActionLogProvider Log { get; }
+
+    /// <summary>
     /// Event raised when the bot state changes.
     /// </summary>
     event EventHandler<BotStateChangedEventArgs>? BotStateChanged;
-
-    /// <summary>
     /// Event raised when the bot starts or stops.
     /// </summary>
     event EventHandler<BotRunningChangedEventArgs>? BotRunningChanged;
@@ -125,9 +128,13 @@ public class MockBotController : IBotController, IBotStatusProvider, ISessionSta
     private int _goldEarned;
     private int _itemsLooted;
 
+    // Action log
+    private readonly MockActionLogProvider _log = new MockActionLogProvider();
+
     public bool IsRunning => _isRunning;
     public bool IsPaused => _isPaused;
     public string CurrentState => _currentState;
+    public IActionLogProvider Log => _log;
 
     public event EventHandler<BotStateChangedEventArgs>? BotStateChanged;
     public event EventHandler<BotRunningChangedEventArgs>? BotRunningChanged;
@@ -146,6 +153,7 @@ public class MockBotController : IBotController, IBotStatusProvider, ISessionSta
         _xpGained = 0;
         _goldEarned = 0;
         _itemsLooted = 0;
+        _log.State("Bot started - beginning patrol");
         BotRunningChanged?.Invoke(this, new BotRunningChangedEventArgs(true));
         BotStateChanged?.Invoke(this, new BotStateChangedEventArgs("Idle", _currentState));
         return true;

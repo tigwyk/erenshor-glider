@@ -304,6 +304,13 @@ public class MainWindow : Form
             };
             _contentPanel.Controls.Add(statsPanel);
         }
+
+        // Add action log panel (fills remaining space)
+        var actionLog = new ActionLogPanel(_botController.Log)
+        {
+            Dock = DockStyle.Fill
+        };
+        _contentPanel.Controls.Add(actionLog);
     }
 
     /// <summary>
