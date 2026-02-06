@@ -1116,4 +1116,32 @@
   - PaintRadar uses Graphics.FillEllipse/DrawLine for drawing
   - Entities outside canvas bounds are skipped for performance
 
+## 2026-02-05 - US-043 & US-044
+- What was implemented:
+  - Created ProfileSelectorPanel with ComboBox for combat profile selection
+  - Created WaypointSelectorPanel with ComboBox for waypoint path selection
+  - Mock combat profiles: Warrior.json, Mage.json, Rogue.json, Cleric.json, Ranger.json, Necromancer.json
+  - Mock waypoint paths: StarterZone_Patrol.json, StarterZone_Loop.json, Forest_Circuit.json, Cave_Farming.json, Dungeon_Grind.json
+  - ProfileSelected event (EventHandler<string>) raised on profile selection
+  - WaypointSelected event (EventHandler<string>) raised on path selection
+  - \"Current:\" label displays selected item name in gray (150,150,150 RGB)
+  - SetProfile(string) and SetPath(string) methods for programmatic selection
+  - Both panels ~70px height with title label, ComboBox dropdown, current label
+  - ComboBox style: DropDownList (no editing), dark background (30,30,33 RGB)
+  - Panels docked side-by-side in 80px container panel with 5px padding
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/ProfileSelectorPanel.cs (created - both panels)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - added InitializeSelectors)
+- **Learnings for future iterations:**
+  - ComboBox.DropDownStyle=DropDownList prevents user from typing custom values
+  - ComboBox.SelectedItem returns object ( ToString() for string value)
+  - ComboBox.SelectedIndex sets selection by index (not value)
+  - Items.IndexOf() finds item index by value for SetProfile/SetPath
+  - Side-by-side layout using Dock=DockStyle.Left/Right with Width properties
+  - Selector container panel height 80px (70px panels + padding)
+  - Profile and waypoint selection events allow GUI to react to user choices
+  - Future implementation should scan profiles/ and waypoints/ directories for real files
+  - Current label updates on SelectedIndexChanged event
+  - Events use EventHandler<string> pattern for passing selected item name
+
 ---
