@@ -1,7 +1,14 @@
 using System;
 using System.Collections.Generic;
-using ErenshorGlider.GameStubs;
 using UnityEngine;
+
+#if !USE_REAL_GAME_TYPES
+// Use stub implementations for development/testing
+using ErenshorGlider.GameStubs;
+// When USE_REAL_GAME_TYPES is defined, stub types are excluded
+// and the code uses the real game types from Assembly-CSharp.dll
+// The real types should have the same names as the stubs
+#endif
 
 namespace ErenshorGlider.GameState;
 

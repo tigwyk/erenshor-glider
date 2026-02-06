@@ -185,7 +185,7 @@ public class RotationExecutor
         // Try to use by keybind first
         if (!string.IsNullOrEmpty(ability.Keybind))
         {
-            KeyCode key = ParseKeybind(ability.Keybind);
+            KeyCode key = ParseKeybind(ability.Keybind!);
             _inputController.UseAbility(key);
         }
         else

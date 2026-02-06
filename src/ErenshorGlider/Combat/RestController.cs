@@ -114,13 +114,13 @@ public class RestController
         // Use food if available
         if (!string.IsNullOrEmpty(FoodItem))
         {
-            UseConsumable(FoodItem);
+            UseConsumable(FoodItem!);
         }
 
         // Use drink if available
         if (!string.IsNullOrEmpty(DrinkItem))
         {
-            UseConsumable(DrinkItem);
+            UseConsumable(DrinkItem!);
         }
 
         OnRestStarted?.Invoke();

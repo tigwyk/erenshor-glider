@@ -355,7 +355,7 @@ public class GrindingBot
         if (_inventoryManager.CheckBagSpace())
         {
             var vendorWaypoint = InventoryManager.FindNearestVendorWaypoint(
-                _waypointPlayer.CurrentPath,
+                _waypointPlayer.CurrentPath!,
                 _positionTracker.CurrentPosition.GetValueOrDefault()
             );
 
@@ -536,7 +536,7 @@ public class GrindingBot
         if (_inventoryManager.CheckBagSpace())
         {
             var vendorWaypoint = InventoryManager.FindNearestVendorWaypoint(
-                _waypointPlayer.CurrentPath,
+                _waypointPlayer.CurrentPath!,
                 _positionTracker.CurrentPosition.GetValueOrDefault()
             );
 

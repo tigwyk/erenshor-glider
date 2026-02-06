@@ -179,7 +179,7 @@ public static class ExportImportManager
         // Set new name if provided
         if (!string.IsNullOrWhiteSpace(newName))
         {
-            path.Name = newName;
+            path.Name = newName!;
         }
 
         // Save to waypoints directory
@@ -314,7 +314,7 @@ public static class ExportImportManager
         // Set new name if provided
         if (!string.IsNullOrWhiteSpace(newName))
         {
-            profile.Name = newName;
+            profile.Name = newName!;
         }
 
         // Save to profiles directory

@@ -478,7 +478,9 @@ public class Navigation
     /// <summary>
     /// Event raised when destination is reached.
     /// </summary>
+#pragma warning disable CS0067 // Event is never used
     public event Action<PlayerPosition>? OnDestinationReached;
+#pragma warning restore CS0067
 
     /// <summary>
     /// Event raised when movement is stuck (no progress).

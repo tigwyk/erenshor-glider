@@ -3,6 +3,8 @@
 // ReSharper disable UnassignedField.Global
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value
 
+#if !USE_REAL_GAME_TYPES
+
 using UnityEngine;
 
 namespace ErenshorGlider.GameStubs;
@@ -11,13 +13,14 @@ namespace ErenshorGlider.GameStubs;
 /// Stub for Erenshor's GameData singleton.
 /// This is replaced at runtime by the actual game class.
 /// When building with the game's Assembly-CSharp.dll reference, use the real type instead.
-/// </summary>
-/// <remarks>
+///
 /// To use the real game types:
-/// 1. Add a reference to Erenshor's Assembly-CSharp.dll in the csproj
-/// 2. Delete or exclude this stub file
-/// 3. Change using directives from ErenshorGlider.GameStubs to the actual namespace
-/// </remarks>
+/// 1. Set USE_REAL_GAME_TYPES compilation constant (dotnet build -p:USE_REAL_GAME_TYPES=true)
+/// 2. Set ERENSHOR_PATH environment variable to the game installation directory
+/// 3. The real game types will be used instead of these stubs
+///
+/// The stubs are automatically excluded when USE_REAL_GAME_TYPES is defined.
+/// </summary>
 public static class GameData
 {
     /// <summary>
@@ -423,3 +426,5 @@ public class Buff : MonoBehaviour
     /// </summary>
     public Character Caster;
 }
+
+#endif // !USE_REAL_GAME_TYPES

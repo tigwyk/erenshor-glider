@@ -19,7 +19,45 @@
     <!-- Build output -->
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+
+    <!-- Game Integration: Define USE_REAL_GAME_TYPES to use real game assemblies instead of stubs -->
+    <!-- Set via command line: dotnet build -p:USE_REAL_GAME_TYPES=true -->
+    <!-- Or by setting the ERENSHOR_PATH environment variable -->
+    <DefineConstants Condition="'$(USE_REAL_GAME_TYPES)' == 'true'">$(DefineConstants);USE_REAL_GAME_TYPES</DefineConstants>
   </PropertyGroup>
+
+  <!--
+    Game Assembly References
+    These references are only included when USE_REAL_GAME_TYPES is defined.
+    Set ERENSHOR_PATH environment variable to the game installation directory.
+    Example: ERENSHOR_PATH=C:\Games\Erenshor
+  -->
+  <PropertyGroup Condition="'$(USE_REAL_GAME_TYPES)' == 'true'">
+    <ErenshorPath Condition="'$(ERENSHOR_PATH)' == ''">$(ERENSHOR_PATH)</ErenshorPath>
+    <ErenshorManagedPath>$(ErenshorPath)\Erenshor_Data\Managed</ErenshorManagedPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(USE_REAL_GAME_TYPES)' == 'true' And Exists('$(ErenshorManagedPath)')">
+    <!-- Reference the game's main assembly -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ErenshorManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- Reference Unity engine (may already be available via NuGet, but game version may differ) -->
+    <Reference Include="UnityEngine">
+      <HintPath>$(ErenshorManagedPath)\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ErenshorManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Warning if USE_REAL_GAME_TYPES is set but path is not found -->
+  <Target Name="CheckErenshorPath" BeforeTargets="CoreCompile" Condition="'$(USE_REAL_GAME_TYPES)' == 'true' And !Exists('$(ErenshorManagedPath)')">
+    <Warning Text="USE_REAL_GAME_TYPES is set but Erenshor path not found. Set ERENSHOR_PATH environment variable to the game directory. Current: $(ErenshorManagedPath)" />
+  </Target>
 
   <!-- BepInEx and Harmony dependencies -->
   <ItemGroup>
