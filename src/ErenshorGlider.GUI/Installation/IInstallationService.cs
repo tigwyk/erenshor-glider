@@ -88,6 +88,17 @@ public interface IInstallationService
     /// Event raised when the game process exits.
     /// </summary>
     event EventHandler? GameExited;
+
+    /// <summary>
+    /// Gets the installation configuration.
+    /// </summary>
+    InstallationConfig Config { get; }
+
+    /// <summary>
+    /// Saves the installation configuration to disk.
+    /// </summary>
+    /// <returns>True if the configuration was saved successfully, false otherwise.</returns>
+    bool SaveConfig();
 }
 
 /// <summary>

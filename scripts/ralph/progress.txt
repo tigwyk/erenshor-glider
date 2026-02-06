@@ -73,4 +73,23 @@ Feature: Automated BepInEx installation and plugin management
   - Process monitoring requires background thread - use ThreadPool.QueueUserWorkItem
   - Track process instance in class field for cleanup and monitoring
   - Dispose process after exit to free resources
+
+## Fri Feb  7 12:30:00 PST 2026 - US-009
+- Added installation configuration persistence
+- Created InstallationConfig class with ErenshorPath, LastUpdateCheck, OptOutFromUpdateChecks, LastInstalledPluginVersion
+- Created InstallationConfigManager with Load, Save, Delete static methods
+- Config saves to LocalApplicationData/ErenshorGlider/installation.json
+- Loads config on service initialization, returns null if file doesn't exist
+- Handles JSON deserialization errors gracefully by returning default config
+- Added Config property and SaveConfig method to IInstallationService
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/InstallationConfig.cs (new)
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added Config property, SaveConfig method)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (load config in constructor, implement SaveConfig)
+- **Learnings for future iterations:**
+  - Follow existing ConfigManager pattern (like BotConfig.ConfigManager) for consistency
+  - Use camelCase JSON naming policy for config files
+  - Handle JSON deserialization errors by returning default/empty config
+  - Make Load() return nullable for "not found" vs "error" distinction
+  - Use same LocalApplicationData base directory for all app data
 ---

@@ -35,6 +35,11 @@ public class InstallationService : IInstallationService, IDisposable
     public string CacheDirectory { get; private set; }
 
     /// <summary>
+    /// Gets the installation configuration.
+    /// </summary>
+    public InstallationConfig Config { get; private set; }
+
+    /// <summary>
     /// Initializes a new instance of the InstallationService class.
     /// </summary>
     public InstallationService()
@@ -55,6 +60,9 @@ public class InstallationService : IInstallationService, IDisposable
         {
             Directory.CreateDirectory(CacheDirectory);
         }
+
+        // Load configuration
+        Config = InstallationConfigManager.Load() ?? new InstallationConfig();
     }
 
     /// <inheritdoc />
@@ -766,6 +774,12 @@ public class InstallationService : IInstallationService, IDisposable
                 // Ignore dispose errors
             }
         }
+    }
+
+    /// <inheritdoc />
+    public bool SaveConfig()
+    {
+        return InstallationConfigManager.Save(Config);
     }
 
     /// <summary>
