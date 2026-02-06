@@ -260,6 +260,36 @@ public readonly struct BuffState
     }
 
     /// <summary>
+    /// Gets the stack count of a specific buff by name.
+    /// Returns 0 if the buff is not found.
+    /// </summary>
+    /// <param name="buffName">The name of the buff to check.</param>
+    /// <returns>The number of stacks, or 0 if not found.</returns>
+    public int GetBuffStacks(string buffName)
+    {
+        if (string.IsNullOrEmpty(buffName))
+            return 0;
+
+        var buff = GetBuff(buffName);
+        return buff?.Stacks ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the stack count of a specific debuff by name.
+    /// Returns 0 if the debuff is not found.
+    /// </summary>
+    /// <param name="debuffName">The name of the debuff to check.</param>
+    /// <returns>The number of stacks, or 0 if not found.</returns>
+    public int GetDebuffStacks(string debuffName)
+    {
+        if (string.IsNullOrEmpty(debuffName))
+            return 0;
+
+        var debuff = GetDebuff(debuffName);
+        return debuff?.Stacks ?? 0;
+    }
+
+    /// <summary>
     /// Counts the number of active buffs.
     /// </summary>
     public int BuffCount => Buffs.Count;

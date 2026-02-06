@@ -127,10 +127,22 @@ public class Condition
             ConditionType.BuffAbsent => CheckTarget
                 ? !(targetBuffs?.HasBuff(BuffName ?? "") ?? false)
                 : !playerBuffs.HasBuff(BuffName ?? ""),
-            ConditionType.BuffStackCount => false, // TODO: Implement buff stack counting
+            ConditionType.BuffStackCount => EvaluateBuffStackCount(CheckTarget ? targetBuffs : playerBuffs, BuffName ?? "", Value, Operator),
             ConditionType.CanAct => combatState.CanAct,
             _ => true
         };
+    }
+
+    /// <summary>
+    /// Evaluates a buff stack count condition.
+    /// </summary>
+    private static bool EvaluateBuffStackCount(BuffState? buffState, string buffName, float value, ComparisonOperator op)
+    {
+        if (buffState == null || string.IsNullOrEmpty(buffName))
+            return false;
+
+        int stackCount = buffState.Value.GetBuffStacks(buffName);
+        return Compare(stackCount, value, op);
     }
 
     private static bool Compare(float actual, float expected, ComparisonOperator op)
