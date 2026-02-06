@@ -109,10 +109,14 @@ desktop.ini
 *.sln.docstates
 
 # ==============================================
+# Local settings
+# ==============================================
+.claude/
+
+# ==============================================
 # Keep these directories but ignore contents
 # ==============================================
 profiles/*
 waypoints/*
 !profiles/.gitkeep
 !waypoints/.gitkeep
-.claude/
