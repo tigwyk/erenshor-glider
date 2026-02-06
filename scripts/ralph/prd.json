@@ -212,8 +212,8 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created SetupWizard Form in ErenshorGlider.GUI/Forms with 5 steps (Welcome, Detection, BepInEx, Plugin, Complete). Includes Back/Next/Cancel navigation, progress bars, auto-detect from Steam, manual folder browser, and path validation."
     },
     {
       "id": "US-013",

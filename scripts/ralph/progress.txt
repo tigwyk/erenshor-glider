@@ -117,6 +117,35 @@ Feature: Automated BepInEx installation and plugin management
   - Panel background color: Color.FromArgb(40, 40, 43) for consistency
   - Button hover effect lightens color by 20 RGB units
 
+## Fri Feb  7 15:00:00 PST 2026 - US-012
+- Created first-run setup wizard
+- Created SetupWizard Form with multi-step layout in ErenshorGlider.GUI/Forms
+- Step 1: Welcome screen with feature list
+- Step 2: Erenshor detection with auto-detect from Steam and manual browse button
+- Step 3: BepInEx installation with progress bar
+- Step 4: Plugin installation with progress bar
+- Step 5: Complete screen with 'Launch Game' button
+- Added Back/Next/Cancel navigation buttons
+- Styled to match existing GUI theme (dark colors, consistent fonts)
+- Validates Erenshor.exe exists in selected folder
+- Shows progress during download and installation (Progress<DownloadProgress>)
+- Saves configuration to InstallationConfig via SaveConfig()
+- Uses FolderBrowserDialog for manual path selection
+- Files changed:
+  - src/ErenshorGlider.GUI/Forms/SetupWizard.cs (new)
+- **Learnings for future iterations:**
+  - Wizard pattern: create Form with _currentStep int tracking, switch on step number in ShowStep()
+  - Fixed dialog size (650x500) works well for wizard layouts
+  - ContentPanel (590x300) with step-specific content, buttons positioned at bottom right
+  - ProgressBarStyle.Marquee for indeterminate progress, Continuous for determinate
+  - Download progress reported as percentage (0-50% download, 50-100% install)
+  - Use SetInstallationInProgress(bool) to disable all navigation buttons during operations
+  - Step-specific content: clear _contentPanel.Controls and add new controls for each step
+  - FormBorderStyle = FormBorderStyle.FixedDialog for wizard-style non-resizable window
+  - Use FolderBrowserDialog with ShowNewFolderButton = false for installation selection
+  - Auto-detect from Steam via _installationService.DetectErenshorPathAsync()
+  - Validate path contains Erenshor.exe before proceeding
+
 ## Fri Feb  7 14:00:00 PST 2026 - US-011
 - Added installation buttons to main window
 - Added InstallPlugin button (blue) to MainWindow header area
