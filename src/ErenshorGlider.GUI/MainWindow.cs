@@ -81,6 +81,7 @@ public class MainWindow : Form
         LayoutControls();
         WireUpEvents();
         InitializeBotControls();
+        InitializeSelectors();
         InitializeStatusDisplay();
     }
 
@@ -280,6 +281,36 @@ public class MainWindow : Form
             Dock = DockStyle.Top
         };
         _contentPanel.Controls.Add(botControlPanel);
+    }
+
+    /// <summary>
+    /// Initializes the selector panels (profile and waypoint).
+    /// </summary>
+    private void InitializeSelectors()
+    {
+        // Profile and waypoint selectors side by side
+        var selectorPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 80,
+            Padding = new Padding(5)
+        };
+
+        var profileSelector = new ProfileSelectorPanel
+        {
+            Dock = DockStyle.Left,
+            Width = (Width / 2) - 20
+        };
+
+        var waypointSelector = new WaypointSelectorPanel
+        {
+            Dock = DockStyle.Right,
+            Width = (Width / 2) - 20
+        };
+
+        selectorPanel.Controls.Add(profileSelector);
+        selectorPanel.Controls.Add(waypointSelector);
+        _contentPanel.Controls.Add(selectorPanel);
     }
 
     /// <summary>

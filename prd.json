@@ -640,8 +640,8 @@
         "Typecheck passes"
       ],
       "priority": 43,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created ProfileSelectorPanel with ComboBox dropdown. Mock profiles: Warrior, Mage, Rogue, Cleric, Ranger, Necromancer. ProfileSelected event raises on selection. Current: label shows selected profile. SetProfile() method for programmatic selection."
     },
     {
       "id": "US-044",
@@ -654,8 +654,8 @@
         "Typecheck passes"
       ],
       "priority": 44,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created WaypointSelectorPanel with ComboBox dropdown. Mock paths: StarterZone_Patrol, StarterZone_Loop, Forest_Circuit, Cave_Farming, Dungeon_Grind. WaypointSelected event raises on selection. Current: label shows selected path. SetPath() method for programmatic selection."
     },
     {
       "id": "US-045",
