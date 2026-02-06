@@ -1258,3 +1258,42 @@
   - NumericUpDown.BackColor set to (50,50,55) for consistency with other inputs
   - Settings button placed in header with Anchor=Top|Right for responsive positioning
   - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-046
+- What was implemented:
+  - Created GatheringBot class with gathering-focused state machine
+  - State machine: Idle -> Pathing -> SearchingForNode -> MovingToNode -> Gathering -> (DefensiveCombat if attacked) -> Resting -> repeat
+  - Prioritizes resource nodes over combat by checking for nodes while pathing
+  - DefensiveCombat state only entered when DefendAgainstAttackers=true and player is attacked
+  - CheckForAttackers() monitors CombatState.InCombat to detect aggression
+  - FindNearestResourceNode() scans nearby entities for EntityType.Node
+  - MaxNodeDetourDistance controls how far from path to detour for nodes (default 100 units)
+  - DefendAgainstAttackers flag enables/disables defensive combat
+  - GatherWaitSeconds controls time to wait at node (default 2 seconds)
+  - After gathering, checks if need to rest before returning to pathing
+  - If attacked while gathering, pauses gathering and enters defensive combat
+  - After defensive combat, returns to previous node or resumes pathing
+  - NodesGathered counter tracks session progress
+  - IsBeingAttacked flag tracks defensive combat state
+- Files changed:
+  - src/ErenshorGlider/Bot/GatheringBot.cs (created)
+  - prd.json (modified - US-046 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - GatheringBot uses same subsystem pattern as GrindingBot (WaypointPlayer, CombatController, RestController, DeathController, etc.)
+  - Defensive combat triggered by monitoring CombatState.InCombat rather than actively seeking targets
+  - IsBeingAttacked flag prevents entering combat loop when not actually threatened
+  - Resource node filtering uses EntityType.Node from EntityInfo
+  - State machine prioritizes gathering: checks for nodes before checking for combat
+  - When attacked, pause current activity (pathing/gathering) and switch to DefensiveCombat
+  - After defensive combat, attempt to return to previous activity (node gathering or pathing)
+  - MaxNodeDetourDistance prevents excessive detours that would break waypoint path flow
+  - GatherWaitSeconds simulates gathering time (actual interaction would be game-specific)
+  - Navigation.MoveTo() and Navigation.FaceTarget() used for node approach
+  - Navigation.IsStuck check prevents getting stuck trying to reach difficult nodes
+  - GatheringBot.AutoMapping and MapDiscoveryController still record nodes while gathering
+  - GatheringBot shares StopReason enum with GrindingBot
+  - Events: OnNodeGathered, OnStateChanged, OnStarted, OnStopped, OnDeath, OnPaused, OnResumed
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check

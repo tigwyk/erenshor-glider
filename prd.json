@@ -683,8 +683,8 @@
         "Typecheck passes"
       ],
       "priority": 46,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created GatheringBot class with state machine: Idle -> Pathing -> SearchingForNode -> MovingToNode -> Gathering -> (DefensiveCombat only if attacked) -> Resting -> repeat. Prioritizes resource nodes over combat. DefendAgainstAttackers flag controls defensive combat. MaxNodeDetourDistance controls how far to detour for nodes. GatherWaitSeconds controls gather duration. CheckForAttackers() monitors combat state to trigger defensive mode."
     },
     {
       "id": "US-047",
