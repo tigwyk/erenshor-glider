@@ -359,26 +359,45 @@ public class InputController
     #endregion
 
     /// <summary>
+    /// Gets or sets whether to use Windows API input simulation.
+    /// When true, uses SendInput for real keyboard events.
+    /// When false, only tracks key state internally.
+    /// </summary>
+    public bool UseWindowsInputSimulation { get; set; } = true;
+
+    /// <summary>
     /// Presses a key down.
+    /// Uses Windows API SendInput when UseWindowsInputSimulation is true.
     /// </summary>
     public void PressKey(KeyCode key)
     {
-        // In BepInEx/Unity, we can use several methods for input simulation:
-        // 1. Harmony patch into Input.GetKey
-        // 2. Use Unity's Input system (limited without external tools)
-        // 3. Send Windows API messages (requires external window handle)
-        // For now, this is a stub that will be expanded with the actual implementation
-        // The implementation will likely use Harmony to patch Input.GetKeyDown/GetKey
+        // Track internal state for game logic that checks IsKeyPressed
         KeyStates[key] = true;
+
+        // Send actual Windows input event if enabled
+        if (UseWindowsInputSimulation)
+        {
+            WindowsInputSimulator.PressKey(key);
+        }
+
         OnKeyStateChanged?.Invoke(key, true);
     }
 
     /// <summary>
     /// Releases a key.
+    /// Uses Windows API SendInput when UseWindowsInputSimulation is true.
     /// </summary>
     public void ReleaseKey(KeyCode key)
     {
+        // Track internal state for game logic that checks IsKeyPressed
         KeyStates[key] = false;
+
+        // Send actual Windows input event if enabled
+        if (UseWindowsInputSimulation)
+        {
+            WindowsInputSimulator.ReleaseKey(key);
+        }
+
         OnKeyStateChanged?.Invoke(key, false);
     }
 
@@ -420,6 +439,10 @@ public enum KeyCode
     LeftArrow,
     /// <summary>Right Arrow - turn right</summary>
     RightArrow,
+    /// <summary>Up Arrow - camera up/page up</summary>
+    UpArrow,
+    /// <summary>Down Arrow - camera down/page down</summary>
+    DownArrow,
     /// <summary>Q key - alternative turn left</summary>
     Q,
     /// <summary>E key - alternative turn right</summary>
