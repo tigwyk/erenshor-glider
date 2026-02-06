@@ -790,35 +790,27 @@ public class InstallationService : IInstallationService, IDisposable
     /// <param name="process">The process to monitor.</param>
     private void MonitorGameProcess(Process process)
     {
-        try
-        {
-            process.WaitForExit();
-
-            // Raise the event on the UI thread if possible
-            if (GameExited != null)
-            {
-                GameExited.Invoke(this, EventArgs.Empty);
-            }
-
-            // Clear our tracked process
-            if (_gameProcess == process)
-            {
-                _gameProcess = null;
-            }
-        }
-        catch
-        {
-            // Ignore errors in monitoring
-        }
-        finally
+        using (process)
         {
             try
             {
-                process.Dispose();
+                process.WaitForExit();
+
+                // Raise the event on the UI thread if possible
+                if (GameExited != null)
+                {
+                    GameExited.Invoke(this, EventArgs.Empty);
+                }
+
+                // Clear our tracked process
+                if (_gameProcess == process)
+                {
+                    _gameProcess = null;
+                }
             }
             catch
             {
-                // Ignore dispose errors
+                // Ignore errors in monitoring
             }
         }
     }
