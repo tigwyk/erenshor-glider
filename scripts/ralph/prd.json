@@ -175,8 +175,8 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "InstallationStatusPanel with icon indicators (✓/⚠/✗), version display, path label, Refresh button, auto-refresh every 5 seconds. Version detection via version.txt and FileVersionInfo."
     },
     {
       "id": "US-011",

@@ -92,4 +92,28 @@ Feature: Automated BepInEx installation and plugin management
   - Handle JSON deserialization errors by returning default/empty config
   - Make Load() return nullable for "not found" vs "error" distinction
   - Use same LocalApplicationData base directory for all app data
+
+## Fri Feb  7 13:00:00 PST 2026 - US-010
+- Created installation status display panel
+- Added InstallationStatusPanel control in ErenshorGlider.GUI/Controls
+- Shows BepInEx and plugin status with icon indicators (✓ installed, ⚠ update available, ✗ not installed)
+- Displays installed versions for both BepInEx and plugin
+- Shows Erenshor installation path with path shortening for long paths
+- Added Refresh button for manual status refresh
+- Auto-refreshes every 5 seconds via Timer
+- Styled to match existing GUI theme (dark colors, consistent fonts)
+- Version detection via version.txt file and FileVersionInfo for DLLs
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/InstallationStatusPanel.cs (new)
+- **Learnings for future iterations:**
+  - GUI panel naming convention: [Subject]StatusPanel for status displays
+  - Use unicode characters for status icons (✓, ⚠, ✗) instead of images
+  - Status icons use specific colors: red (180,80,80) for error, green (100,180,100) for success, yellow (220,180,80) for warning
+  - Timer-based auto-refresh uses 5 second interval (5000ms)
+  - For fire-and-forget async in constructors, use `#pragma warning disable CS4014` with `_ = Method()` pattern
+  - Use null-forgiving operator (!) when compiler can't recognize null check guards after string.IsNullOrEmpty
+  - Version detection fallback: check version.txt first, then FileVersionInfo on DLL
+  - ShortenPath utility keeps filename visible and truncates directory with "..." prefix
+  - Panel background color: Color.FromArgb(40, 40, 43) for consistency
+  - Button hover effect lightens color by 20 RGB units
 ---
