@@ -479,13 +479,12 @@ public class InstallationService : IInstallationService, IDisposable
                     if (asset.TryGetProperty("name", out var nameProp))
                     {
                         string assetName = nameProp.GetString() ?? "";
-                        if (assetName.Contains("ErenshorGlider") && assetName.EndsWith(".dll"))
+                        if (assetName.Contains("ErenshorGlider") &&
+                            assetName.EndsWith(".dll") &&
+                            asset.TryGetProperty("browser_download_url", out var urlProp))
                         {
-                            if (asset.TryGetProperty("browser_download_url", out var urlProp))
-                            {
-                                downloadUrl = urlProp.GetString();
-                                break;
-                            }
+                            downloadUrl = urlProp.GetString();
+                            break;
                         }
                     }
                 }
