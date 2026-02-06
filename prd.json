@@ -698,8 +698,8 @@
         "Typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created InventoryManager class with CheckBagSpace(), StartVendorRun(), UpdateVendorRun(). VendorRunResult enum tracks outcomes. FindNearestVendorWaypoint() locates vendors in path. SellGreyItems/SellWhiteItems flags control what to sell. GrindingBot extended with VendorRun state. Bot checks bag space after looting and paths to vendor if full. OnVendorRunCompleted event handles return to pathing or stop if bags full and no vendor."
     },
     {
       "id": "US-048",

@@ -24,6 +24,7 @@ public class GrindingBot
     private readonly PositionTracker _positionTracker;
     private readonly SafetyController _safetyController;
     private readonly AutoStopController _autoStopController;
+    private readonly InventoryManager _inventoryManager;
 
     /// <summary>
     /// Represents the current state of the grinding bot.
@@ -36,6 +37,7 @@ public class GrindingBot
         Pulling,
         InCombat,
         Looting,
+        VendorRun,
         Resting,
         Dead
     }
@@ -148,7 +150,8 @@ public class GrindingBot
         MapDiscoveryController mapDiscoveryController,
         PositionTracker positionTracker,
         SafetyController safetyController,
-        AutoStopController autoStopController)
+        AutoStopController autoStopController,
+        InventoryManager inventoryManager)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
         _targetSelector = targetSelector ?? throw new ArgumentNullException(nameof(targetSelector));
@@ -160,6 +163,7 @@ public class GrindingBot
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));
         _safetyController = safetyController ?? throw new ArgumentNullException(nameof(safetyController));
         _autoStopController = autoStopController ?? throw new ArgumentNullException(nameof(autoStopController));
+        _inventoryManager = inventoryManager ?? throw new ArgumentNullException(nameof(inventoryManager));
 
         // Wire up event handlers
         _combatController.OnCombatEnded += HandleCombatEnded;
@@ -175,6 +179,7 @@ public class GrindingBot
         _autoStopController.OnStuckTimeLimitReached += HandleStuckTimeLimitReached;
         _autoStopController.OnStuckStateChanged += HandleStuckStateChanged;
         _waypointPlayer.OnMovementStuckChanged += HandleMovementStuckChanged;
+        _inventoryManager.OnVendorRunCompleted += HandleVendorRunCompleted;
     }
 
     /// <summary>
@@ -316,6 +321,10 @@ public class GrindingBot
                 UpdateLooting();
                 break;
 
+            case BotState.VendorRun:
+                UpdateVendorRun();
+                break;
+
             case BotState.Resting:
                 UpdateResting();
                 break;
@@ -341,6 +350,24 @@ public class GrindingBot
     private void UpdatePathing()
     {
         _waypointPlayer.Update();
+
+        // Check if bags are full and need vendor run
+        if (_inventoryManager.CheckBagSpace())
+        {
+            var vendorWaypoint = InventoryManager.FindNearestVendorWaypoint(
+                _waypointPlayer.CurrentPath,
+                _positionTracker.CurrentPosition.GetValueOrDefault()
+            );
+
+            if (vendorWaypoint != null)
+            {
+                _waypointPlayer.Pause();
+                _inventoryManager.VendorWaypoint = vendorWaypoint;
+                _inventoryManager.StartVendorRun();
+                TransitionTo(BotState.VendorRun);
+                return;
+            }
+        }
 
         // Check if we need to rest
         if (AutoRest && _restController.NeedsRest())
@@ -428,6 +455,24 @@ public class GrindingBot
     }
 
     /// <summary>
+    /// Updates the vendor run state.
+    /// </summary>
+    private void UpdateVendorRun()
+    {
+        _inventoryManager.UpdateVendorRun();
+
+        // If vendor run completed and we're still in this state,
+        // the transition should have happened via HandleVendorRunCompleted
+        // But if not, check if we're still on vendor run
+        if (!_inventoryManager.IsOnVendorRun)
+        {
+            // Vendor run completed, return to pathing
+            _waypointPlayer.Resume();
+            TransitionTo(BotState.Pathing);
+        }
+    }
+
+    /// <summary>
     /// Updates the resting state.
     /// </summary>
     private void UpdateResting()
@@ -487,12 +532,53 @@ public class GrindingBot
     {
         _lootController.CancelLooting();
 
+        // Check if bags are full after looting
+        if (_inventoryManager.CheckBagSpace())
+        {
+            var vendorWaypoint = InventoryManager.FindNearestVendorWaypoint(
+                _waypointPlayer.CurrentPath,
+                _positionTracker.CurrentPosition.GetValueOrDefault()
+            );
+
+            if (vendorWaypoint != null)
+            {
+                _inventoryManager.VendorWaypoint = vendorWaypoint;
+                _inventoryManager.StartVendorRun();
+                TransitionTo(BotState.VendorRun);
+                return;
+            }
+        }
+
         if (AutoRest && _restController.NeedsRest())
         {
             TransitionTo(BotState.Resting);
         }
         else
         {
+            TransitionTo(BotState.Pathing);
+        }
+    }
+
+    /// <summary>
+    /// Handles vendor run completed event.
+    /// </summary>
+    private void HandleVendorRunCompleted(VendorRunResult result)
+    {
+        if (result == VendorRunResult.Success)
+        {
+            // Successfully sold items, resume pathing
+            _waypointPlayer.Resume();
+            TransitionTo(BotState.Pathing);
+        }
+        else if (result == VendorRunResult.NoVendorAvailable)
+        {
+            // No vendor available, stop the bot or continue with full bags
+            Stop(StopReason.BagsFull);
+        }
+        else
+        {
+            // Vendor run failed, resume pathing anyway
+            _waypointPlayer.Resume();
             TransitionTo(BotState.Pathing);
         }
     }

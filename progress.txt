@@ -1297,3 +1297,47 @@
   - GatheringBot shares StopReason enum with GrindingBot
   - Events: OnNodeGathered, OnStateChanged, OnStarted, OnStopped, OnDeath, OnPaused, OnResumed
   - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-047
+- What was implemented:
+  - Created InventoryManager class for bag space checks and vendor runs
+  - CheckBagSpace() checks if FreeSlots < MinFreeBagSlots
+  - StartVendorRun() begins vendor run to VendorWaypoint
+  - UpdateVendorRun() handles moving to vendor and selling items
+  - FindNearestVendorWaypoint() static method finds closest vendor in path
+  - FindVendorWaypoints() static method gets all vendors from path
+  - SellGreyItems/SellWhiteItems flags control item quality to sell
+  - ShouldSellItem() checks item quality (Poor=grey, Common=white)
+  - GetSellableItems() returns list of items matching sell criteria
+  - GrindingBot extended with BotState.VendorRun
+  - UpdatePathing() checks bag space after each action
+  - HandleLootCompleted() triggers vendor run if bags full
+  - HandleVendorRunCompleted() resumes pathing or stops if no vendor available
+  - VendorWaypoint property set to nearest vendor before starting run
+  - InventoryStatus readonly struct for inventory snapshot
+  - MaxVendorWaitSeconds controls vendor interaction timeout (default 10s)
+- Files changed:
+  - src/ErenshorGlider/Combat/InventoryManager.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified - added InventoryManager dependency, VendorRun state)
+  - prd.json (modified - US-047 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - InventoryManager uses PositionTracker.CurrentInventory for bag space checks
+  - VendorWaypoint is a Waypoint with Type=WaypointType.Vendor
+  - Vendor run state machine: UpdateMovingToVendor() -> IsSelling -> CompleteVendorRun()
+  - Moving to vendor uses Navigation.MoveTo() and Navigation.FaceTarget()
+  - Vendor interaction simulated with InputController.Interact() (Enter key)
+  - Selling happens after MaxVendorWaitSeconds of interaction (placeholder for actual game API)
+  - OnVendorRunCompleted event passes VendorRunResult for handling different outcomes
+  - StopReason.BagsFull used when no vendor available
+  - FindNearestVendorWaypoint() uses Navigation.CalculateDistance for distance checks
+  - ItemsSoldThisRun and GoldEarnedThisRun track session statistics
+  - InventoryStatus provides TotalSlots, FreeSlots, IsFull, SellableItemCount
+  - MinFreeBagSlots threshold prevents waiting until completely full (default 5 slots)
+  - IsOnVendorRun flag prevents starting multiple concurrent vendor runs
+  - WaypointPlayer.CurrentPath exposed for finding vendor waypoints
+  - HandleLootCompleted checks bag space BEFORE deciding next state
+  - Vendor run flows: Looting -> VendorRun -> Pathing (or Stop if no vendor)
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
