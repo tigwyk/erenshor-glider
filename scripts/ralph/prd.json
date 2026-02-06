@@ -149,8 +149,8 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added GetBuffStacks() and GetDebuffStacks() to BuffState. Implemented ConditionType.BuffStackCount via EvaluateBuffStackCount() helper. Returns 0 if buff not found. Supports all comparison operators via Compare(). Works for both player and target buffs via CheckTarget property."
     },
     {
       "id": "US-010",

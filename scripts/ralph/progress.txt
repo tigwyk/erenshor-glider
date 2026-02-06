@@ -249,3 +249,31 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-009
+- Implemented buff stack counting for combat rotation conditions
+- Added GetBuffStacks() method to BuffState (returns 0 if buff not found)
+- Added GetDebuffStacks() method to BuffState (returns 0 if debuff not found)
+- Implemented ConditionType.BuffStackCount evaluation in Condition.Evaluate()
+- Added EvaluateBuffStackCount() helper method
+  - Checks buff/debuff by name via GetBuffStacks()
+  - Compares stack count using all comparison operators (==, !=, <, <=, >, >=)
+  - Returns false if buff not found or buffName is empty
+- Supports both player and target buff checking via CheckTarget property
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/GameState/BuffInfo.cs - Added GetBuffStacks() and GetDebuffStacks() methods
+- src/ErenshorGlider/Combat/CombatProfile.cs - Implemented BuffStackCount condition evaluation
+
+**Learnings for future iterations:**
+- BuffState.GetBuffStacks() returns 0 if buff not found (graceful handling)
+- Use BuffState.Value after null check for struct types to avoid compiler errors
+- ConditionType.BuffStackCount uses the same Value and Operator properties as other numeric conditions
+- All comparison operators (Equal, NotEqual, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual) are supported
+- CheckTarget property determines whether to check player or target buffs
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---
