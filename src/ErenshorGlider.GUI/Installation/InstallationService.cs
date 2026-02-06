@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace ErenshorGlider.GUI.Installation;
 
@@ -77,6 +78,77 @@ public class InstallationService : IInstallationService, IDisposable
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> BrowseForErenshorPathAsync(IWin32Window? owner = null)
+    {
+        // This method must be called from the UI thread
+        // It shows the folder browser dialog and validates the selection
+        return await Task.Run(() =>
+        {
+            string? selectedPath = null;
+
+            // We need to show the dialog on the UI thread
+            // For simplicity, we'll use SynchronizationContext or show without owner
+            var syncContext = System.Windows.Forms.WindowsFormsSynchronizationContext.Current;
+
+            if (syncContext != null)
+            {
+                // We're on a UI thread, show dialog directly
+                syncContext.Send(_ =>
+                {
+                    selectedPath = ShowFolderBrowserAndValidate(owner);
+                }, null);
+            }
+            else
+            {
+                // Not on a UI thread, this won't work well
+                // Return null and let the caller handle the dialog
+                return null;
+            }
+
+            return selectedPath;
+        });
+    }
+
+    /// <summary>
+    /// Shows the folder browser dialog and validates the selected path.
+    /// </summary>
+    /// <param name="owner">The owner window.</param>
+    /// <returns>The validated path, or null if cancelled/invalid.</returns>
+    private static string? ShowFolderBrowserAndValidate(IWin32Window? owner)
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select your Erenshor installation folder (where Erenshor.exe is located)",
+            ShowNewFolderButton = false
+        };
+
+        DialogResult result = owner != null
+            ? dialog.ShowDialog(owner)
+            : dialog.ShowDialog();
+
+        if (result != DialogResult.OK)
+        {
+            return null;
+        }
+
+        string selectedPath = dialog.SelectedPath;
+
+        // Validate path contains Erenshor.exe
+        if (!ValidateErenshorPath(selectedPath))
+        {
+            MessageBox.Show(
+                "Erenshor.exe was not found in the selected folder.\n\n" +
+                "Please select the folder where Erenshor.exe is located.",
+                "Invalid Folder",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return null;
+        }
+
+        return selectedPath;
     }
 
     /// <inheritdoc />

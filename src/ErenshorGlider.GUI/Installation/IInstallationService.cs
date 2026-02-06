@@ -21,6 +21,13 @@ public interface IInstallationService
     Task<string?> DetectErenshorPathAsync();
 
     /// <summary>
+    /// Opens a folder browser dialog for manual Erenshor path selection.
+    /// </summary>
+    /// <param name="owner">The owner window for the dialog.</param>
+    /// <returns>The selected path, or null if cancelled/invalid.</returns>
+    Task<string?> BrowseForErenshorPathAsync(System.Windows.Forms.IWin32Window? owner = null);
+
+    /// <summary>
     /// Downloads BepInEx to the local cache.
     /// </summary>
     /// <param name="progress">Optional progress reporter for the download.</param>
