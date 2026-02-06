@@ -34,7 +34,7 @@ public class InventoryManager
 {
     private readonly PositionTracker _positionTracker;
     private readonly GameStateReader _gameStateReader;
-    private readonly Navigation _navigation;
+    private readonly ErenshorGlider.Navigation.Navigation _navigation;
     private readonly InputController _inputController;
 
     /// <summary>
@@ -103,7 +103,7 @@ public class InventoryManager
     public InventoryManager(
         PositionTracker positionTracker,
         GameStateReader gameStateReader,
-        Navigation navigation,
+        ErenshorGlider.Navigation.Navigation navigation,
         InputController inputController)
     {
         _positionTracker = positionTracker ?? throw new ArgumentNullException(nameof(positionTracker));

@@ -157,7 +157,7 @@ public class GatheringBot
         PositionTracker positionTracker,
         SafetyController safetyController,
         AutoStopController autoStopController,
-        Navigation navigation)
+        ErenshorGlider.Navigation.Navigation navigation)
     {
         _waypointPlayer = waypointPlayer ?? throw new ArgumentNullException(nameof(waypointPlayer));
         _combatController = combatController ?? throw new ArgumentNullException(nameof(combatController));
