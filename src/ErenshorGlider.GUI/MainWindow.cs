@@ -305,6 +305,14 @@ public class MainWindow : Form
             _contentPanel.Controls.Add(statsPanel);
         }
 
+        // Add radar panel
+        var radarProvider = new MockRadarDataProvider();
+        var radarControl = new RadarControl(radarProvider)
+        {
+            Dock = DockStyle.Top
+        };
+        _contentPanel.Controls.Add(radarControl);
+
         // Add action log panel (fills remaining space)
         var actionLog = new ActionLogPanel(_botController.Log)
         {
