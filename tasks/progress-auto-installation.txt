@@ -1,0 +1,29 @@
+## Codebase Patterns
+
+- Use `System.Drawing.Size` and `Color.FromArgb()` for Windows Forms sizing and colors
+- The GUI uses `IInstallationService` interface for all installation operations
+- `InstallationConfig` is persisted to %LocalAppData%\ErenshorGlider\installation.json
+- Windows Forms controls created with `FlatStyle.Flat` and custom colors follow the dark theme
+- Async operations in UI should use `await` with progress dialogs for user feedback
+- Use `InvokeRequired` and `Invoke()` pattern for UI thread marshaling
+- Nullable reference types are enabled - use `!` for null-forgiving when null is guaranteed by code logic
+
+## 2025-02-06 - US-010, US-011, US-012
+
+**What was implemented:**
+- **US-010 (First-run setup wizard)**: Modified Program.cs to automatically launch the SetupWizard on first run when no installation is detected (no Erenshor path configured or BepInEx not installed). Added a brief splash screen during detection.
+- **US-011 (Repair installation)**: Added "Repair Installation" button in Settings -> Installation tab that reinstalls BepInEx and the plugin without affecting user configuration.
+- **US-012 (Uninstallation)**: Added "Uninstall" button in Settings -> Installation tab that removes BepInEx folders, plugin DLL, and doorstop config with user confirmation.
+
+**Files changed:**
+- `src/ErenshorGlider.GUI/Program.cs` - Added first-run detection logic and splash screen
+- `src/ErenshorGlider.GUI/MainWindow.cs` - Added Installation Management tab in Settings dialog with Repair and Uninstall buttons
+
+**Learnings for future iterations:**
+- The `InstallationService` already existed with all necessary methods - check `IInstallationService` first before adding new functionality
+- Windows Forms settings dialogs can be enhanced with TabControl to add new sections without breaking existing UI
+- For nullable reference warnings in async context, use the null-forgiving operator `!` when null is guaranteed by prior validation
+- The GUI uses a dark theme pattern with colors like `Color.FromArgb(30, 30, 30)` for backgrounds and `Color.FromArgb(70, 130, 180)` for primary buttons
+- MessageBox.Show is used for confirmations before destructive operations (uninstall, repair)
+
+---
