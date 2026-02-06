@@ -2,6 +2,10 @@ using System;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
 
+#if !USE_REAL_GAME_TYPES
+using ErenshorGlider.GameStubs;
+#endif
+
 namespace ErenshorGlider.Combat;
 
 /// <summary>
@@ -179,15 +183,111 @@ public class RestController
 
     /// <summary>
     /// Uses a consumable item by name.
+    /// Searches inventory for the item and activates it via keybind.
     /// </summary>
-    private void UseConsumable(string itemName)
+    /// <param name="itemName">The name of the consumable item to use.</param>
+    /// <returns>True if the item was found and used, false otherwise.</returns>
+    private bool UseConsumable(string itemName)
     {
-        // TODO: Implement consumable usage
-        // This requires:
-        // 1. Finding the item in inventory
-        // 2. Determining its keybind or using it directly
-        // For now, this is a placeholder
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - no-op when using stubs
+        return false;
+#else
+        try
+        {
+            if (GameData.PlayerInv == null)
+                return false;
+
+            // Search inventory for the item
+            int? hotkeySlot = FindItemHotkeySlot(itemName);
+            if (hotkeySlot.HasValue)
+            {
+                // Use the item via its hotkey slot
+                _inputController.UseAbilitySlot(hotkeySlot.Value);
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            // Gracefully handle errors during scene transitions
+            return false;
+        }
+#endif
     }
+
+#if USE_REAL_GAME_TYPES
+    /// <summary>
+    /// Finds the hotkey slot (1-9) assigned to an item by name.
+    /// In a full implementation, this would track the player's action bar setup.
+    /// For now, uses a simple heuristic: common food/drink items in early slots.
+    /// </summary>
+    /// <param name="itemName">The name of the item to find.</param>
+    /// <returns>The hotkey slot number (1-9), or null if not found.</returns>
+    private static int? FindItemHotkeySlot(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName))
+            return null;
+
+        // Search all inventory slots for the item
+        if (GameData.PlayerInv?.ALLSLOTS == null)
+            return null;
+
+        foreach (var slot in GameData.PlayerInv.ALLSLOTS)
+        {
+            if (slot?.Item?.ItemName?.Equals(itemName, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                // TODO: In a full implementation, we would track which slot
+                // the item is bound to. For now, we'll use a heuristic:
+                // - Food items typically go in slot 1-3
+                // - Drink items typically go in slot 4-6
+                // This could be made configurable via the combat profile
+
+                // Check if it's a food item (contains "bread", "meat", "food", etc.)
+                if (IsFoodItem(itemName))
+                    return 1;
+
+                // Check if it's a drink item (contains "water", "potion", "drink", etc.)
+                if (IsDrinkItem(itemName))
+                    return 2;
+
+                // Default to slot 3 for other consumables
+                return 3;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if an item name suggests it's a food item.
+    /// </summary>
+    private static bool IsFoodItem(string itemName)
+    {
+        string lower = itemName.ToLower();
+        return lower.Contains("bread") ||
+               lower.Contains("meat") ||
+               lower.Contains("fish") ||
+               lower.Contains("food") ||
+               lower.Contains("apple") ||
+               lower.Contains("cheese");
+    }
+
+    /// <summary>
+    /// Checks if an item name suggests it's a drink item.
+    /// </summary>
+    private static bool IsDrinkItem(string itemName)
+    {
+        string lower = itemName.ToLower();
+        return lower.Contains("water") ||
+               lower.Contains("potion") ||
+               lower.Contains("drink") ||
+               lower.Contains("juice") ||
+               lower.Contains("milk") ||
+               lower.Contains("ale");
+    }
+#endif
 
     /// <summary>
     /// Checks if the player is at full health and mana.
