@@ -1,308 +1,220 @@
 # Ralph Progress Log
-Started: Wed Feb  5 06:30:00 PST 2026
-Branch: ralph/game-integration
-Feature: Replace stub implementations with real Erenshor game API integration using Assembly-CSharp.dll
+Started: Thu Feb  6 09:45:00 PST 2026
+Branch: ralph/auto-installation
+Feature: Automated BepInEx installation and plugin management
 
 ## Codebase Patterns
-- Conditional compilation: Use `#if !USE_REAL_GAME_TYPES` to toggle between stub and real game types
-- P/Invoke Windows API: Use `[DllImport("user32.dll", SetLastError = true)]` for native Windows functions
-- Native struct marshaling: Use `[StructLayout(LayoutKind.Sequential)]` for structs passed to native code
-- Virtual Key codes: Windows VK constants (0x57='W', 0x20=Space, 0x09=Tab, etc.)
-- SendInput error handling: Check return value (0=failure), use `Marshal.GetLastWin32Error()` for error code
-- Input state tracking: Maintain internal key state dictionary for `IsKeyPressed` queries separate from Windows API
-- Unity Transform: `transform.rotation.eulerAngles.y` gives Y-axis rotation (heading) in degrees, normalize to 0-360
-- Unity GameObject: `gameObject.GetInstanceID()` returns unique integer ID for entity targeting
-- Unity Object.FindObjectsOfType<T>() searches all objects of given type including subclasses
-- Auto-attack: `GameData.PlayerCombat.ForceAttackOn()` enables auto-attack, check `InCombat` before `ToggleAttack()` to disable
-- Inventory: `GameData.PlayerInv.ALLSLOTS[]` array contains all inventory slots, `Item.ItemName` for item name
-- Waypoint delays: Track `_delayStartTime` (DateTime) and `_waitingForDelay` flag, skip if combat detected
-- Buff stacks: `BuffState.GetBuffStacks(buffName)` returns 0 if not found, `BuffInfo.Stacks` property for stack count
-- Nullable structs: Use `.Value` after null check for struct types to avoid compiler errors
-- Combat conditions: All conditions use `Value` (float) and `Operator` (ComparisonOperator) properties for comparisons
 ---
 
-## [2025-02-05] - US-001
-- Added conditional compilation support for toggling between stub and real game types
-- Added USE_REAL_GAME_TYPES compilation constant to csproj
-- Added conditional assembly references to Assembly-CSharp.dll and UnityEngine.dll (only active when USE_REAL_GAME_TYPES=true and ERENSHOR_PATH is set)
-- Wrapped GameStubs/GameData.cs with #if !USE_REAL_GAME_TYPES to exclude stubs when using real types
-- Updated GameStateReader.cs to conditionally use stubs
-- Fixed pre-existing nullable reference warnings in RestController.cs, RotationExecutor.cs, ExportImportManager.cs, and GrindingBot.cs
-- Suppressed unused event warning in Navigation.cs
+## Fri Feb  7 10:30:00 PST 2026 - US-001
+- Created installation service infrastructure with IInstallationService interface and InstallationService implementation
+- Added IInstallationService.cs with interface, InstallationStatus enum, InstallationResult class, and DownloadProgress class
+- Added InstallationService.cs with HttpClient, cache directory management, Steam registry detection, download/install methods
+- Added System.IO.Compression and System.Net.Http package references to GUI project
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (new)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (new)
+  - src/ErenshorGlider.GUI/ErenshorGlider.GUI.csproj (added package references)
+- **Learnings for future iterations:**
+  - .NET Framework 4.7.2 doesn't support init-only properties - use private setters instead
+  - Need to explicitly add System.Net.Http and System.IO.Compression NuGet packages for .NET Framework 4.7.2
+  - Nullable reference types require careful handling with `string?` for nullable returns
+  - This codebase uses `Nullable` enabled - need to annotate nullable returns properly
+  - Cache directory pattern: LocalApplicationData + "ErenshorGlider/cache"
+  - Service class follows IDisposable pattern for HttpClient cleanup
 
-**Files changed:**
-- src/ErenshorGlider/ErenshorGlider.csproj - Added conditional assembly references
-- src/ErenshorGlider/GameStubs/GameData.cs - Added #if !USE_REAL_GAME_TYPES wrapper
-- src/ErenshorGlider/GameState/GameStateReader.cs - Added conditional using statement
-- src/ErenshorGlider/Navigation/Navigation.cs - Suppressed CS0067
-- src/ErenshorGlider/Combat/RestController.cs - Fixed nullable warnings
-- src/ErenshorGlider/Combat/RotationExecutor.cs - Fixed nullable warnings
-- src/ErenshorGlider/ImportExport/ExportImportManager.cs - Fixed nullable warnings
-- src/ErenshorGlider/Bot/GrindingBot.cs - Fixed nullable warnings
+## Fri Feb  7 11:00:00 PST 2026 - US-006
+- Implemented GitHub version checking for plugin updates
+- Added CheckForUpdatesAsync method to InstallationService that queries GitHub API
+- Created UpdateCheckResult class with HasUpdate, LatestVersion, CurrentVersion, ReleaseNotes, and DownloadUrl properties
+- Added version comparison logic using System.Version parsing
+- Handled offline mode and GitHub API rate limiting gracefully
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added CheckForUpdatesAsync, UpdateCheckResult)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented CheckForUpdatesAsync with GitHub API)
+- **Learnings for future iterations:**
+  - Use GitHub API releases/latest endpoint for version checking
+  - GitHub API returns 403 Forbidden when rate limited - handle gracefully
+  - Use System.Text.Json for JSON parsing (already in dependencies)
+  - Version.Parse() requires version format (e.g., "1.0.0"), strip 'v' prefix if present
+  - Use null-forgiving operator (!) when compiler can't recognize null check guards
+  - Static factory methods pattern (UpdateAvailable, NoUpdate, Failed) for result objects
 
-**Learnings for future iterations:**
-- The project uses `Nullable` enabled type checking, which requires careful handling of nullable reference types
-- When USE_REAL_GAME_TYPES is defined but ERENSHOR_PATH is not set, the build shows a warning but still attempts to compile
-- The stub types (GameData, PlayerControl, Character, etc.) need to match the real game API signatures exactly for the conditional compilation to work seamlessly
-- The ItemQuality enum exists in both GameState namespace (used by PlayerInventory struct) and GameStubs namespace - these are intentionally separate
-- The prd.json branch name was "ralph/game-integration" but the actual branch was "ralph/erenshor-glider" - created new branch as specified
+## Fri Feb  7 11:30:00 PST 2026 - US-007
+- Implemented plugin download and update installation
+- Added UpdatePluginAsync method that downloads and installs the latest plugin DLL
+- Downloads from GitHub releases API, finds ErenshorGlider.dll asset
+- Backs up existing DLL before installation (creates .backup file)
+- Reports progress during download (0-50%) and installation (50-100%)
+- Handles download failures and file lock errors gracefully
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added UpdatePluginAsync to interface)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented UpdatePluginAsync with GitHub download)
+- **Learnings for future iterations:**
+  - Download to temp file in cache directory first, then copy to destination
+  - Use HttpCompletionOption.ResponseHeadersRead for streaming large downloads
+  - Report progress as percentage of total work (download + install)
+  - Backup strategy: copy existing file to .backup before overwriting
+  - Clean up temp files after installation (ignore cleanup errors)
 
-**Build verification:**
-- Default build (without USE_REAL_GAME_TYPES): PASS (0 warnings, 0 errors)
-- With USE_REAL_GAME_TYPES but no ERENSHOR_PATH: Fails (expected - needs actual game DLLs)
+## Fri Feb  7 12:00:00 PST 2026 - US-008
+- Implemented game process management
+- Added IsGameRunning method to check for Erenshor.exe process
+- Added LaunchGameAsync method to start the game process
+- Created GameLaunchResult class with Success, ErrorMessage, ProcessId properties
+- Added GameExited event for process termination notification
+- Monitors game process in background thread using ThreadPool
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added IsGameRunning, LaunchGameAsync, GameExited event, GameLaunchResult)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented process management with background monitoring)
+- **Learnings for future iterations:**
+  - Use System.Diagnostics.Process.GetProcessesByName() to check if process is running
+  - Use ProcessStartInfo with UseShellExecute=true for launching game executables
+  - Process monitoring requires background thread - use ThreadPool.QueueUserWorkItem
+  - Track process instance in class field for cleanup and monitoring
+  - Dispose process after exit to free resources
+
+## Fri Feb  7 12:30:00 PST 2026 - US-009
+- Added installation configuration persistence
+- Created InstallationConfig class with ErenshorPath, LastUpdateCheck, OptOutFromUpdateChecks, LastInstalledPluginVersion
+- Created InstallationConfigManager with Load, Save, Delete static methods
+- Config saves to LocalApplicationData/ErenshorGlider/installation.json
+- Loads config on service initialization, returns null if file doesn't exist
+- Handles JSON deserialization errors gracefully by returning default config
+- Added Config property and SaveConfig method to IInstallationService
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/InstallationConfig.cs (new)
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added Config property, SaveConfig method)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (load config in constructor, implement SaveConfig)
+- **Learnings for future iterations:**
+  - Follow existing ConfigManager pattern (like BotConfig.ConfigManager) for consistency
+  - Use camelCase JSON naming policy for config files
+  - Handle JSON deserialization errors by returning default/empty config
+  - Make Load() return nullable for "not found" vs "error" distinction
+  - Use same LocalApplicationData base directory for all app data
+
+## Fri Feb  7 13:00:00 PST 2026 - US-010
+- Created installation status display panel
+- Added InstallationStatusPanel control in ErenshorGlider.GUI/Controls
+- Shows BepInEx and plugin status with icon indicators (✓ installed, ⚠ update available, ✗ not installed)
+- Displays installed versions for both BepInEx and plugin
+- Shows Erenshor installation path with path shortening for long paths
+- Added Refresh button for manual status refresh
+- Auto-refreshes every 5 seconds via Timer
+- Styled to match existing GUI theme (dark colors, consistent fonts)
+- Version detection via version.txt file and FileVersionInfo for DLLs
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/InstallationStatusPanel.cs (new)
+- **Learnings for future iterations:**
+  - GUI panel naming convention: [Subject]StatusPanel for status displays
+  - Use unicode characters for status icons (✓, ⚠, ✗) instead of images
+  - Status icons use specific colors: red (180,80,80) for error, green (100,180,100) for success, yellow (220,180,80) for warning
+  - Timer-based auto-refresh uses 5 second interval (5000ms)
+  - For fire-and-forget async in constructors, use `#pragma warning disable CS4014` with `_ = Method()` pattern
+  - Use null-forgiving operator (!) when compiler can't recognize null check guards after string.IsNullOrEmpty
+  - Version detection fallback: check version.txt first, then FileVersionInfo on DLL
+  - ShortenPath utility keeps filename visible and truncates directory with "..." prefix
+  - Panel background color: Color.FromArgb(40, 40, 43) for consistency
+  - Button hover effect lightens color by 20 RGB units
+
+## Fri Feb  7 15:00:00 PST 2026 - US-012
+- Created first-run setup wizard
+- Created SetupWizard Form with multi-step layout in ErenshorGlider.GUI/Forms
+- Step 1: Welcome screen with feature list
+- Step 2: Erenshor detection with auto-detect from Steam and manual browse button
+- Step 3: BepInEx installation with progress bar
+- Step 4: Plugin installation with progress bar
+- Step 5: Complete screen with 'Launch Game' button
+- Added Back/Next/Cancel navigation buttons
+- Styled to match existing GUI theme (dark colors, consistent fonts)
+- Validates Erenshor.exe exists in selected folder
+- Shows progress during download and installation (Progress<DownloadProgress>)
+- Saves configuration to InstallationConfig via SaveConfig()
+- Uses FolderBrowserDialog for manual path selection
+- Files changed:
+  - src/ErenshorGlider.GUI/Forms/SetupWizard.cs (new)
+- **Learnings for future iterations:**
+  - Wizard pattern: create Form with _currentStep int tracking, switch on step number in ShowStep()
+  - Fixed dialog size (650x500) works well for wizard layouts
+  - ContentPanel (590x300) with step-specific content, buttons positioned at bottom right
+  - ProgressBarStyle.Marquee for indeterminate progress, Continuous for determinate
+  - Download progress reported as percentage (0-50% download, 50-100% install)
+  - Use SetInstallationInProgress(bool) to disable all navigation buttons during operations
+  - Step-specific content: clear _contentPanel.Controls and add new controls for each step
+  - FormBorderStyle = FormBorderStyle.FixedDialog for wizard-style non-resizable window
+  - Use FolderBrowserDialog with ShowNewFolderButton = false for installation selection
+  - Auto-detect from Steam via _installationService.DetectErenshorPathAsync()
+  - Validate path contains Erenshor.exe before proceeding
+
+## Fri Feb  7 16:00:00 PST 2026 - US-013
+- Added manual directory browser dialog to InstallationService
+- Added BrowseForErenshorPathAsync method to IInstallationService interface
+- Implemented in InstallationService using FolderBrowserDialog
+- Validates selected path contains Erenshor.exe before returning
+- Returns validated path or null if cancelled/invalid
+- Shows clear error message for invalid selection via MessageBox
+- Uses SynchronizationContext to show dialog on UI thread
+- Added System.Windows.Forms using to InstallationService.cs
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added method to interface)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented method)
+- **Learnings for future iterations:**
+  - FolderBrowserDialog requires STAThread, but our service may be called from different threads
+  - Use WindowsFormsSynchronizationContext.Current to detect if we're on UI thread
+  - Use syncContext.Send() to execute code on UI thread
+  - Service layer showing UI dialogs is a pattern to avoid in future - keep UI in UI layer
+  - ValidateErenshorPath is private static - could be made public for reuse
+  - MessageBox with MessageBoxIcon.Warning for validation errors
+  - ShowNewFolderButton = false prevents users from creating new folders (we want existing install only)
+
+## Fri Feb  7 14:00:00 PST 2026 - US-011
+- Added installation buttons to main window
+- Added InstallPlugin button (blue) to MainWindow header area
+- Added LaunchGame button (green) to MainWindow header area
+- Buttons disable when game is running via UpdateGameRunningButtons method
+- Install button shows confirmation message on success
+- Launch button starts Erenshor.exe from configured path
+- Shows error dialog if Erenshor path not configured
+- Styled buttons to match existing theme
+- Added IInstallationService parameter to MainWindow constructor (nullable for backward compatibility)
+- Added HandleInstallPluginClick async handler with progress dialog
+- Added HandleLaunchGameClick async handler
+- Added CreateProgressDialog for showing progress during operations
+- Wired up GameExited event to re-enable buttons when game closes
+- Files changed:
+  - src/ErenshorGlider.GUI/MainWindow.cs (added buttons, handlers, service parameter)
+- **Learnings for future iterations:**
+  - MainWindow constructor overload pattern: add new parameters with default null for backward compatibility
+  - Button layout in header: position from right to left with fixed X coordinates
+  - Header needs more width (370px instead of 120px) when adding multiple buttons
+  - Progress dialog pattern: CreateProgressDialog returns Form with ProgressBar in Marquee style
+  - Use `using var` for progress dialog to ensure proper disposal
+  - MessageBox icons: Information for success, Warning for missing config, Error for failures
+  - Check IsGameRunning before both install and launch operations
+  - Get plugin DLL path from Application.ExecutablePath directory
 ---
 
-## [2025-02-05] - US-002
-- Created ErenshorGlider.Tests project for unit testing without game dependencies
-- Moved GameStubs classes to test project (GameStubs/GameData.cs) - copies remain in main project with conditional compilation
-- Added TestStubsSetup helper class for convenient mock object creation
-- Created PositionTrackerTests with 17 unit tests covering GameStateReader, PlayerPosition, PlayerVitals, CombatState, and TargetInfo
-- Test project compiles independently of game assemblies using UnityEngine.Modules NuGet package
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider.Tests/ErenshorGlider.Tests.csproj - New test project with xUnit
-- src/ErenshorGlider.Tests/GameStubs/GameData.cs - Stub implementations for testing
-- src/ErenshorGlider.Tests/Helpers/TestStubsSetup.cs - Helper for creating mock game objects
-- src/ErenshorGlider.Tests/GameState/PositionTrackerTests.cs - 17 unit tests
-
-**Learnings for future iterations:**
-- The test project targets .NET Framework 4.7.2 (same as main project) and uses xUnit for testing
-- UnityEngine.Modules NuGet package provides Unity type stubs for compilation without game DLLs
-- Tests require mono runtime to execute on Linux (not installed in current environment) but compile successfully
-- Used null-forgiving operator (!) to suppress nullable warnings when assigning null to non-nullable stub fields
-- Fully qualified type names (e.g., GameStubs.ItemQuality) needed to avoid ambiguity with GameState.ItemQuality
-
-**Build verification:**
-- ErenshorGlider.Tests build: PASS (0 warnings, 0 errors)
-- Test execution: Requires mono/.NET Framework runtime on Windows
----
-
-## [2025-02-05] - US-003
-- Created WindowsInputSimulator static class with Windows API P/Invoke declarations
-- Implemented KEYBDINPUT structure for keyboard events (wVk, wScan, dwFlags, time, dwExtraInfo)
-- Implemented INPUT struct with Data union for marshaling to native code
-- Added PressKey(KeyCode) to send KEYEVENTF_KEYDOWN via SendInput
-- Added ReleaseKey(KeyCode) to send KEYEVENTF_KEYUP via SendInput
-- Added PressAndReleaseKey(KeyCode, durationMs) for complete key press simulation
-- Added error handling with Marshal.GetLastWin32Error() and debug output
-- Mapped all KeyCode enums to Windows Virtual Key codes (letter keys, special keys, arrows, numbers, function keys)
-- Integrated WindowsInputSimulator into InputController with UseWindowsInputSimulation toggle property (default true)
-- Preserved internal key state tracking (KeyStates dictionary) for game logic that uses IsKeyPressed
-- Added UpArrow and DownArrow to KeyCode enum for completeness
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Input/WindowsInputSimulator.cs - New file with Windows API input simulation
-- src/ErenshorGlider/Input/InputController.cs - Integrated WindowsInputSimulator, added UpArrow/DownArrow to KeyCode
-
-**Learnings for future iterations:**
-- The Windows API SendInput function requires P/Invoke with [DllImport("user32.dll", SetLastError = true)]
-- INPUT struct uses LayoutKind.Sequential for correct marshaling to native code
-- Virtual Key codes are standard Windows constants (e.g., 0x57 for 'W', 0x20 for Space)
-- SendInput returns 0 on failure - use Marshal.GetLastWin32Error() to get error code
-- The INPUT union is simplified to only use Keyboard field since we don't need mouse/hardware input
-- Preserving internal key state tracking allows the game logic to query IsKeyPressed without Windows API calls
-- UseWindowsInputSimulation property allows disabling Windows input for testing or GUI-only scenarios
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-004
-- Replaced Navigation.GetPlayerRotation() stub with real implementation
-- Reads from GameData.PlayerControl.transform.rotation.eulerAngles.y
-- Added null safety checks for PlayerControl and transform
-- Normalizes rotation to 0-360 degree range
-- Added try/catch for graceful error handling during scene transitions
-- Added conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
-- Created NavigationTests.cs with 11 unit tests
-- Tests cover CalculateDistance, CalculateDirection, HasReached, MoveTo, FaceTarget, IsFacing
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Navigation/Navigation.cs - Implemented real GetPlayerRotation(), added conditional using
-- src/ErenshorGlider.Tests/Navigation/NavigationTests.cs - New test file with 11 unit tests
-
-**Learnings for future iterations:**
-- Unity Transform.rotation returns a Quaternion with eulerAngles property (Vector3)
-- eulerAngles.y is the Y-axis rotation (yaw/heading) in degrees
-- Need to normalize angles to 0-360 range for consistent comparison
-- Conditional compilation pattern: #if !USE_REAL_GAME_TYPES for stub-specific code
-- TestStubsSetup.CreateMockPlayer() provides test fixtures with transform and position
-- Navigation tests verify public API behavior (FaceTarget, HasReached) which indirectly tests GetPlayerRotation
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-005
-- Added auto-attack functionality to CombatController
-- Added UseAutoAttack property (default true)
-- EnableAutoAttack() calls GameData.PlayerCombat.ForceAttackOn() for immediate effect
-- DisableAutoAttack() checks InCombat state before calling ToggleAttack()
-- Auto-attack enabled in EngageTarget() when UseAutoAttack=true and target is hostile
-- Auto-attack disabled in StopCombat() for all combat end reasons
-- Null safety checks for PlayerCombat
-- Try/catch for graceful error handling during scene transitions
-- Conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Combat/CombatController.cs - Added auto-attack functionality with conditional compilation
-
-**Learnings for future iterations:**
-- GameData.PlayerCombat.ForceAttackOn() immediately enables auto-attack
-- GameData.PlayerCombat.ToggleAttack() toggles the current state
-- GameData.PlayerCombat.InCombat indicates whether auto-attack is currently enabled
-- Check target hostility (TargetHostility.Hostile) before enabling auto-attack to avoid attacking friendly targets
-- Disable auto-attack on all combat end conditions to prevent unwanted attacks after combat
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-006
-- Added InstanceId property to EntityInfo struct (default 0)
-- Updated EntityInfo constructor to include instanceId parameter
-- Updated all EntityInfo creation sites to capture Unity instance ID from gameObject
-  - CreateEntityInfoFromCharacter: gets instanceId from character.gameObject
-  - CreateEntityInfoFromNPC: gets instanceId from npc.gameObject
-  - CreateEntityInfoFromNode: gets instanceId from node.gameObject
-  - CreateEntityInfoFromCorpse: gets instanceId from corpse.gameObject
-- Implemented InputController.TargetEntityById() with real game API
-  - Uses Object.FindObjectsOfType<Character>() to search all entities
-  - Compares GetInstanceID() to find matching entity
-  - Sets GameData.PlayerControl.CurrentTarget to found entity
-  - Null safety checks for PlayerControl and entity lookup
-  - Falls back to event-based approach on error
-- Implemented InputController.TargetEntity() to delegate to TargetEntityById()
-- Added FindEntityByInstanceId() helper method with conditional compilation
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Input/InputController.cs - Implemented TargetEntityById() and FindEntityByInstanceId()
-- src/ErenshorGlider/GameState/EntityInfo.cs - Added InstanceId property
-- src/ErenshorGlider/GameState/GameStateReader.cs - Capture instance ID when creating EntityInfo
-
-**Learnings for future iterations:**
-- Unity GameObject.GetInstanceID() returns a unique integer ID for each object
-- Object.FindObjectsOfType<Character>() returns all objects of the given type (includes subclasses)
-- Need null check for gameObject before calling GetInstanceID()
-- Setting CurrentTarget directly is more reliable than keyboard input for targeting
-- Event-based fallback allows testing without game assemblies
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-007
-- Implemented RestController.UseConsumable() with real game API
-- Searches GameData.PlayerInv.ALLSLOTS[] for matching item by name
-- Uses case-insensitive string comparison for item name matching
-- Implements FindItemHotkeySlot() to determine which keybind to press
-  - Food items (bread, meat, fish, food, apple, cheese) -> slot 1
-  - Drink items (water, potion, drink, juice, milk, ale) -> slot 2
-  - Other consumables -> slot 3 (default)
-- Uses InputController.UseAbilitySlot() to activate the item
-- Returns bool for success/failure
-- Null safety checks for PlayerInv and ALLSLOTS array
-- Try/catch for graceful error handling during scene transitions
-- Conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
-- Added IsFoodItem() and IsDrinkItem() helper methods
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Combat/RestController.cs - Implemented UseConsumable() with inventory search and slot detection
-
-**Learnings for future iterations:**
-- GameData.PlayerInv.ALLSLOTS[] contains all inventory slots
-- InventorySlot.Item.ItemName is the item's display name
-- Use StringComparison.OrdinalIgnoreCase for robust item name matching
-- Item-to-hotkey mapping is heuristic-based; full implementation would track player's action bar setup
-- Food/drink detection via keyword matching is a practical approach for MVP
-- UseAbilitySlot() accepts slot numbers 1-9 corresponding to keyboard keys
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-008
-- Implemented waypoint delay waiting in WaypointPlayer
-- Added _delayStartTime field (DateTime) to track when delay started
-- Added _waitingForDelay flag (bool) to indicate we're in a wait state
-- Updated Update() method to handle delay waiting:
-  - Sets _delayStartTime when reaching waypoint with Delay > 0
-  - Waits for Delay duration before advancing to next waypoint
-  - Skips delay immediately if player enters combat during wait
-- Added IsInCombat() helper to check combat state from PositionTracker
-- Updated Stop() to clear _waitingForDelay flag
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/Waypoints/WaypointPlayer.cs - Added delay waiting logic
-
-**Learnings for future iterations:**
-- Waypoint.Delay property is checked in Update() after reaching waypoint
-- Combat state from PositionTracker.CurrentCombatState triggers delay skip
-- DateTime.UtcNow - _delayStartTime calculates elapsed time
-- Stop() should clear all state flags including _waitingForDelay
-- This allows waiting for respawns at spawn points or NPC interactions
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-009
-- Implemented buff stack counting for combat rotation conditions
-- Added GetBuffStacks() method to BuffState (returns 0 if buff not found)
-- Added GetDebuffStacks() method to BuffState (returns 0 if debuff not found)
-- Implemented ConditionType.BuffStackCount evaluation in Condition.Evaluate()
-- Added EvaluateBuffStackCount() helper method
-  - Checks buff/debuff by name via GetBuffStacks()
-  - Compares stack count using all comparison operators (==, !=, <, <=, >, >=)
-  - Returns false if buff not found or buffName is empty
-- Supports both player and target buff checking via CheckTarget property
-- All projects build with 0 warnings, 0 errors
-
-**Files changed:**
-- src/ErenshorGlider/GameState/BuffInfo.cs - Added GetBuffStacks() and GetDebuffStacks() methods
-- src/ErenshorGlider/Combat/CombatProfile.cs - Implemented BuffStackCount condition evaluation
-
-**Learnings for future iterations:**
-- BuffState.GetBuffStacks() returns 0 if buff not found (graceful handling)
-- Use BuffState.Value after null check for struct types to avoid compiler errors
-- ConditionType.BuffStackCount uses the same Value and Operator properties as other numeric conditions
-- All comparison operators (Equal, NotEqual, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual) are supported
-- CheckTarget property determines whether to check player or target buffs
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
----
-
-## [2025-02-05] - US-010
-- End-to-end bot flow validation completed at code level
-- All components integrated via GrindingBot state machine:
-  - WaypointPlayer for pathing (with delay waiting from US-008)
-  - TargetSelector for finding hostile mobs within range
-  - CombatController for engagement and rotation execution
-  - LootController for looting corpses
-  - RestController for health/mana recovery (with consumable usage from US-007)
-- InputController has Windows API simulation (US-003) for ability activation
-- CombatController uses auto-attack via PlayerCombat API (US-005)
-- InputController.TargetEntityById() supports direct entity targeting (US-006)
-- CombatProfile supports buff stack counting conditions (US-009)
-- Typecheck passes with 0 warnings, 0 errors
-- Full runtime validation requires game testing (not possible in CI environment)
-
-**Build verification:**
-- ErenshorGlider build: PASS (0 warnings, 0 errors)
-- Typecheck: PASS
+## [Date/Time] - US-014
+- Added update notification display to InstallationStatusPanel
+- Created update notification panel with yellow/orange theme that appears when updates are available
+- Added "Update Now" button with async handler to download and install plugin updates
+- Added "View release notes" link that opens dialog showing changelog from GitHub
+- Added CheckForUpdatesAsync method to panel for async update checking
+- Added update progress dialog with percentage display during download/install
+- Integrated startup update check in MainWindow with balloon notification
+- Balloon shows current and latest version when update available
+- Update notification panel auto-shows/hides based on update availability
+- Panel adjusts minimum height (190px when visible, 140px when hidden)
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/InstallationStatusPanel.cs (added update notification UI, handlers, dialogs)
+  - src/ErenshorGlider.GUI/MainWindow.cs (added startup update check with balloon notification)
+- **Learnings for future iterations:**
+  - Update notification panel should dock to top and overlay existing content rather than pushing it down
+  - Use Progress<DownloadProgress> for reporting update progress to UI
+  - Balloon notifications via NotifyIcon.ShowBalloonTip with 3000ms timeout
+  - Fire-and-forget async pattern with pragma warning disable CS4014 for startup tasks
+  - LinkLabel for clickable links like "View release notes"
+  - Dialog for release notes uses multiline TextBox with ReadOnly=true and ScrollBars=Vertical
+  - Panel height adjustment based on visibility: update MinimumSize when showing/hiding notification
+  - Theme colors: update notification uses (60,50,40) background, (255,220,100) text
 ---
