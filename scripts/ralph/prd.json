@@ -1,176 +1,356 @@
 {
   "project": "Erenshor Glider",
-  "branchName": "ralph/game-integration",
-  "description": "Replace stub implementations with real Erenshor game API integration using Assembly-CSharp.dll, implement Windows API input simulation, and complete one full bot flow (pathing → combat → looting → resting) to validate the integration.",
+  "branchName": "ralph/auto-installation",
+  "description": "Automated BepInEx installation and plugin management - eliminate manual BepInEx installation, auto-detect Erenshor via Steam, one-click plugin installation/updates, and integrated game launching through the GUI.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add Assembly-CSharp.dll reference and conditional compilation",
-      "description": "As a developer, I need to reference the real game assemblies so I can use actual game types and compile-time type checking.",
+      "title": "Create installation service infrastructure",
+      "description": "As a developer, I need a service layer for installation operations so the GUI can manage BepInEx and plugin installation.",
       "acceptanceCriteria": [
-        "Add <Erenshor>/Erenshor_Data/Managed/Assembly-CSharp.dll as project reference",
-        "Add <Erenshor>/Erenshor_Data/Managed/UnityEngine.dll as project reference",
-        "Define USE_REAL_GAME_TYPES compilation constant for toggling between stubs and real types",
-        "Add conditional compilation (#if USE_REAL_GAME_TYPES) to GameStubs classes",
-        "Project compiles successfully with real game references",
-        "Project still compiles without game references (when constant not defined)",
+        "Create IInstallationService interface with DownloadBepInEx, DetectErenshorPath, InstallBepInEx methods",
+        "Create InstallationService class implementing IInstallationService",
+        "Add HttpClient for downloading from GitHub releases",
+        "Add BepInExDownloadUrl constant pointing to official releases",
+        "Add CacheDirectory property for local file caching",
+        "Create InstallationResult model class with Success, ErrorMessage properties",
+        "Create InstallationStatus enum (NotInstalled, Installed, UpdateAvailable)",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Conditional compilation implemented. Default behavior uses stubs. When USE_REAL_GAME_TYPES=true and ERENSHOR_PATH is set, real game types are used. Fixed nullable reference warnings as well."
+      "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Create separate test project with stub implementations",
-      "description": "As a developer, I need a test project with stub classes so I can run unit tests without game dependencies.",
+      "title": "Implement Steam registry Erenshor detection",
+      "description": "As a user, I want the GUI to automatically find my Erenshor installation via Steam registry.",
       "acceptanceCriteria": [
-        "Create new ErenshorGlider.Tests project",
-        "Move GameStubs classes to test project",
-        "Add project reference from ErenshorGlider.Tests to ErenshorGlider",
-        "Test project compiles independently of game assemblies",
-        "Create at least one unit test using stub types (e.g., PositionTracker test)",
+        "Add DetectErenshorPathFromSteam method using Microsoft.Win32.Registry",
+        "Query HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 2879460",
+        "Fallback to HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node for 32-bit Steam on 64-bit Windows",
+        "Return InstallLocation value or null if not found",
+        "Validate returned path contains Erenshor.exe",
+        "Handle registry access exceptions gracefully",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Created ErenshorGlider.Tests project with GameStubs, TestStubsSetup helper, and PositionTrackerTests with 17 unit tests. All projects build with 0 warnings, 0 errors. Tests run requires .NET Framework runtime (mono on Linux) but compile is successful."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Implement Windows API input simulation",
-      "description": "As a bot, I need to simulate keyboard inputs at the Windows API level so the game receives input events.",
+      "title": "Implement BepInEx download with progress reporting",
+      "description": "As a user, I want BepInEx downloaded automatically with visible progress.",
       "acceptanceCriteria": [
-        "Create WindowsInputSimulator class with P/Invoke declarations for SendInput",
-        "Implement KEYBDINPUT structure for keyboard events",
-        "Implement PressKey(KeyCode) to send WM_KEYDOWN",
-        "Implement ReleaseKey(KeyCode) to send WM_KEYUP",
-        "Add INPUT struct marshaling for native interop",
-        "Input simulation works with notepad test (verifies Windows API integration)",
-        "Integration test: Send W key while game has focus results in character movement",
+        "Add DownloadBepInExAsync method accepting IProgress&lt;DownloadProgress&gt;",
+        "Create DownloadProgress model with BytesReceived, TotalBytes, Percentage properties",
+        "Download latest BepInEx x64 release from GitHub releases URL",
+        "Save to cache directory (LocalApplicationData/ErenshorGlider/cache)",
+        "Report progress during download",
+        "Return cached file path if already exists",
+        "Handle download failures with clear error messages",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Created WindowsInputSimulator static class with P/Invoke SendInput, KEYBDINPUT and INPUT structs. Maps all KeyCode enums to Windows Virtual Key codes (VK_ constants). Integrated into InputController with UseWindowsInputSimulation toggle. Internal key state tracking preserved for IsKeyPressed checks."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Implement real player rotation reading",
-      "description": "As a navigation system, I need to read the actual player rotation from the game transform so I can calculate facing direction correctly.",
+      "title": "Implement BepInEx extraction and installation",
+      "description": "As a user, I want BepInEx automatically extracted to my Erenshor folder.",
       "acceptanceCriteria": [
-        "Replace Navigation.GetPlayerRotation() stub with real implementation",
-        "Read GameData.PlayerControl.transform.rotation.eulerAngles.y",
-        "Handle null/missing PlayerControl gracefully",
-        "Return rotation in degrees (0-360)",
-        "Unit test: Verify rotation reading returns valid angle",
-        "Integration test: FaceTarget() correctly orients player toward waypoint",
+        "Add InstallBepInEx method accepting erenshorPath and archivePath",
+        "Extract BepInEx zip archive to Erenshor root using System.IO.Compression",
+        "Create BepInEx/plugins folder if missing",
+        "Backup existing doorstop_config.dll if present",
+        "Return InstallationResult with Success=true on completion",
+        "Handle file locked errors with helpful message",
+        "Validate installation by checking for BepInEx/core/BepInEx.dll",
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Replaced GetPlayerRotation() stub with real implementation using GameData.PlayerControl.transform.rotation.eulerAngles.y. Added null safety for PlayerControl and transform, normalize to 0-360 degrees. Added 11 Navigation unit tests covering distance calculation, direction calculation, HasReached, MoveTo, FaceTarget, IsFacing edge cases."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Implement auto-attack via PlayerCombat API",
-      "description": "As a combat system, I need to toggle auto-attack so the character automatically attacks the current target.",
+      "title": "Implement plugin DLL installation",
+      "description": "As a user, I want one-click plugin installation to BepInEx plugins folder.",
       "acceptanceCriteria": [
-        "Call GameData.PlayerCombat.ToggleAttack() or ForceAttackOn()",
-        "Add null check for PlayerCombat",
-        "Only enable auto-attack when target exists and is hostile",
-        "Disable auto-attack when target dies or combat ends",
-        "Integration test: Bot engages target, auto-attack triggers, target HP decreases",
+        "Add InstallPlugin method accepting sourceDllPath and erenshorPath",
+        "Copy ErenshorGlider.dll to BepInEx/plugins folder",
+        "Overwrite existing plugin if present",
+        "Create BepInEx/plugins folder if missing",
+        "Return InstallationResult indicating success or failure",
+        "Handle file locked errors (game running) with helpful message",
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "Added UseAutoAttack property (default true). EnableAutoAttack() calls ForceAttackOn() for immediate effect. DisableAutoAttack() checks InCombat state before calling ToggleAttack(). Auto-attack enabled in EngageTarget() for hostile targets, disabled in StopCombat(). Null safety and try/catch for graceful error handling."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Implement entity targeting by instance ID",
-      "description": "As a combat system, I need to target specific entities by their Unity instance ID so I can attack desired mobs.",
+      "title": "Implement GitHub version checking for plugin updates",
+      "description": "As a user, I want the GUI to notify me when a plugin update is available.",
       "acceptanceCriteria": [
-        "Implement InputController.TargetEntityById(int instanceId) using real game API",
-        "Find Character/NPC object matching instance ID via Object.FindObjectsOfType<Character>()",
-        "Set GameData.PlayerControl.CurrentTarget to found object",
-        "Handle entity not found case gracefully",
-        "Integration test: Target specific mob, verify GameData.PlayerControl.CurrentTarget matches",
+        "Add CheckForUpdatesAsync method to InstallationService",
+        "Query GitHub API for latest ErenshorGlider release",
+        "Parse version from release tag_name",
+        "Compare with current assembly version",
+        "Return UpdateCheckResult with HasUpdate, LatestVersion, CurrentVersion",
+        "Handle offline mode gracefully (return HasUpdate=false)",
+        "Handle GitHub API rate limiting",
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Added InstanceId property to EntityInfo struct. TargetEntityById() uses Object.FindObjectsOfType<Character>() to search all entities by GetInstanceID(). Sets GameData.PlayerControl.CurrentTarget when found. Null safety checks for PlayerControl and entity lookup. Falls back to event-based approach on error. EntityInfo creation now captures instance ID from GameObject."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Implement consumable item usage (food/drink)",
-      "description": "As a rest system, I need to use food and drink items from inventory so the player can recover health/mana.",
+      "title": "Implement plugin download and update installation",
+      "description": "As a user, I want one-click plugin updates when new versions are available.",
       "acceptanceCriteria": [
-        "Implement RestController.UseConsumable(string itemName)",
-        "Search GameData.PlayerInv.ALLSLOTS[] for matching item name",
-        "Find hotkey slot assigned to the item",
-        "Simulate keypress for that hotkey slot",
-        "Handle item not found or no hotkey assigned cases",
-        "Integration test: Use food item, verify player HP regen increases",
+        "Add UpdatePluginAsync method accepting IProgress&lt;DownloadProgress&gt;",
+        "Download latest release asset DLL from GitHub",
+        "Backup existing DLL before update",
+        "Install new DLL to BepInEx/plugins folder",
+        "Report download and installation progress",
+        "Return InstallationResult with new version number",
+        "Handle download failures with clear error messages",
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Implemented UseConsumable() to search inventory by name, determine hotkey slot via heuristic (food=slot1, drink=slot2, other=slot3), and use InputController.UseAbilitySlot(). IsFoodItem() and IsDrinkItem() helpers detect common consumable types. Null safety and try/catch for graceful error handling. Returns bool for success/failure."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Implement waypoint delay waiting",
-      "description": "As a waypoint system, I need to pause at waypoints with delays so the bot can wait for respawns or NPC interactions.",
+      "title": "Implement game process management",
+      "description": "As a user, I want to launch Erenshor through the GUI and detect when it's running.",
       "acceptanceCriteria": [
-        "Add DelayStartTime tracking to WaypointPlayer",
-        "Check Waypoint.Delay property when reaching waypoint",
-        "Wait for delay duration before proceeding to next waypoint",
-        "Skip delay if bot enters combat during wait",
-        "Integration test: Create waypoint path with delays, verify bot pauses correctly",
+        "Add IsGameRunning method checking for Erenshor.exe process",
+        "Add LaunchGame method accepting erenshorPath",
+        "Start Erenshor.exe process using System.Diagnostics.Process",
+        "Return Process object for monitoring",
+        "Handle process start failures with clear error messages",
+        "Add GameExited event for process termination notification",
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "Added _delayStartTime and _waitingForDelay fields. Update() sets _delayStartTime when reaching waypoint with Delay > 0, waits for Delay duration before advancing, skips delay immediately if combat detected via IsInCombat(). Stop() clears _waitingForDelay flag."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-009",
-      "title": "Implement buff stack counting",
-      "description": "As a combat rotation, I need to check buff/debuff stack counts so I can execute abilities based on stack requirements.",
+      "title": "Add installation configuration persistence",
+      "description": "As a user, I want my Erenshor path remembered so I don't have to select it each time.",
       "acceptanceCriteria": [
-        "Implement ConditionType.BuffStackCount evaluation in Condition.Evaluate()",
-        "Access Buff.Stacks property from buff list",
-        "Handle buff not found case (return false or 0 stacks)",
-        "Support comparison operators (==, !=, <, <=, >, >=)",
-        "Integration test: Create condition requiring 2 stacks, verify evaluates correctly",
+        "Add InstallationConfig class with ErenshorPath property",
+        "Add InstallationConfigManager for load/save operations",
+        "Save config to LocalApplicationData/ErenshorGlider/installation.json",
+        "Load config on service initialization",
+        "Return null if config file doesn't exist",
+        "Handle JSON deserialization errors gracefully",
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": true,
-      "notes": "Added GetBuffStacks() and GetDebuffStacks() to BuffState. Implemented ConditionType.BuffStackCount via EvaluateBuffStackCount() helper. Returns 0 if buff not found. Supports all comparison operators via Compare(). Works for both player and target buffs via CheckTarget property."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-010",
-      "title": "End-to-end bot flow validation",
-      "description": "As a user, I want to run a complete bot session that successfully pathes, fights, loots, and rests so I can verify the full integration works.",
+      "title": "Create installation status display panel",
+      "description": "As a user, I want to see installation status at a glance in the GUI.",
       "acceptanceCriteria": [
-        "Bot loads combat profile and waypoint path successfully",
-        "Bot follows waypoints and detects stuck conditions",
-        "Bot finds and targets hostile mobs within range",
-        "Bot executes combat rotation (abilities fire via keybinds)",
-        "Bot loots corpse after target dies",
-        "Bot rests when health/mana below threshold",
-        "Bot resumes pathing after rest completes",
-        "Full session runs for 10+ minutes without crashes",
-        "Action log shows all state transitions correctly",
+        "Create InstallationStatusPanel control in ErenshorGlider.GUI/Controls",
+        "Show BepInEx status with icon (✓ installed, ⚠ update available, ✗ not installed)",
+        "Show plugin status with icon",
+        "Display installed versions for both BepInEx and plugin",
+        "Add Refresh button to check installation status",
+        "Style panel to match existing GUI theme",
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": true,
-      "notes": "All code components implemented and typecheck passes. GrindingBot orchestrates WaypointPlayer, TargetSelector, CombatController, LootController, RestController. CombatController uses auto-attack (US-005). InputController has Windows API simulation (US-003). WaypointPlayer has delay waiting (US-008). RestController has consumable usage (US-007). CombatProfile supports buff stack conditions (US-009). Full end-to-end runtime validation requires game testing (not possible in CI environment)."
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add installation buttons to main window",
+      "description": "As a user, I want buttons to install BepInEx and the plugin from the main GUI.",
+      "acceptanceCriteria": [
+        "Add InstallPlugin button to MainWindow header area",
+        "Add LaunchGame button to MainWindow header area",
+        "Buttons disable when game is running",
+        "Install button shows confirmation message on success",
+        "Launch button starts Erenshor.exe from configured path",
+        "Show error dialog if Erenshor path not configured",
+        "Style buttons to match existing theme",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Create first-run setup wizard",
+      "description": "As a new user, I want a guided setup wizard for initial installation.",
+      "acceptanceCriteria": [
+        "Create SetupWizard Form with multi-step layout",
+        "Step 1: Welcome screen with 'Get Started' button",
+        "Step 2: Erenshor detection with auto-detected path or manual browse button",
+        "Step 3: BepInEx installation with progress bar",
+        "Step 4: Plugin installation with progress bar",
+        "Step 5: Complete screen with 'Launch Game' button",
+        "Add Back/Next/Cancel navigation buttons",
+        "Wizard launches on first run if no installation detected",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add manual directory browser dialog",
+      "description": "As a user, I want to manually browse for Erenshor if auto-detection fails.",
+      "acceptanceCriteria": [
+        "Add BrowseForErenshorPath method to InstallationService",
+        "Use FolderBrowserDialog for directory selection",
+        "Validate selected path contains Erenshor.exe",
+        "Return validated path or null if cancelled/invalid",
+        "Show clear error message for invalid selection",
+        "Persist selected path to InstallationConfig",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add update notification display",
+      "description": "As a user, I want to see when a plugin update is available.",
+      "acceptanceCriteria": [
+        "Show notification balloon when update is available on startup",
+        "Display update notification in installation status panel",
+        "Include 'Update Now' button when update available",
+        "Show changelog/release notes for new version",
+        "Notification doesn't block GUI startup (async check)",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Implement installation repair function",
+      "description": "As a user, I want to repair my installation if something goes wrong.",
+      "acceptanceCriteria": [
+        "Add RepairInstallation method to InstallationService",
+        "Reinstall BepInEx files from cached archive",
+        "Reinstall plugin DLL from current GUI directory",
+        "Validate all core BepInEx DLLs exist",
+        "Return detailed RepairResult with FixedItems and RemainingIssues",
+        "Log repair operations to action log",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Implement uninstall function",
+      "description": "As a user, I want to cleanly remove BepInEx and plugin if I stop using the bot.",
+      "acceptanceCriteria": [
+        "Add Uninstall method to InstallationService",
+        "Show confirmation dialog with warning",
+        "Remove BepInEx folder and all contents",
+        "Remove doorstop_config.dll from Erenshor root",
+        "Remove plugin DLL from BepInEx/plugins",
+        "Optionally backup config files before uninstall",
+        "Return success result after completion",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add installation settings to settings panel",
+      "description": "As a user, I want to access installation options from the settings menu.",
+      "acceptanceCriteria": [
+        "Add Installation tab to SettingsPanel",
+        "Show current Erenshor path with Change button",
+        "Add Repair Installation button",
+        "Add Uninstall button",
+        "Show BepInEx and plugin versions",
+        "Add check for updates button",
+        "Style to match existing settings tabs",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Add download integrity verification",
+      "description": "As a user, I want downloaded files verified for security.",
+      "acceptanceCriteria": [
+        "Add SHA256 checksum verification for BepInEx download",
+        "Compare downloaded file hash against expected value",
+        "Fail installation with clear error if hash mismatch",
+        "Log checksum verification results",
+        "Handle missing checksum data gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Add game running status to main window",
+      "description": "As a user, I want to see if Erenshor is running from the GUI.",
+      "acceptanceCriteria": [
+        "Add game status indicator to MainWindow status strip",
+        "Show 'Game Running' when Erenshor.exe process detected",
+        "Show 'Game Not Running' when no process found",
+        "Update status every 5 seconds via timer",
+        "Change LaunchGame button to 'Game Running' when game active",
+        "Disable plugin installation when game is running",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Integrate InstallationService with MainWindow",
+      "description": "As a developer, I need the installation service wired up to the main UI.",
+      "acceptanceCriteria": [
+        "Add IInstallationService property to MainWindow",
+        "Instantiate InstallationService in MainWindow constructor",
+        "Wire up InstallPlugin button click to InstallPluginAsync",
+        "Wire up LaunchGame button click to LaunchGame",
+        "Handle installation errors with message boxes",
+        "Update status labels on installation completion",
+        "Start game status polling timer on window load",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
