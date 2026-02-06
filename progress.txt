@@ -1078,4 +1078,42 @@
   - FormattedTimestamp property (\"HH:mm:ss\") avoids formatting on UI thread
   - ActionLogPanel header panel height 25px, Clear button 50x20px
 
+## 2026-02-05 - US-040
+- What was implemented:
+  - Created RadarEntity readonly struct with Type, RelativeX, RelativeZ, Name, Level
+  - Added RadarEntityType enum: HostileMob, NeutralMob, FriendlyNpc, ResourceNode, Corpse, Player
+  - Added RadarPlayerInfo struct with FacingDirection, Range
+  - Created IRadarDataProvider interface with GetPlayerInfo, GetNearbyEntities, RadarDataUpdated event
+  - Created MockRadarDataProvider with simulated random entities
+  - Created RadarControl with PictureBox canvas (200x200), dark background (15,15,18 RGB)
+  - Player indicator: green circle (150,255,150 RGB border) with facing direction arrow
+  - Concentric range circles at 25%, 50%, 75%, 100% of radar range
+  - Crosshairs for orientation
+  - Zoom in/out buttons (0.5x to 3.0x range, 0.25x steps)
+  - Range slider (10-200 units, default 50)
+  - Entity colors: HostileMob=red (0xff3333), NeutralMob=yellow (0xffcc00), FriendlyNpc=green (0x33ff33), ResourceNode=blue (0x33ccff), Corpse=gray (0x999999), Player=purple (0xcc99ff)
+  - Resource nodes drawn as diamonds (6px), others as circles (3-5px depending on type)
+  - 10Hz update timer (100ms)
+  - Coordinates: X is left/right, Z is forward/back (inverted for radar Y)
+  - GetScale() calculates: (radarRadius / range) * zoomLevel
+- Files changed:
+  - src/ErenshorGlider.GUI/RadarModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/RadarControl.cs (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - PictureBox with Paint event provides custom drawing in Windows Forms
+  - Graphics.SmoothingMode.AntiAlias smooths circles and lines
+  - Radar coordinate system: player at center (cx, cy), relative positions scaled
+  - Z axis inverted for radar (game Z+ = North = radar Y-)
+  - Facing direction arrow uses trigonometry: Math.Cos/Sin of (degrees - 90) * PI / 180
+  - Entity size varies by type: ResourceNode=6px, Player=5px, Mobs/NPCs=4px, Corpses=3px
+  - Range circles drawn with percentage of total range (0.25, 0.5, 0.75, 1.0)
+  - MockRadarDataProvider generates random entities within range for UI testing
+  - RadarControl height includes canvas (200px) + zoom panel (30px) + range panel (35px) = ~265px + padding
+  - TrackBar for range slider with TickFrequency=10 shows visual ticks
+  - Zoom displayed as \"Zoom: 1.00x\" with F2 format specifier
+  - Radar data update frequency (10Hz) independent of position tracking (also 10Hz)
+  - PaintRadar uses Graphics.FillEllipse/DrawLine for drawing
+  - Entities outside canvas bounds are skipped for performance
+
 ---
