@@ -1,4 +1,5 @@
 using System;
+using ErenshorGlider.Configuration;
 
 namespace ErenshorGlider.GUI;
 
@@ -28,6 +29,11 @@ public interface IBotController
     IActionLogProvider Log { get; }
 
     /// <summary>
+    /// Gets the current configuration.
+    /// </summary>
+    BotConfig CurrentConfig { get; }
+
+    /// <summary>
     /// Event raised when the bot state changes.
     /// </summary>
     event EventHandler<BotStateChangedEventArgs>? BotStateChanged;
@@ -55,6 +61,11 @@ public interface IBotController
     /// Resumes the bot.
     /// </summary>
     void Resume();
+
+    /// <summary>
+    /// Event raised when configuration is updated.
+    /// </summary>
+    event EventHandler? ConfigUpdated;
 }
 
 /// <summary>
@@ -131,13 +142,18 @@ public class MockBotController : IBotController, IBotStatusProvider, ISessionSta
     // Action log
     private readonly MockActionLogProvider _log = new MockActionLogProvider();
 
+    // Configuration
+    private BotConfig _config = ConfigManager.Load();
+
     public bool IsRunning => _isRunning;
     public bool IsPaused => _isPaused;
     public string CurrentState => _currentState;
     public IActionLogProvider Log => _log;
+    public BotConfig CurrentConfig => _config;
 
     public event EventHandler<BotStateChangedEventArgs>? BotStateChanged;
     public event EventHandler<BotRunningChangedEventArgs>? BotRunningChanged;
+    public event EventHandler? ConfigUpdated;
 
     public bool Start()
     {
@@ -284,5 +300,23 @@ public class MockBotController : IBotController, IBotStatusProvider, ISessionSta
         _maxHealth = maxHealth;
         _currentMana = mana;
         _maxMana = maxMana;
+    }
+
+    /// <summary>
+    /// Reloads configuration from file.
+    /// </summary>
+    public void ReloadConfig()
+    {
+        _config = ConfigManager.Load();
+        ConfigUpdated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Updates the bot configuration.
+    /// </summary>
+    public void UpdateConfig(BotConfig newConfig)
+    {
+        _config = newConfig ?? throw new ArgumentNullException(nameof(newConfig));
+        ConfigUpdated?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -668,8 +668,8 @@
         "Typecheck passes"
       ],
       "priority": 45,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created SettingsPanel with 11 tabbed categories (Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits). Settings dialog accessed via gear icon button in header. Save writes to config.json via ConfigManager. Reset button reverts to current values. IBotController extended with CurrentConfig property and ConfigUpdated event."
     },
     {
       "id": "US-046",

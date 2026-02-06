@@ -19,6 +19,7 @@ public class MainWindow : Form
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _trayContextMenu;
     private readonly IBotController _botController;
+    private readonly Button _settingsButton;
 
     /// <summary>
     /// Gets the main content panel where other UI components can be added.
@@ -70,6 +71,7 @@ public class MainWindow : Form
         // Initialize components
         _headerPanel = CreateHeaderPanel();
         _titleLabel = CreateTitleLabel();
+        _settingsButton = CreateSettingsButton();
         _contentPanel = CreateContentPanel();
         _statusStrip = CreateStatusStrip();
         _statusLabel = CreateStatusLabel();
@@ -114,6 +116,29 @@ public class MainWindow : Form
             Padding = new Padding(15, 0, 0, 0)
         };
         return label;
+    }
+
+    /// <summary>
+    /// Creates the settings button in the header.
+    /// </summary>
+    private Button CreateSettingsButton()
+    {
+        var button = new Button
+        {
+            Text = "⚙ Settings",
+            BackColor = Color.FromArgb(60, 60, 65),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            Size = new Size(110, 30),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        button.MouseEnter += (s, e) => button.BackColor = Color.FromArgb(80, 80, 85);
+        button.MouseLeave += (s, e) => button.BackColor = Color.FromArgb(60, 60, 65);
+        button.Click += (s, e) => ShowSettingsDialog();
+        return button;
     }
 
     /// <summary>
@@ -212,8 +237,12 @@ public class MainWindow : Form
     /// </summary>
     private void LayoutControls()
     {
-        // Add title to header
+        // Add title and settings button to header
+        _titleLabel.Dock = DockStyle.Left;
+        _titleLabel.Width = Width - 120;
+        _settingsButton.Location = new Point(Width - 120, 10);
         _headerPanel.Controls.Add(_titleLabel);
+        _headerPanel.Controls.Add(_settingsButton);
 
         // Add controls to form
         Controls.Add(_contentPanel);
@@ -462,5 +491,32 @@ public class MainWindow : Form
             _trayContextMenu?.Dispose();
         }
         base.Dispose(disposing);
+    }
+
+    /// <summary>
+    /// Shows the settings dialog.
+    /// </summary>
+    private void ShowSettingsDialog()
+    {
+        var form = new Form
+        {
+            Text = "Bot Settings",
+            Size = new Size(650, 550),
+            MinimumSize = new Size(600, 500),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedSingle,
+            MaximizeBox = false,
+            BackColor = Color.FromArgb(30, 30, 30),
+            ForeColor = Color.White,
+            ShowInTaskbar = false
+        };
+
+        var settingsPanel = new SettingsPanel(_botController)
+        {
+            Dock = DockStyle.Fill
+        };
+
+        form.Controls.Add(settingsPanel);
+        form.ShowDialog(this);
     }
 }

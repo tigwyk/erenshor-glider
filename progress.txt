@@ -40,6 +40,13 @@
 - FormClosing event with Cancel=true prevents actual close, enabling minimize-to-tray behavior
 - ContentPanel property exposes main panel for child controls (future UI components)
 - SetStatus/SetConnectionStatus methods check InvokeRequired for thread-safe UI updates
+- SettingsPanel uses TabControl for categorized settings (Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits)
+- IBotController extended with CurrentConfig property and ConfigUpdated event for settings management
+- ConfigManager.Load() loads from config.json, ConfigManager.Save() writes to config.json
+- Settings dialog uses modal Form with ShowDialog(parent) to block main window
+- NumericUpDown controls for numeric values with Minimum, Maximum, Increment properties
+- ComboBox for dropdown selections with DropDownList style to prevent custom entries
+- Working config pattern: clone on load, modify working copy, save on button click, reset reverts to original
 
 ---
 
@@ -1211,4 +1218,43 @@
   - Drawing order: range circles → waypoint paths → entities → player (layering for visibility)
   - Path connections drawn first so waypoints appear on top of connection lines
   - Bounds checking in DrawWaypoint skips waypoints outside canvas for performance
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-045
+- What was implemented:
+  - Created SettingsPanel control with 11 tabbed categories for all bot settings
+  - Categories: Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits
+  - Added IBotConfigProvider interface with CurrentConfig property and ConfigUpdated event
+  - Extended IBotController with CurrentConfig property and ConfigUpdated event
+  - Implemented config management in MockBotController (LoadConfig, UpdateConfig)
+  - Added Settings button (gear icon ⚙) to MainWindow header
+  - Settings dialog opens as modal form with SettingsPanel
+  - Save button writes configuration to config.json via ConfigManager.Save()
+  - Reset button reverts to current loaded values
+  - All BotConfig properties exposed through form controls (NumericUpDown, CheckBox, TextBox, ComboBox)
+  - Comma-separated list parsing for blacklist arrays
+  - Status label shows save success/error messages
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/SettingsPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified - added CurrentConfig, ConfigUpdated, LoadConfig, UpdateConfig)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - added settings button and dialog)
+  - prd.json (modified - US-045 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - TabControl organizes many settings into digestible categories
+  - NumericUpDown controls need Minimum, Maximum, Increment set for proper input validation
+  - Working copy pattern: clone config on load, modify working copy, save only on button click
+  - Reset button reverts to original config without saving changes
+  - ComboBox with DropDownList style prevents user from entering custom values
+  - Status label provides immediate feedback on save success/failure
+  - Modal dialog (ShowDialog) blocks main window until closed
+  - ConfigManager.Save writes to config.json in current working directory
+  - FormBorderStyle.FixedSingle prevents dialog resizing
+  - Panel rows with absolute positioning (Y coordinates) for consistent layout
+  - Hover effects on buttons (MouseEnter/MouseLeave) improve UX
+  - Dark theme colors used throughout: header (45,45,48), content (30,30,30), tab pages (35,35,38)
+  - NumericUpDown.BackColor set to (50,50,55) for consistency with other inputs
+  - Settings button placed in header with Anchor=Top|Right for responsive positioning
   - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
