@@ -100,8 +100,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added InstanceId property to EntityInfo struct. TargetEntityById() uses Object.FindObjectsOfType<Character>() to search all entities by GetInstanceID(). Sets GameData.PlayerControl.CurrentTarget when found. Null safety checks for PlayerControl and entity lookup. Falls back to event-based approach on error. EntityInfo creation now captures instance ID from GameObject."
     },
     {
       "id": "US-007",

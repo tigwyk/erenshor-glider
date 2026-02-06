@@ -155,3 +155,38 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-006
+- Added InstanceId property to EntityInfo struct (default 0)
+- Updated EntityInfo constructor to include instanceId parameter
+- Updated all EntityInfo creation sites to capture Unity instance ID from gameObject
+  - CreateEntityInfoFromCharacter: gets instanceId from character.gameObject
+  - CreateEntityInfoFromNPC: gets instanceId from npc.gameObject
+  - CreateEntityInfoFromNode: gets instanceId from node.gameObject
+  - CreateEntityInfoFromCorpse: gets instanceId from corpse.gameObject
+- Implemented InputController.TargetEntityById() with real game API
+  - Uses Object.FindObjectsOfType<Character>() to search all entities
+  - Compares GetInstanceID() to find matching entity
+  - Sets GameData.PlayerControl.CurrentTarget to found entity
+  - Null safety checks for PlayerControl and entity lookup
+  - Falls back to event-based approach on error
+- Implemented InputController.TargetEntity() to delegate to TargetEntityById()
+- Added FindEntityByInstanceId() helper method with conditional compilation
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Input/InputController.cs - Implemented TargetEntityById() and FindEntityByInstanceId()
+- src/ErenshorGlider/GameState/EntityInfo.cs - Added InstanceId property
+- src/ErenshorGlider/GameState/GameStateReader.cs - Capture instance ID when creating EntityInfo
+
+**Learnings for future iterations:**
+- Unity GameObject.GetInstanceID() returns a unique integer ID for each object
+- Object.FindObjectsOfType<Character>() returns all objects of the given type (includes subclasses)
+- Need null check for gameObject before calling GetInstanceID()
+- Setting CurrentTarget directly is more reliable than keyboard input for targeting
+- Event-based fallback allows testing without game assemblies
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---
