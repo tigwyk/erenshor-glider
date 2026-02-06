@@ -245,8 +245,8 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added update notification panel to InstallationStatusPanel with yellow/orange theme, 'Update Now' button, 'View release notes' link, startup update check in MainWindow with balloon notification. Panel auto-shows/hides based on update availability and adjusts height accordingly."
     },
     {
       "id": "US-015",

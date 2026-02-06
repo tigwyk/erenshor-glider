@@ -193,3 +193,28 @@ Feature: Automated BepInEx installation and plugin management
   - Check IsGameRunning before both install and launch operations
   - Get plugin DLL path from Application.ExecutablePath directory
 ---
+
+## [Date/Time] - US-014
+- Added update notification display to InstallationStatusPanel
+- Created update notification panel with yellow/orange theme that appears when updates are available
+- Added "Update Now" button with async handler to download and install plugin updates
+- Added "View release notes" link that opens dialog showing changelog from GitHub
+- Added CheckForUpdatesAsync method to panel for async update checking
+- Added update progress dialog with percentage display during download/install
+- Integrated startup update check in MainWindow with balloon notification
+- Balloon shows current and latest version when update available
+- Update notification panel auto-shows/hides based on update availability
+- Panel adjusts minimum height (190px when visible, 140px when hidden)
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/InstallationStatusPanel.cs (added update notification UI, handlers, dialogs)
+  - src/ErenshorGlider.GUI/MainWindow.cs (added startup update check with balloon notification)
+- **Learnings for future iterations:**
+  - Update notification panel should dock to top and overlay existing content rather than pushing it down
+  - Use Progress<DownloadProgress> for reporting update progress to UI
+  - Balloon notifications via NotifyIcon.ShowBalloonTip with 3000ms timeout
+  - Fire-and-forget async pattern with pragma warning disable CS4014 for startup tasks
+  - LinkLabel for clickable links like "View release notes"
+  - Dialog for release notes uses multiline TextBox with ReadOnly=true and ScrollBars=Vertical
+  - Panel height adjustment based on visibility: update MinimumSize when showing/hiding notification
+  - Theme colors: update notification uses (60,50,40) background, (255,220,100) text
+---
