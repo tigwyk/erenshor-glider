@@ -34,3 +34,29 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - Default build (without USE_REAL_GAME_TYPES): PASS (0 warnings, 0 errors)
 - With USE_REAL_GAME_TYPES but no ERENSHOR_PATH: Fails (expected - needs actual game DLLs)
 ---
+
+## [2025-02-05] - US-002
+- Created ErenshorGlider.Tests project for unit testing without game dependencies
+- Moved GameStubs classes to test project (GameStubs/GameData.cs) - copies remain in main project with conditional compilation
+- Added TestStubsSetup helper class for convenient mock object creation
+- Created PositionTrackerTests with 17 unit tests covering GameStateReader, PlayerPosition, PlayerVitals, CombatState, and TargetInfo
+- Test project compiles independently of game assemblies using UnityEngine.Modules NuGet package
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider.Tests/ErenshorGlider.Tests.csproj - New test project with xUnit
+- src/ErenshorGlider.Tests/GameStubs/GameData.cs - Stub implementations for testing
+- src/ErenshorGlider.Tests/Helpers/TestStubsSetup.cs - Helper for creating mock game objects
+- src/ErenshorGlider.Tests/GameState/PositionTrackerTests.cs - 17 unit tests
+
+**Learnings for future iterations:**
+- The test project targets .NET Framework 4.7.2 (same as main project) and uses xUnit for testing
+- UnityEngine.Modules NuGet package provides Unity type stubs for compilation without game DLLs
+- Tests require mono runtime to execute on Linux (not installed in current environment) but compile successfully
+- Used null-forgiving operator (!) to suppress nullable warnings when assigning null to non-nullable stub fields
+- Fully qualified type names (e.g., GameStubs.ItemQuality) needed to avoid ambiguity with GameState.ItemQuality
+
+**Build verification:**
+- ErenshorGlider.Tests build: PASS (0 warnings, 0 errors)
+- Test execution: Requires mono/.NET Framework runtime on Windows
+---
