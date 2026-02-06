@@ -1,5 +1,6 @@
 using System;
 using ErenshorGlider.Combat;
+using ErenshorGlider.Configuration;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Mapping;
 using ErenshorGlider.Navigation;
