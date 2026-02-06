@@ -1144,4 +1144,39 @@
   - Current label updates on SelectedIndexChanged event
   - Events use EventHandler<string> pattern for passing selected item name
 
+## 2026-02-05 - US-050
+- What was implemented:
+  - Created 6 baseline combat profiles in profiles/ directory (JSON format)
+  - Warrior.json: Heroic Strike (main), Charge (opener), Bloodthirst (heal), Shield Block (defensive), Battle Shout (buff)
+  - Mage.json: Frost Bolt (main), Fireball (burst), Ice Lance (frozen), Frost Nova (slow), Frost Armor (buff), Arcane Intellect (buff), Evocation (mana)
+  - Rogue.json: Stealth (opener), Backstab (stealth attack), Sinister Strike (builder), Eviscerate (finisher), Slice and Dice (finisher buff), Evasion (defensive)
+  - Cleric.json: Smite (damage), Heal/Greater Heal/Flash Heal (heals), Power Word: Shield (absorb), Renew (HoT), Inner Fire (buff)
+  - Ranger.json: Aimed Shot (burst), Arcane Shot (filler), Serpent Sting (DoT), Hunter's Mark (debuff), Aspect of the Hawk (buff), pet abilities
+  - Necromancer.json: Shadow Bolt (main), Corruption (DoT), Curse of Agony (DoT), Drain Life (heal), Fear (CC), Summon Voidwalker (pet), Life Tap (mana)
+  - All profiles include buff maintenance conditions (BuffAbsent)
+  - Defensive abilities triggered by low health (PlayerHealthPercent < 40-50%)
+  - Rotation priorities 1-7 with descriptions
+  - Self-healing: Warrior (Bloodthirst), Cleric (Flash Heal), Necromancer (Drain Life), Rogue (none - evasion instead)
+- Files changed:
+  - profiles/Warrior.json (created)
+  - profiles/Mage.json (created)
+  - profiles/Rogue.json (created)
+  - profiles/Cleric.json (created)
+  - profiles/Ranger.json (created)
+  - profiles/Necromancer.json (created)
+- **Learnings for future iterations:**
+  - Profile JSON format matches CombatProfile class structure exactly
+  - Ability definitions include: Id, Name, Keybind, Cooldown, TriggersGcd, ManaCost, Range, RequiresTarget, CastTime, IsChanneled
+  - Condition format: Type, Value, Operator, BuffName, CheckTarget
+  - Rotation entries: AbilityId, Conditions array, Priority, Enabled, Description
+  - Buff maintenance uses BuffAbsent condition to check if buff is active
+  - Defensive abilities use PlayerHealthPercent < threshold conditions
+  - Openers use TargetHealthPercent == 100 or BuffPresent (Stealth) conditions
+  - Mana management for casters: low mana triggers Life Tap, high mana allows burst
+  - DoT classes keep DoTs up with BuffAbsent conditions
+  - Profile names match class names exactly for ProfileSelectorPanel dropdown
+  - Each class has 5-7 abilities and 5-7 rotation entries
+  - GCD varies by class: Warrior/Cleric/Mage/Necromancer 1.5s, Rogue/Ranger 1.0s
+  - UseAutoAttack: false for casters, true for melee/hunters
+
 ---
