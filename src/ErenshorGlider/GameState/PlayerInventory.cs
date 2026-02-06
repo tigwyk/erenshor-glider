@@ -103,7 +103,16 @@ public readonly struct ItemInfo : IEquatable<ItemInfo>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(SlotIndex, Name, Quantity, Quality);
+        // Manual hash code combination for .NET Framework 4.7.2 compatibility
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 31 + SlotIndex.GetHashCode();
+            hash = hash * 31 + (Name?.GetHashCode() ?? 0);
+            hash = hash * 31 + Quantity.GetHashCode();
+            hash = hash * 31 + Quality.GetHashCode();
+            return hash;
+        }
     }
 
     public override string ToString()

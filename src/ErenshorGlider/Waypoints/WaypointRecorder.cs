@@ -114,7 +114,7 @@ public class WaypointRecorder
         var result = new WaypointPath(_recordingPath.Name)
         {
             Description = _recordingPath.Description,
-            Waypoints = new List<global::System.Collections.Generic.Waypoint>(_recordingPath.Waypoints),
+            Waypoints = new List<Waypoint>(_recordingPath.Waypoints),
             CreatedAt = _recordingPath.CreatedAt,
             LastModified = DateTime.UtcNow
         };

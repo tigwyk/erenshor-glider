@@ -226,7 +226,7 @@ public class LootController
     public bool AreBagsFull()
     {
         var inventory = _positionTracker.CurrentInventory;
-        return inventory != null && inventory.IsFull;
+        return inventory?.IsFull ?? false;
     }
 
     /// <summary>

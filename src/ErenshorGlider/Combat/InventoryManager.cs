@@ -209,7 +209,7 @@ public class InventoryManager
             return;
         }
 
-        float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, VendorWaypoint.Value.Position);
+        float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, VendorWaypoint.Position);
 
         // Check if we've reached the vendor
         if (distance <= 3f) // Within interaction range
@@ -219,8 +219,8 @@ public class InventoryManager
         }
 
         // Move toward the vendor
-        _navigation.MoveTo(VendorWaypoint.Value.Position);
-        _navigation.FaceTarget(VendorWaypoint.Value.Position);
+        _navigation.MoveTo(VendorWaypoint.Position);
+        _navigation.FaceTarget(VendorWaypoint.Position);
 
         // Check for stuck
         if (_navigation.IsStuck)

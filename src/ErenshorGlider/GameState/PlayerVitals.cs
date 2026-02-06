@@ -90,4 +90,9 @@ public readonly struct PlayerVitals
         $"HP: {CurrentHealth:F0}/{MaxHealth:F0} ({HealthPercent:F0}%), " +
         $"MP: {CurrentMana:F0}/{MaxMana:F0} ({ManaPercent:F0}%), " +
         $"Lv: {Level}, XP: {CurrentXP:F0}/{XPToLevel:F0} ({XPPercent:F1}%)";
+
+    /// <summary>
+    /// Gets an empty PlayerVitals instance with default values.
+    /// </summary>
+    public static PlayerVitals Empty => new(0, 0, 0, 0, 1, 0, 100);
 }

@@ -102,7 +102,17 @@ public readonly struct BuffInfo : IEquatable<BuffInfo>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Name, BuffId, RemainingDuration, Stacks, IsDebuff);
+        // Manual hash code combination for .NET Framework 4.7.2 compatibility
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 31 + (Name?.GetHashCode() ?? 0);
+            hash = hash * 31 + (BuffId?.GetHashCode() ?? 0);
+            hash = hash * 31 + RemainingDuration.GetHashCode();
+            hash = hash * 31 + Stacks.GetHashCode();
+            hash = hash * 31 + IsDebuff.GetHashCode();
+            return hash;
+        }
     }
 
     public override string ToString()
@@ -146,8 +156,14 @@ public readonly struct BuffState
 
         // Combine for easier iteration
         var all = new BuffInfo[Buffs.Count + Debuffs.Count];
-        Buffs.CopyTo(all, 0);
-        Debuffs.CopyTo(all, Buffs.Count);
+        for (int i = 0; i < Buffs.Count; i++)
+        {
+            all[i] = Buffs[i];
+        }
+        for (int i = 0; i < Debuffs.Count; i++)
+        {
+            all[Buffs.Count + i] = Debuffs[i];
+        }
         AllEffects = all;
     }
 

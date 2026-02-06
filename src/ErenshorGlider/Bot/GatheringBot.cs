@@ -625,7 +625,7 @@ public class GatheringBot
     private EntityInfo? FindNearestResourceNode()
     {
         var entities = _positionTracker.CurrentNearbyEntities;
-        if (!entities.HasValue)
+        if (entities == null)
             return null;
 
         var playerPos = _positionTracker.CurrentPosition;
@@ -635,7 +635,7 @@ public class GatheringBot
         EntityInfo? nearestNode = null;
         float nearestDistance = float.MaxValue;
 
-        foreach (var entity in entities.Value.Items)
+        foreach (var entity in entities)
         {
             // Only look for resource nodes
             if (entity.Type != EntityType.Node || entity.IsDead)

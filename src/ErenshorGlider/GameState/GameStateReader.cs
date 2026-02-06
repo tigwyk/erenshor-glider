@@ -889,7 +889,7 @@ public class GameStateReader
                     continue;
                 }
 
-                if (slot.Item == null || slot.Item == PlayerInventory.Empty)
+                if (slot.Item == null || ReferenceEquals(slot.Item, GameStubs.PlayerInventory.Empty))
                 {
                     freeSlots++;
                 }

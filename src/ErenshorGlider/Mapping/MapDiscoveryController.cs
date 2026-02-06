@@ -113,14 +113,14 @@ public class MapDiscoveryController
             return;
 
         var entities = _gameStateReader.GetCachedNearbyEntities();
-        if (entities == null || entities.Items.Count == 0)
+        if (entities == null || entities.Count == 0)
             return;
 
         var position = _positionTracker.CurrentPosition;
         if (!position.HasValue)
             return;
 
-        foreach (var entity in entities.Items)
+        foreach (var entity in entities)
         {
             string entityKey = $"{entity.Name}_{entity.Position.X:F0}_{entity.Position.Z:F0}";
 

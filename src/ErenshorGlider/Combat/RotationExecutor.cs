@@ -117,8 +117,13 @@ public class RotationExecutor
         vitals ??= PlayerVitals.Empty;
         playerBuffs ??= BuffState.Empty;
 
+        // Unwrap nullable values
+        var unwrappedCombatState = combatState.Value;
+        var unwrappedVitals = vitals.Value;
+        var unwrappedPlayerBuffs = playerBuffs.Value;
+
         // Check if player can act
-        if (!combatState.Value.CanAct)
+        if (!unwrappedCombatState.CanAct)
             return false;
 
         // Iterate through rotation entries by priority
@@ -137,7 +142,7 @@ public class RotationExecutor
                 continue;
 
             // Check if ability has enough mana
-            if (ability.ManaCost > 0 && vitals.CurrentMana < ability.ManaCost)
+            if (ability.ManaCost > 0 && unwrappedVitals.CurrentMana < ability.ManaCost)
                 continue;
 
             // Check if target is required and present
@@ -153,7 +158,7 @@ public class RotationExecutor
             }
 
             // Evaluate conditions
-            if (!entry.CanExecute(combatState.Value, vitals, playerBuffs, targetBuffs, targetInfo))
+            if (!entry.CanExecute(unwrappedCombatState, unwrappedVitals, unwrappedPlayerBuffs, targetBuffs, targetInfo))
                 continue;
 
             // Execute the ability
