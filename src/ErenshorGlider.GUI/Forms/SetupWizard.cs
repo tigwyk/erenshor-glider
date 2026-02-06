@@ -22,6 +22,15 @@ public class SetupWizard : Form
     private readonly ProgressBar _progressBar;
     private readonly Label _progressLabel;
 
+    // Fonts for proper disposal
+    private readonly Font _titleFont;
+    private readonly Font _normalFont;
+    private readonly Font _smallFont;
+    private readonly Font _buttonFont;
+    private readonly Font _buttonBoldFont;
+    private readonly Font _monoFont;
+    private readonly Font _largeFont;
+
     private int _currentStep = 0;
     private string? _erenshorPath;
     private string? _bepInExArchivePath;
@@ -33,6 +42,15 @@ public class SetupWizard : Form
     public SetupWizard(IInstallationService installationService)
     {
         _installationService = installationService ?? throw new ArgumentNullException(nameof(installationService));
+
+        // Initialize fonts
+        _titleFont = new Font("Segoe UI", 16F, FontStyle.Bold);
+        _normalFont = new Font("Segoe UI", 10F);
+        _smallFont = new Font("Segoe UI", 9F);
+        _buttonFont = new Font("Segoe UI", 10F);
+        _buttonBoldFont = new Font("Segoe UI", 10F, FontStyle.Bold);
+        _monoFont = new Font("Consolas", 9F);
+        _largeFont = new Font("Segoe UI", 48F);
 
         // Form properties
         Text = "Erenshor Glider - Setup Wizard";
@@ -73,7 +91,7 @@ public class SetupWizard : Form
         {
             Text = "Welcome to Erenshor Glider",
             ForeColor = Color.White,
-            Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+            Font = _titleFont,
             Location = new Point(20, 20),
             AutoSize = true
         };
@@ -88,7 +106,7 @@ public class SetupWizard : Form
         {
             Text = "This wizard will guide you through the installation process.",
             ForeColor = Color.FromArgb(200, 200, 200),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Location = new Point(20, 55),
             AutoSize = true
         };
@@ -131,7 +149,7 @@ public class SetupWizard : Form
         {
             Text = "",
             ForeColor = Color.FromArgb(200, 200, 200),
-            Font = new Font("Segoe UI", 9F),
+            Font = _smallFont,
             Location = new Point(20, 428),
             AutoSize = true,
             Visible = false
@@ -149,7 +167,7 @@ public class SetupWizard : Form
             BackColor = Color.FromArgb(70, 70, 75),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10F),
+            Font = _buttonFont,
             Size = new Size(90, 35),
             UseVisualStyleBackColor = false,
             Cursor = Cursors.Hand
@@ -167,7 +185,7 @@ public class SetupWizard : Form
             BackColor = Color.FromArgb(70, 130, 180),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+            Font = _buttonBoldFont,
             Size = new Size(90, 35),
             UseVisualStyleBackColor = false,
             Cursor = Cursors.Hand
@@ -185,7 +203,7 @@ public class SetupWizard : Form
             BackColor = Color.FromArgb(180, 70, 70),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10F),
+            Font = _buttonFont,
             Size = new Size(90, 35),
             UseVisualStyleBackColor = false,
             Cursor = Cursors.Hand
@@ -289,7 +307,7 @@ public class SetupWizard : Form
                    "Before you can start, we need to install BepInEx (the mod loader) " +
                    "and configure your Erenshor installation path.",
             ForeColor = Color.FromArgb(220, 220, 220),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.TopCenter
         };
@@ -317,7 +335,7 @@ public class SetupWizard : Form
             Text = "Please select your Erenshor installation folder.\n\n" +
                    "This is where Erenshor.exe is located.",
             ForeColor = Color.FromArgb(200, 200, 200),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Location = new Point(0, 20),
             Width = 550,
             Height = 60
@@ -356,7 +374,7 @@ public class SetupWizard : Form
         {
             Text = "Or click below to auto-detect from Steam",
             ForeColor = Color.FromArgb(180, 180, 180),
-            Font = new Font("Segoe UI", 9F),
+            Font = _smallFont,
             Location = new Point(0, 140),
             AutoSize = true
         };
@@ -405,7 +423,7 @@ public class SetupWizard : Form
             Text = "BepInEx is a plugin framework that allows Erenshor Glider to run.\n\n" +
                    "Click Next to download and install BepInEx to your Erenshor folder.",
             ForeColor = Color.FromArgb(220, 220, 220),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Location = new Point(0, 20),
             Width = 550
         };
@@ -414,7 +432,7 @@ public class SetupWizard : Form
         {
             Text = $"Target: {_erenshorPath}",
             ForeColor = Color.FromArgb(150, 150, 150),
-            Font = new Font("Consolas", 9F),
+            Font = _monoFont,
             Location = new Point(0, 120),
             AutoSize = true
         };
@@ -442,7 +460,7 @@ public class SetupWizard : Form
             Text = "Finally, we'll copy the Erenshor Glider plugin to the BepInEx plugins folder.\n\n" +
                    "Click Next to complete the installation.",
             ForeColor = Color.FromArgb(220, 220, 220),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Location = new Point(0, 20),
             Width = 550
         };
@@ -469,7 +487,7 @@ public class SetupWizard : Form
         {
             Text = "✓",
             ForeColor = Color.FromArgb(100, 180, 100),
-            Font = new Font("Segoe UI", 48F),
+            Font = _largeFont,
             Location = new Point(250, 30),
             AutoSize = true
         };
@@ -483,7 +501,7 @@ public class SetupWizard : Form
                    "• Start the bot and automate your gameplay\n\n" +
                    "Click 'Launch Game' to start Erenshor, or 'Finish' to close this wizard.",
             ForeColor = Color.FromArgb(220, 220, 220),
-            Font = new Font("Segoe UI", 10F),
+            Font = _normalFont,
             Location = new Point(50, 100),
             Width = 490,
             Height = 180
@@ -821,7 +839,14 @@ public class SetupWizard : Form
     {
         if (disposing)
         {
-            // Clean up any resources
+            // Dispose fonts
+            _titleFont?.Dispose();
+            _normalFont?.Dispose();
+            _smallFont?.Dispose();
+            _buttonFont?.Dispose();
+            _buttonBoldFont?.Dispose();
+            _monoFont?.Dispose();
+            _largeFont?.Dispose();
         }
         base.Dispose(disposing);
     }
