@@ -554,7 +554,7 @@ public class InstallationService : IInstallationService, IDisposable
         catch
         {
             // If version parsing fails, do string comparison
-            return string.Compare(latestVersion ?? "", currentVersion, StringComparison.OrdinalIgnoreCase) > 0;
+            return string.Compare(latestVersion, currentVersion, StringComparison.OrdinalIgnoreCase) > 0;
         }
     }
 
