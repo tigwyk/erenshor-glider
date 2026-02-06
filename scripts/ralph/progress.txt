@@ -10,6 +10,15 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - Virtual Key codes: Windows VK constants (0x57='W', 0x20=Space, 0x09=Tab, etc.)
 - SendInput error handling: Check return value (0=failure), use `Marshal.GetLastWin32Error()` for error code
 - Input state tracking: Maintain internal key state dictionary for `IsKeyPressed` queries separate from Windows API
+- Unity Transform: `transform.rotation.eulerAngles.y` gives Y-axis rotation (heading) in degrees, normalize to 0-360
+- Unity GameObject: `gameObject.GetInstanceID()` returns unique integer ID for entity targeting
+- Unity Object.FindObjectsOfType<T>() searches all objects of given type including subclasses
+- Auto-attack: `GameData.PlayerCombat.ForceAttackOn()` enables auto-attack, check `InCombat` before `ToggleAttack()` to disable
+- Inventory: `GameData.PlayerInv.ALLSLOTS[]` array contains all inventory slots, `Item.ItemName` for item name
+- Waypoint delays: Track `_delayStartTime` (DateTime) and `_waitingForDelay` flag, skip if combat detected
+- Buff stacks: `BuffState.GetBuffStacks(buffName)` returns 0 if not found, `BuffInfo.Stacks` property for stack count
+- Nullable structs: Use `.Value` after null check for struct types to avoid compiler errors
+- Combat conditions: All conditions use `Value` (float) and `Operator` (ComparisonOperator) properties for comparisons
 ---
 
 ## [2025-02-05] - US-001
