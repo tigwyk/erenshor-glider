@@ -1,0 +1,749 @@
+{
+  "project": "Erenshor Glider",
+  "branchName": "ralph/erenshor-glider",
+  "description": "Full-featured automation bot for Erenshor inspired by WoW-Glider - AFK grinding, combat, looting, waypoints, and 2D radar GUI",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Research Erenshor Technical Integration",
+      "description": "As a developer, I need to understand how to interface with Erenshor so I can choose the right technical approach.",
+      "acceptanceCriteria": [
+        "Document Erenshor's technical architecture (Unity/Unreal/Custom)",
+        "Identify available integration methods (memory reading, mod support, API hooks)",
+        "Determine how to read game state (player position, health, mana, target, nearby entities)",
+        "Determine how to send inputs (movement, abilities, interactions)",
+        "Document findings in docs/technical-integration.md",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Critical first step - all other stories depend on this research"
+    },
+    {
+      "id": "US-002",
+      "title": "Project scaffolding and build setup",
+      "description": "As a developer, I need the project structure and build tooling set up so I can start implementing features.",
+      "acceptanceCriteria": [
+        "Initialize project with chosen technology stack based on US-001 findings",
+        "Set up build configuration (package.json, Cargo.toml, or equivalent)",
+        "Configure TypeScript/linting if applicable",
+        "Create folder structure: src/, docs/, profiles/, waypoints/",
+        "Add basic README with setup instructions",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "C# BepInEx 5.x plugin with .NET 4.7.2. Uses BepInEx.Core and UnityEngine.Modules packages."
+    },
+    {
+      "id": "US-003",
+      "title": "Game state reader - player position",
+      "description": "As a bot, I need to read the player's current position so I can navigate.",
+      "acceptanceCriteria": [
+        "Read player x, y, z coordinates from game",
+        "Expose position via API/function call",
+        "Position updates at minimum 10Hz",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.transform.position via stubs for compile-time safety"
+    },
+    {
+      "id": "US-004",
+      "title": "Game state reader - player vitals",
+      "description": "As a bot, I need to read player health, mana, and level so I can make combat decisions.",
+      "acceptanceCriteria": [
+        "Read current and max health",
+        "Read current and max mana/resource",
+        "Read player level and current XP",
+        "Expose vitals via API/function call",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.Myself.MyStats for vitals. PositionTracker now tracks both position and vitals at 10Hz."
+    },
+    {
+      "id": "US-005",
+      "title": "Game state reader - combat state",
+      "description": "As a bot, I need to know if I'm in combat, casting, or dead.",
+      "acceptanceCriteria": [
+        "Read combat state (in combat / out of combat)",
+        "Read casting state (casting / not casting)",
+        "Read alive/dead state",
+        "Expose states via API/function call",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Uses PlayerCombat.InCombat for combat state, CastSpell.Casting for casting, Character.Dead for alive/dead. PositionTracker tracks combat state at 10Hz alongside position and vitals."
+    },
+    {
+      "id": "US-006",
+      "title": "Game state reader - current target",
+      "description": "As a bot, I need to read information about my current target.",
+      "acceptanceCriteria": [
+        "Read if player has a target",
+        "Read target name, level, health percentage",
+        "Read target position",
+        "Read if target is hostile/neutral/friendly",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Uses GameData.PlayerControl.CurrentTarget. TargetInfo struct includes HasTarget, Name, Level, Health, Position, Hostility. PositionTracker tracks target at 10Hz."
+    },
+    {
+      "id": "US-007",
+      "title": "Game state reader - nearby entities",
+      "description": "As a bot, I need to detect nearby mobs, NPCs, and nodes.",
+      "acceptanceCriteria": [
+        "Read list of entities within configurable radius",
+        "For each entity: position, name, type (mob/NPC/node/corpse)",
+        "For mobs: level, hostility, health percentage",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Uses UnityEngine.Object.FindObjectsOfType to scan for Character, NPC, ResourceNode, and LootableCorpse within radius. EntityInfo struct includes all required properties."
+    },
+    {
+      "id": "US-008",
+      "title": "Game state reader - inventory",
+      "description": "As a bot, I need to read inventory state for bag management.",
+      "acceptanceCriteria": [
+        "Read total bag slots and free slots",
+        "Read list of items in bags (name, quantity, quality)",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Uses GameData.PlayerInv.ALLSLOTS[] to iterate inventory slots. ItemInfo struct includes name, quantity, quality, slotIndex, itemId, and maxStackSize."
+    },
+    {
+      "id": "US-009",
+      "title": "Game state reader - buffs and debuffs",
+      "description": "As a bot, I need to read active buffs/debuffs for rotation decisions.",
+      "acceptanceCriteria": [
+        "Read list of active buffs on player (name, remaining duration)",
+        "Read list of active debuffs on player",
+        "Read buffs/debuffs on current target",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Uses Character.MyBuffs.ActiveBuffs[] and ActiveDebuffs[] for buff/debuff lists. BuffInfo struct includes name, duration, stacks, and debuff flag."
+    },
+    {
+      "id": "US-010",
+      "title": "Input controller - movement",
+      "description": "As a bot, I need to send movement inputs to control the character.",
+      "acceptanceCriteria": [
+        "Send forward/backward movement",
+        "Send strafe left/right",
+        "Send turn left/right",
+        "Send jump",
+        "Support press and release (not just toggle)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "InputController class provides MoveForward/Backward, StrafeLeft/Right, TurnLeft/Right, Jump methods. Uses key state tracking with PressKey/ReleaseKey for duration-based input. KeyCode enum covers all game-relevant keys."
+    },
+    {
+      "id": "US-011",
+      "title": "Input controller - targeting and interaction",
+      "description": "As a bot, I need to select targets and interact with objects.",
+      "acceptanceCriteria": [
+        "Send target nearest enemy command",
+        "Send target specific entity by ID/reference",
+        "Send interact command (loot, talk, gather)",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Added TargetNearestEnemy, ClearTarget, TargetEntity, TargetEntityById methods. Added Interact, InteractWith, Loot, Talk, Gather, CancelInteraction methods. Uses event-based approach for direct entity targeting."
+    },
+    {
+      "id": "US-012",
+      "title": "Input controller - abilities",
+      "description": "As a bot, I need to activate abilities and spells.",
+      "acceptanceCriteria": [
+        "Send ability activation by keybind",
+        "Send ability activation by ability ID (if available)",
+        "Configurable input delay/randomization for humanization",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "UseAbilitySlot(int slot) activates abilities 1-9. UseAbility(KeyCode key) for custom binds. UseAbilityById for direct activation. InputDelayMs and RandomizationRangeMs properties control humanization."
+    },
+    {
+      "id": "US-013",
+      "title": "Navigation - move to point",
+      "description": "As a bot, I need to move to specific coordinates.",
+      "acceptanceCriteria": [
+        "Accept target x, y, z coordinates",
+        "Calculate direction to target",
+        "Move toward target using input controller",
+        "Stop when within configurable distance of target",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Navigation class with MoveTo(x,y,z) and MoveTo(PlayerPosition). Calculates direction using atan2 on X-Z plane. Supports 8 directions with diagonal movement. StoppingDistance property controls when to stop."
+    },
+    {
+      "id": "US-014",
+      "title": "Navigation - stuck detection",
+      "description": "As a bot, I need to detect when I'm stuck and try to unstick.",
+      "acceptanceCriteria": [
+        "Detect when position hasn't changed despite movement input",
+        "Attempt unstuck behavior (jump, strafe, back up)",
+        "Report stuck state if unstuck fails after configurable attempts",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "CheckAndAttemptUnstick() monitors position changes. Unstuck strategies: jump, strafe, backup+jump, turn+jump. StuckDetectionThreshold, MaxUnstuckAttempts, MovementProgressThreshold properties."
+    },
+    {
+      "id": "US-015",
+      "title": "Navigation - face target",
+      "description": "As a bot, I need to face a specific direction or entity.",
+      "acceptanceCriteria": [
+        "Calculate angle to target position",
+        "Turn to face target using turn inputs",
+        "Stop turning when facing within tolerance",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "FaceTarget() and FaceEntity() methods turn player toward target. CalculateAngleToTarget uses atan2 on X-Z plane. FacingTolerance property (default 10 degrees) controls when to stop turning."
+    },
+    {
+      "id": "US-016",
+      "title": "Waypoint data model",
+      "description": "As a developer, I need a data structure for waypoints.",
+      "acceptanceCriteria": [
+        "Define Waypoint type: position, type (normal/vendor/repair/node), metadata",
+        "Define WaypointPath type: name, list of waypoints, loop setting",
+        "JSON schema for waypoint files",
+        "Save/load waypoint paths to/from JSON files",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Waypoint class with Position, Type (enum), Name, Metadata, Delay. WaypointPath with Name, Waypoints list, Loop, ReverseAtEnd, Description. WaypointFileManager handles save/load with JSON serialization."
+    },
+    {
+      "id": "US-017",
+      "title": "Waypoint recording",
+      "description": "As a user, I want to record waypoints as I play.",
+      "acceptanceCriteria": [
+        "Start/stop recording via function call",
+        "Capture position at configurable interval while recording",
+        "Assign waypoint type during or after recording",
+        "Save recorded path to file",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "WaypointRecorder class with StartRecording, StopRecording, StopAndSave methods. Update() captures waypoints based on MinDistanceBetweenWaypoints and MinTimeBetweenRecords. RecordVendor, RecordRepair, RecordNode shortcuts."
+    },
+    {
+      "id": "US-018",
+      "title": "Waypoint playback",
+      "description": "As a bot, I need to follow a recorded waypoint path.",
+      "acceptanceCriteria": [
+        "Load waypoint path from file",
+        "Move to each waypoint in sequence using navigation",
+        "Loop to start or reverse at path end (configurable)",
+        "Find nearest waypoint when starting mid-path",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "WaypointPlayer class with PlayPath(name/file), Stop, Pause, Resume. Update() handles navigation and waypoint transitions. OverrideLoop, JumpToWaypoint, SkipToNext/Previous methods. Supports Loop and ReverseAtEnd path modes."
+    },
+    {
+      "id": "US-019",
+      "title": "Combat profile data model",
+      "description": "As a developer, I need a data structure for combat rotations.",
+      "acceptanceCriteria": [
+        "Define Ability type: name/ID, keybind, cooldown",
+        "Define Condition type: health/mana threshold, buff check, target health",
+        "Define RotationEntry type: ability, conditions, priority",
+        "Define CombatProfile type: name, class, rotation entries",
+        "JSON schema for profile files",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "Ability class with Id, Name, Keybind, Cooldown, ManaCost, Range. Condition class with Type enum (PlayerHealthPercent, TargetExists, BuffPresent, etc.). RotationEntry links AbilityId to Conditions with Priority. CombatProfile contains Abilities dict and Rotation list."
+    },
+    {
+      "id": "US-020",
+      "title": "Combat profile loader",
+      "description": "As a bot, I need to load combat profiles from files.",
+      "acceptanceCriteria": [
+        "Load profile from JSON file",
+        "Validate profile structure",
+        "Store loaded profile for combat system to use",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "CombatProfileFileManager.LoadProfile(name) loads from profiles/ directory. Validate() method checks structure. GetProfileFiles and LoadAllProfiles for bulk operations."
+    },
+    {
+      "id": "US-021",
+      "title": "Combat - target selection",
+      "description": "As a bot, I need to select appropriate targets.",
+      "acceptanceCriteria": [
+        "Find nearest hostile enemy within level range",
+        "Prioritize enemies currently attacking player",
+        "Skip blacklisted mob names/types",
+        "Skip enemies too far from waypoint path",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "TargetSelector class with FindBestTarget() for target selection. BlacklistName/BlacklistType for filtering. MaxLevelAbove/MaxLevelBelow for level range. PrioritizeAttackers for threat priority. MaxWaypointDistance for path adherence."
+    },
+    {
+      "id": "US-022",
+      "title": "Combat - rotation execution",
+      "description": "As a bot, I need to execute abilities based on the combat profile.",
+      "acceptanceCriteria": [
+        "Evaluate conditions for each rotation entry",
+        "Execute highest priority ability that passes conditions",
+        "Respect global cooldown between abilities",
+        "Track individual ability cooldowns",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "RotationExecutor class with LoadProfile(profile/name) and ExecuteNextAbility(). Tracks GCD and individual ability cooldowns. Evaluates rotation entry conditions before casting. ParseKeybind handles '1'-'9' and 'F1'-'F12' formats."
+    },
+    {
+      "id": "US-023",
+      "title": "Combat - engagement loop",
+      "description": "As a bot, I need a complete combat loop from pull to loot.",
+      "acceptanceCriteria": [
+        "Move into range of target",
+        "Face target",
+        "Execute rotation until target dead",
+        "Handle target flee (chase if configured)",
+        "Detect combat timeout (stuck fighting)",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "CombatController class with EngageTarget, FindAndEngage, Update. Pulling phase moves into range and faces target. InCombat executes rotation via RotationExecutor. CombatTimeout detects stuck fights. ChaseFleeingTargets and MaxChaseDistance control chasing behavior."
+    },
+    {
+      "id": "US-024",
+      "title": "Looting system",
+      "description": "As a bot, I need to loot corpses after combat.",
+      "acceptanceCriteria": [
+        "Detect lootable corpses in nearby entities",
+        "Move to corpse",
+        "Send interact/loot command",
+        "Wait for loot to complete",
+        "Skip if bags are full",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "LootController class with LootNearestCorpse, StartLooting, Update. FindNearestLootableCorpse scans nearby entities. Moves to corpse via Navigation. Interacts via InputController. MaxLootWaitSeconds timeout. SkipWhenFull and AreBagsFull checks."
+    },
+    {
+      "id": "US-025",
+      "title": "Rest and recovery",
+      "description": "As a bot, I need to recover health/mana between fights.",
+      "acceptanceCriteria": [
+        "Check health/mana after combat",
+        "If below threshold and out of combat, use food/drink",
+        "Wait for regen if no consumables",
+        "Resume activity when above threshold",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "RestController class with NeedsRest, StartResting, Update. MinHealthPercent/MinManaPercent thresholds. TargetHealthPercent/TargetManaPercent stop conditions. MaxRestDuration timeout. FoodItem/DrinkItem for consumables (placeholder)."
+    },
+    {
+      "id": "US-026",
+      "title": "Death detection and recovery",
+      "description": "As a bot, I need to handle death.",
+      "acceptanceCriteria": [
+        "Detect player death via combat state",
+        "Resurrect (method depends on Erenshor mechanics)",
+        "Rebuff after resurrection if applicable",
+        "Resume previous activity",
+        "Track death count for safety limits",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "DeathController class handles death detection via CombatState.IsAlive. Uses InputController.Interact() to release spirit and accept graveyard resurrection. NeedsRebuff flag indicates rebuff needed. Transitions to Resting state after resurrection for recovery."
+    },
+    {
+      "id": "US-027",
+      "title": "Grinding mode state machine",
+      "description": "As a bot, I need a grinding mode that coordinates all systems.",
+      "acceptanceCriteria": [
+        "State machine: idle -> pathing -> pulling -> combat -> looting -> resting -> repeat",
+        "Integrate waypoint following",
+        "Integrate target selection and combat",
+        "Integrate looting and rest",
+        "Handle death state transition",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "GrindingBot class coordinates WaypointPlayer, TargetSelector, CombatController, LootController, RestController. State machine: Idle, Pathing, SearchingForTarget, Pulling, InCombat, Looting, Resting, Dead. AutoLoot and AutoRest toggles. MaxDeathCount safety limit."
+    },
+    {
+      "id": "US-028",
+      "title": "Auto-mapping - node discovery",
+      "description": "As a user, I want the bot to record resource node locations.",
+      "acceptanceCriteria": [
+        "Detect resource nodes in nearby entities",
+        "Record node position, type, and timestamp",
+        "Store in local SQLite database",
+        "Avoid duplicate entries for same location (within radius)",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": "MapDataStore uses in-memory storage with JSON persistence (mapdata/ directory). ResourceNodeDiscovery struct tracks node data. MapDiscoveryController scans nearby entities. DeduplicationRadius (default 5 units) prevents duplicates."
+    },
+    {
+      "id": "US-029",
+      "title": "Auto-mapping - NPC and mob discovery",
+      "description": "As a user, I want the bot to record NPC and mob locations.",
+      "acceptanceCriteria": [
+        "Record NPC locations with name and type",
+        "Record mob spawn points with name, level, and type",
+        "Store in SQLite database",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "NpcDiscovery struct tracks NPC data with vendor/quest flags. MobSpawnPoint struct tracks mob spawn data with level and faction. Both stored in MapDataStore with JSON persistence."
+    },
+    {
+      "id": "US-030",
+      "title": "Configuration data model",
+      "description": "As a developer, I need a configuration system.",
+      "acceptanceCriteria": [
+        "Define Config type with all bot settings",
+        "Include thresholds, timing, hotkeys, file paths",
+        "Load config from JSON file",
+        "Merge with sensible defaults for missing values",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "BotConfig class with all settings organized by category (Combat, Target Selection, Rest, Looting, Navigation, Waypoints, Input, Death, Map Discovery, File Paths, Hotkeys, Session Limits). ConfigManager handles load/save with defaults merging."
+    },
+    {
+      "id": "US-031",
+      "title": "Statistics tracking",
+      "description": "As a user, I want session statistics tracked.",
+      "acceptanceCriteria": [
+        "Track session runtime",
+        "Track kills, deaths, XP gained",
+        "Track items looted and gold earned",
+        "Calculate per-hour rates",
+        "Expose stats via API for GUI",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": "SessionStatistics class tracks all metrics. StatisticsSummary readonly struct for snapshots. Per-hour rates calculated from runtime. Events for real-time updates."
+    },
+    {
+      "id": "US-032",
+      "title": "Action logging",
+      "description": "As a user, I want a log of bot actions.",
+      "acceptanceCriteria": [
+        "Log all significant actions with timestamps",
+        "Log state transitions, targets, abilities used",
+        "Store recent logs in memory for GUI display",
+        "Optionally persist to log file",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": true,
+      "notes": "ActionLog class with circular buffer storage (default 500 entries). LogEntry struct with Timestamp, Category, Message. LogCategory enum for filtering. StartFileLogging() for optional persistence. OnLogEntryAdded event for GUI updates."
+    },
+    {
+      "id": "US-033",
+      "title": "Safety - emergency stop",
+      "description": "As a user, I want an emergency stop hotkey.",
+      "acceptanceCriteria": [
+        "Register global hotkey that works even when game is focused",
+        "Immediately stop all bot activity when pressed",
+        "Log emergency stop event",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": true,
+      "notes": "SafetyController class with F12 default emergency stop hotkey. UpdateHotkeys(Func<KeyCode, bool>) for key polling. EmergencyStopTriggered flag and StopReason.EmergencyStop enum value added. Logs via ActionLog.Warning()."
+    },
+    {
+      "id": "US-034",
+      "title": "Safety - auto-stop conditions",
+      "description": "As a user, I want the bot to stop automatically under certain conditions.",
+      "acceptanceCriteria": [
+        "Stop after configurable max runtime",
+        "Stop after configurable death count",
+        "Stop if stuck for too long",
+        "Log reason for auto-stop",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": "AutoStopController class handles runtime limit (MaxSessionRuntimeMinutes) and stuck time limit (MaxStuckTimeSeconds). Death count limit already exists in GrindingBot. Stop reasons logged via ActionLog.Warning()."
+    },
+    {
+      "id": "US-035",
+      "title": "GUI - main window scaffold",
+      "description": "As a user, I want a desktop GUI application.",
+      "acceptanceCriteria": [
+        "Create desktop app window using chosen framework",
+        "Basic layout: header, main content area, status bar",
+        "System tray support with minimize option",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": "Created Windows Forms desktop application (ErenshorGlider.GUI). Features dark theme header panel, main content area, status bar with connection status, and system tray support with minimize-to-tray on close. Targeting .NET Framework 4.7.2."
+    },
+    {
+      "id": "US-036",
+      "title": "GUI - bot controls",
+      "description": "As a user, I want Start/Stop/Pause buttons.",
+      "acceptanceCriteria": [
+        "Start button begins bot operation",
+        "Stop button halts all activity",
+        "Pause button temporarily suspends (resume continues)",
+        "Buttons reflect current state (disabled when not applicable)",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": "Created BotControlPanel with Start (green), Stop (red), Pause/Resume (yellow/green) buttons. Buttons disable based on bot state. IBotController interface for abstraction, MockBotController for development. Events update UI state reactively."
+    },
+    {
+      "id": "US-037",
+      "title": "GUI - status display",
+      "description": "As a user, I want to see current bot status.",
+      "acceptanceCriteria": [
+        "Display current state (idle, grinding, combat, resting, etc.)",
+        "Display current target name if any",
+        "Display current location coordinates",
+        "Health and mana bars",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": "Created BotStatus struct with State, TargetName, Position, and Vitals. StatusDisplayPanel shows all info with 10Hz update timer. Health bar (red), mana bar (blue). MockBotController implements IBotStatusProvider with simulated activity."
+    },
+    {
+      "id": "US-038",
+      "title": "GUI - session statistics panel",
+      "description": "As a user, I want to see session stats.",
+      "acceptanceCriteria": [
+        "Display runtime, kills, deaths",
+        "Display XP gained and XP/hour",
+        "Display gold earned and items looted",
+        "Update in real-time",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": true,
+      "notes": "Created SessionStatistics struct with Runtime, Kills, Deaths, XP, Gold, Items. SessionStatisticsPanel displays all stats in 3-column layout. MockBotController implements ISessionStatisticsProvider with simulated stats (random gains). 1Hz update timer (1 second interval). Per-hour rates calculated from runtime."
+    },
+    {
+      "id": "US-039",
+      "title": "GUI - action log panel",
+      "description": "As a user, I want to see recent bot actions.",
+      "acceptanceCriteria": [
+        "Scrollable log showing recent actions",
+        "Timestamps on each entry",
+        "Color-coding by action type (combat, loot, state change)",
+        "Auto-scroll to newest entry",
+        "Typecheck passes"
+      ],
+      "priority": 39,
+      "passes": true,
+      "notes": "Created LogEntry struct with Timestamp, Category, Message. LogCategory enum: Info, State, Combat, Loot, Rest, Movement, Error, Warning. ActionLogPanel with RichTextBox, Clear button. MockActionLogProvider with circular buffer (500 max). Color-coded entries: Info(gray), State(blue), Combat(red), Loot(yellow), Rest(green), Movement(purple), Error(dark red), Warning(orange). Auto-scroll pausing on user scroll-up."
+    },
+    {
+      "id": "US-040",
+      "title": "GUI - 2D radar canvas",
+      "description": "As a user, I want a 2D radar showing nearby entities.",
+      "acceptanceCriteria": [
+        "Canvas/drawing area for radar",
+        "Player centered with facing direction indicator",
+        "Configurable radar range",
+        "Zoom in/out controls",
+        "Typecheck passes"
+      ],
+      "priority": 40,
+      "passes": true,
+      "notes": "Created RadarEntity struct with Type, RelativeX, RelativeZ, Name, Level. RadarEntityType enum: HostileMob, NeutralMob, FriendlyNpc, ResourceNode, Corpse, Player. RadarControl with PictureBox canvas, 200x200 pixels. Player centered with green circle and facing arrow. Range circles (25%, 50%, 75%, 100%). Zoom buttons (0.5x to 3.0x). Range slider (10-200 units). 10Hz update timer. MockRadarDataProvider simulates random entities."
+    },
+    {
+      "id": "US-041",
+      "title": "GUI - radar entity rendering",
+      "description": "As a user, I want to see entities on the radar.",
+      "acceptanceCriteria": [
+        "Render hostile mobs as red dots",
+        "Render neutral mobs as yellow dots",
+        "Render friendly NPCs as green dots",
+        "Render resource nodes with distinct icons",
+        "Render corpses as gray dots",
+        "Typecheck passes"
+      ],
+      "priority": 41,
+      "passes": true,
+      "notes": "Completed as part of US-040. Entity rendering implemented with color-coded dots: HostileMob=red, NeutralMob=yellow, FriendlyNpc=green, Corpse=gray. Resource nodes rendered as diamond shapes (distinct from circular dots). Player shown as purple circle."
+    },
+    {
+      "id": "US-042",
+      "title": "GUI - radar waypoint overlay",
+      "description": "As a user, I want to see my waypoint path on the radar.",
+      "acceptanceCriteria": [
+        "Draw waypoints as connected path",
+        "Highlight current target waypoint",
+        "Different colors/styles for waypoint types",
+        "Typecheck passes"
+      ],
+      "priority": 42,
+      "passes": true,
+      "notes": "Added RadarWaypoint struct with Type (8 types), RelativeX/Z, Name, IsTarget, Index. IRadarDataProvider extended with GetWaypoints() and GetWaypointConnections(). RadarControl draws dashed path lines, waypoints colored by type (Normal=dark gray, Vendor=green, Repair=orange, Node=light blue diamond, QuestGiver/TurnIn=yellow, RestArea=light blue, DangerZone=red, square for vendors). Target waypoint highlighted with white color, ring, and cross mark. MockRadarDataProvider includes SetupMockWaypointPath() for circular path with 8 waypoints of various types."
+    },
+    {
+      "id": "US-043",
+      "title": "GUI - profile selector",
+      "description": "As a user, I want to select a combat profile from the GUI.",
+      "acceptanceCriteria": [
+        "Dropdown listing available profile files",
+        "Load selected profile",
+        "Display currently loaded profile name",
+        "Typecheck passes"
+      ],
+      "priority": 43,
+      "passes": true,
+      "notes": "Created ProfileSelectorPanel with ComboBox dropdown. Mock profiles: Warrior, Mage, Rogue, Cleric, Ranger, Necromancer. ProfileSelected event raises on selection. Current: label shows selected profile. SetProfile() method for programmatic selection."
+    },
+    {
+      "id": "US-044",
+      "title": "GUI - waypoint path selector",
+      "description": "As a user, I want to select a waypoint path from the GUI.",
+      "acceptanceCriteria": [
+        "Dropdown listing available waypoint files",
+        "Load selected path",
+        "Display currently loaded path name",
+        "Typecheck passes"
+      ],
+      "priority": 44,
+      "passes": true,
+      "notes": "Created WaypointSelectorPanel with ComboBox dropdown. Mock paths: StarterZone_Patrol, StarterZone_Loop, Forest_Circuit, Cave_Farming, Dungeon_Grind. WaypointSelected event raises on selection. Current: label shows selected path. SetPath() method for programmatic selection."
+    },
+    {
+      "id": "US-045",
+      "title": "GUI - settings panel",
+      "description": "As a user, I want to edit common settings in the GUI.",
+      "acceptanceCriteria": [
+        "Form for key settings (thresholds, timings, hotkeys)",
+        "Save button writes to config file",
+        "Load current values from config",
+        "Typecheck passes"
+      ],
+      "priority": 45,
+      "passes": true,
+      "notes": "Created SettingsPanel with 11 tabbed categories (Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits). Settings dialog accessed via gear icon button in header. Save writes to config.json via ConfigManager. Reset button reverts to current values. IBotController extended with CurrentConfig property and ConfigUpdated event."
+    },
+    {
+      "id": "US-046",
+      "title": "Gathering mode state machine",
+      "description": "As a user, I want a gathering-focused mode.",
+      "acceptanceCriteria": [
+        "Prioritize moving to resource nodes over combat",
+        "Only engage combat if attacked",
+        "Gather node when reached",
+        "Continue to next node on path",
+        "Typecheck passes"
+      ],
+      "priority": 46,
+      "passes": true,
+      "notes": "Created GatheringBot class with state machine: Idle -> Pathing -> SearchingForNode -> MovingToNode -> Gathering -> (DefensiveCombat only if attacked) -> Resting -> repeat. Prioritizes resource nodes over combat. DefendAgainstAttackers flag controls defensive combat. MaxNodeDetourDistance controls how far to detour for nodes. GatherWaitSeconds controls gather duration. CheckForAttackers() monitors combat state to trigger defensive mode."
+    },
+    {
+      "id": "US-047",
+      "title": "Inventory management - bag space check",
+      "description": "As a bot, I need to check bag space and trigger vendor runs.",
+      "acceptanceCriteria": [
+        "Check free bag slots after looting",
+        "If bags full and vendor waypoint exists, path to vendor",
+        "Sell junk items at vendor",
+        "Return to grinding path after vendor",
+        "Typecheck passes"
+      ],
+      "priority": 47,
+      "passes": true,
+      "notes": "Created InventoryManager class with CheckBagSpace(), StartVendorRun(), UpdateVendorRun(). VendorRunResult enum tracks outcomes. FindNearestVendorWaypoint() locates vendors in path. SellGreyItems/SellWhiteItems flags control what to sell. GrindingBot extended with VendorRun state. Bot checks bag space after looting and paths to vendor if full. OnVendorRunCompleted event handles return to pathing or stop if bags full and no vendor."
+    },
+    {
+      "id": "US-048",
+      "title": "Export/Import - waypoints and profiles",
+      "description": "As a user, I want to export and import waypoints and profiles.",
+      "acceptanceCriteria": [
+        "Export waypoint path to standalone JSON file",
+        "Export combat profile to standalone JSON file",
+        "Import waypoint/profile files from disk",
+        "Validate imported files",
+        "Typecheck passes"
+      ],
+      "priority": 48,
+      "passes": true,
+      "notes": "Created ExportImportManager static class with ExportWaypointPath(), ExportCombatProfile(), ImportWaypointPath(), ImportCombatProfile(), ImportAndSaveWaypointPath(), ImportAndSaveCombatProfile(). ExportResult and ImportResult enums track outcomes. Export includes metadata (Version, ExportedAt, ExportedBy). Bulk export: ExportAllWaypointPaths(), ExportAllCombatProfiles(). Bulk import: ImportWaypointPathsFromDirectory(), ImportCombatProfilesFromDirectory(). Validation uses existing Validate() methods on WaypointPath and CombatProfile."
+    },
+    {
+      "id": "US-049",
+      "title": "Export map data",
+      "description": "As a user, I want to export discovered map data.",
+      "acceptanceCriteria": [
+        "Export node/NPC/mob discoveries from SQLite to JSON",
+        "Include timestamps and metadata",
+        "Typecheck passes"
+      ],
+      "priority": 49,
+      "passes": true,
+      "notes": "Added ExportToJSON() method to MapDataStore. Creates MapDataExport wrapper with Version, ExportedAt, ExportedBy, Zone metadata. Includes ResourceNodes, Npcs, MobSpawns lists with all timestamps (DiscoveredAt, LastSeenAt). ToJson() returns JSON string for API access. Default export to exports/mapdata_TIMESTAMP.json. overwrite flag controls file replacement. Uses System.Text.Json with camelCase naming."
+    },
+    {
+      "id": "US-050",
+      "title": "Create baseline class profiles",
+      "description": "As a user, I want pre-built profiles for Erenshor classes.",
+      "acceptanceCriteria": [
+        "Create one JSON profile per Erenshor class",
+        "Profiles include basic combat rotation",
+        "Profiles include self-healing if class has it",
+        "Profiles include buff maintenance",
+        "Store in profiles/ directory",
+        "Typecheck passes"
+      ],
+      "priority": 50,
+      "passes": true,
+      "notes": "Created 6 baseline combat profiles: Warrior (melee with heroic strike, charge, bloodthirst, shield block, battle shout), Mage (frost bolt rotation with frost armor, arcane intellect, evocation), Rogue (stealth opener with backstab, sinister strike, eviscerate, slice and dice), Cleric (smite and heals with power word shield, renew, inner fire), Ranger (aimed shot, arcane shot, serpent sting, aspect of the hawk), Necromancer (shadow bolt with corruption, curse of agony, drain life, fear). All include buff maintenance and defensive abilities."
+    }
+  ]
+}

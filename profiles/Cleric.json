@@ -1,0 +1,147 @@
+{
+  "name": "Cleric",
+  "characterClass": "Cleric",
+  "description": "Basic cleric combat profile with healing smite and self-heals.",
+  "globalCooldown": 1.5,
+  "useAutoAttack": false,
+  "minHealthPercent": 40,
+  "minManaPercent": 20,
+  "abilities": {
+    "smite": {
+      "id": "smite",
+      "name": "Smite",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 20,
+      "requiresTarget": true
+    },
+    "heal": {
+      "id": "heal",
+      "name": "Heal",
+      "keybind": "2",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 50,
+      "range": 20,
+      "requiresTarget": true,
+      "castTime": 2.5
+    },
+    "greaterHeal": {
+      "id": "greaterHeal",
+      "name": "Greater Heal",
+      "keybind": "3",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 100,
+      "range": 20,
+      "requiresTarget": true,
+      "castTime": 3
+    },
+    "flashHeal": {
+      "id": "flashHeal",
+      "name": "Flash Heal",
+      "keybind": "4",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 35,
+      "range": 20,
+      "requiresTarget": true,
+      "castTime": 1.5
+    },
+    "powerWordShield": {
+      "id": "powerWordShield",
+      "name": "Power Word: Shield",
+      "keybind": "5",
+      "cooldown": 15,
+      "triggersGcd": false,
+      "manaCost": 25,
+      "range": 20,
+      "requiresTarget": false
+    },
+    "renew": {
+      "id": "renew",
+      "name": "Renew",
+      "keybind": "6",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 20,
+      "requiresTarget": true
+    },
+    "innerFire": {
+      "id": "innerFire",
+      "name": "Inner Fire",
+      "keybind": "7",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 40,
+      "range": 0,
+      "requiresTarget": false
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "innerFire",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Inner Fire"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Keep Inner Fire buff active"
+    },
+    {
+      "abilityId": "powerWordShield",
+      "conditions": [
+        {
+          "type": "BuffAbsent",
+          "buffName": "Power Word: Shield"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Keep Power Word: Shield on self"
+    },
+    {
+      "abilityId": "renew",
+      "conditions": [
+        {
+          "type": "PlayerHealthPercent",
+          "value": 80,
+          "operator": "LessThan"
+        },
+        {
+          "type": "BuffAbsent",
+          "buffName": "Renew"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Apply Renew when health is dropping"
+    },
+    {
+      "abilityId": "flashHeal",
+      "conditions": [
+        {
+          "type": "PlayerHealthPercent",
+          "value": 40,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 4,
+      "enabled": true,
+      "description": "Flash Heal when health is critically low"
+    },
+    {
+      "abilityId": "smite",
+      "conditions": [],
+      "priority": 5,
+      "enabled": true,
+      "description": "Main damage spell - Smite"
+    }
+  ]
+}

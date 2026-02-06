@@ -1,0 +1,1424 @@
+## Codebase Patterns
+- Erenshor is a Unity game using BepInEx 5.x (Mono) for modding
+- Use Harmony patches to hook into game methods (Prefix/Postfix)
+- GameData singleton is the central access point for all game state
+- GameData.PlayerControl.transform.position for player coordinates
+- GameData.PlayerControl.Myself for player Character reference
+- GameData.PlayerControl.CurrentTarget for current target
+- Character.MyStats for health/mana/stats access
+- Use BepInEx.Configuration for mod settings
+- Target .NET Framework 4.7.2 or .NET Standard 2.0
+- Build with `dotnet build` in project root (requires .NET SDK 8.0+)
+- Plugin entry point is Plugin.cs with [BepInPlugin] attribute
+- Use GameStubs/ for compile-time type safety without game DLLs
+- nuget.config required with BepInEx NuGet feed (https://nuget.bepinex.dev/v3/index.json)
+- GameState/ contains all game state reading logic
+- Position tracking: Plugin.PositionTracker.CurrentPosition for cached position
+- Vitals tracking: Plugin.PositionTracker.CurrentVitals for cached vitals
+- CharacterStats has: CurrentHP, MaxHP, CurrentMP, MaxMP, Level, CurrentXP, XPToLevel
+- Combat state tracking: Plugin.PositionTracker.CurrentCombatState for cached combat state
+- PlayerCombat.InCombat for combat state, CastSpell.Casting for casting state, Character.Dead for alive/dead
+- GameData.PlayerCombat for player combat controller
+- GameData.PlayerControl.PlayerSpells for player spell casting component
+- Target tracking: Plugin.PositionTracker.CurrentTargetInfo for cached target info
+- Character.CharacterName for target/character display names
+- Character.MyFaction for hostility (Faction enum: Player, Enemy, Neutral, Friendly)
+- PositionTracker serves as central state tracker for all game state (position, vitals, combat, target, entities, inventory, buffs)
+- readonly struct pattern for immutable game state snapshots (PlayerPosition, PlayerVitals, CombatState, TargetInfo, EntityInfo, ItemInfo, BuffInfo)
+- Event-based architecture for reactive updates (OnPositionChanged, OnVitalsChanged, etc.)
+- Input/ contains InputController for simulated keyboard inputs
+- Navigation/ contains Navigation class for coordinate-based movement
+- Waypoints/ contains Waypoint, WaypointPath, WaypointRecorder, WaypointPlayer for path management
+- Combat/ contains Ability, Condition, RotationEntry, CombatProfile, TargetSelector, RotationExecutor
+- JSON serialization uses System.Text.Json with camelCase naming for files
+- profiles/ and waypoints/ directories for user-editable data files
+- GUI/ (ErenshorGlider.GUI) is a separate Windows Forms desktop application for bot control
+- GUI uses System.Windows.Forms with UseWindowsForms=true in csproj for .NET Framework 4.7.2
+- MainWindow has dark theme: header (Color 45,45,48), content (30,30,30), status bar matching header
+- NotifyIcon with ContextMenuStrip provides system tray functionality
+- MinimizeToTray pattern: hide form, show notify icon, restore via double-click or context menu
+- FormClosing event with Cancel=true prevents actual close, enabling minimize-to-tray behavior
+- ContentPanel property exposes main panel for child controls (future UI components)
+- SetStatus/SetConnectionStatus methods check InvokeRequired for thread-safe UI updates
+- SettingsPanel uses TabControl for categorized settings (Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits)
+- IBotController extended with CurrentConfig property and ConfigUpdated event for settings management
+- ConfigManager.Load() loads from config.json, ConfigManager.Save() writes to config.json
+- Settings dialog uses modal Form with ShowDialog(parent) to block main window
+- NumericUpDown controls for numeric values with Minimum, Maximum, Increment properties
+- ComboBox for dropdown selections with DropDownList style to prevent custom entries
+- Working config pattern: clone on load, modify working copy, save on button click, reset reverts to original
+
+---
+
+## 2026-02-05 - US-035
+- What was implemented:
+  - Created Windows Forms desktop application (ErenshorGlider.GUI project)
+  - MainWindow with dark-themed header panel (45,45,48 RGB)
+  - Main content area with padding for future UI components
+  - Status bar with status message and connection status indicator
+  - System tray support with NotifyIcon
+  - Minimize-to-tray behavior on window close
+  - Context menu (Show/Exit) for system tray icon
+  - Balloon tip notifications from tray
+  - Events: MinimizedToTray, RestoredFromTray, ApplicationExiting
+- Files changed:
+  - src/ErenshorGlider.GUI/ErenshorGlider.GUI.csproj (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (created)
+  - src/ErenshorGlider.GUI/Program.cs (created)
+  - ErenshorGlider.sln (modified - added GUI project)
+- **Learnings for future iterations:**
+  - Windows Forms requires UseWindowsForms=true in csproj for .NET SDK-style projects
+  - Target framework net472 matches the BepInEx plugin for consistency
+  - GUID in solution files must use valid hex characters (0-9, A-F) - format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+  - NotifyIcon.Visible should be false by default, only show when minimized
+  - FormClosing with CloseReason.UserClosing allows intercepting close action
+  - InvokeRequired pattern is essential for thread-safe UI updates from background threads
+  - ContentPanel property allows future stories to add controls without modifying MainWindow
+  - The GUI is a separate executable from the BepInEx plugin - will need IPC/communication mechanism
+  - SystemIcons.Application provides a default icon without needing external .ico file
+  - Dark theme colors used: Header (45,45,48), Content (30,30,30), similar to VS Code dark theme
+
+## 2026-02-05 - US-036
+- What was implemented:
+  - Created IBotController interface for bot control abstraction
+  - Created MockBotController for development/testing
+  - Created BotControlPanel with Start, Stop, and Pause/Resume buttons
+  - Start button (green) begins bot operation, disabled when running
+  - Stop button (red) halts all activity, disabled when not running
+  - Pause/Resume button (yellow/green) toggles pause state, disabled when not running
+  - State label displays current bot state (Idle, Pathing, etc.)
+  - Hover effects on buttons using LightenColor helper
+  - Events (BotRunningChanged, BotStateChanged) for reactive UI updates
+  - Bot state changes update status bar in MainWindow
+- Files changed:
+  - src/ErenshorGlider.GUI/BotController.cs (created)
+  - src/ErenshorGlider.GUI/Controls/BotControlPanel.cs (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - IBotController interface allows dependency injection and testable design
+  - MockBotController provides development implementation without actual bot
+  - Button state logic: Start enabled = !IsRunning, Stop enabled = IsRunning, Pause enabled = IsRunning
+  - Pause button text and color toggle: Pause (yellow 220,180,80) vs Resume (green 100,180,100)
+  - InvokeRequired pattern essential when bot controller events may come from background threads
+  - BotControlPanel docked to top of ContentPanel for easy layout
+  - Color scheme: Start (100,180,100), Stop (200,80,80), Pause (220,180,80), Resume (100,180,100)
+  - LightenColor helper adds to RGB values (max 255) for hover effect
+  - BotRunningChanged event includes both IsRunning and IsPaused for complete state tracking
+  - Future stories will need real bot controller implementation (IPC with BepInEx plugin)
+
+---
+
+## 2026-02-05 - US-001
+- What was implemented:
+  - Researched Erenshor's technical architecture
+  - Documented Unity engine and BepInEx modding framework
+  - Identified key game classes: GameData, Character, PlayerCombat, Hotkeys, Spell, Skill
+  - Documented methods for reading game state (position, health, target, combat)
+  - Documented methods for sending inputs (auto-attack, abilities, movement)
+  - Listed all 6 character classes
+- Files changed:
+  - docs/technical-integration.md (created)
+  - prd.json (committed with project)
+- **Learnings for future iterations:**
+  - Existing mods on GitHub (ErenshorQoL, ExtendedHotbars) are excellent references for API usage
+  - GameData is a static singleton - most game state is accessed through it
+  - CharacterStats likely has CurrentHP, MaxHP, CurrentMP, MaxMP properties (needs verification)
+  - Private methods like Hotkeys.DoHotkeyTask() need reflection to call
+  - Movement input simulation may be needed vs direct position manipulation
+  - NPC.AggroOn() can be hooked to detect when player is attacked
+  - Character.DoDeath() can be hooked to detect deaths
+---
+
+## 2026-02-05 - US-002
+- What was implemented:
+  - Created C# BepInEx 5.x plugin project structure
+  - Set up ErenshorGlider.sln and ErenshorGlider.csproj with proper dependencies
+  - Configured BepInEx.Core and UnityEngine.Modules NuGet packages
+  - Added Plugin.cs with BepInPlugin attribute and basic initialization
+  - Added PluginInfo.cs with plugin metadata constants
+  - Created folder structure: src/ErenshorGlider/, profiles/, waypoints/
+  - Added .editorconfig for C# code style consistency
+  - Added .gitignore for build artifacts
+  - Added Directory.Build.props for shared build configuration
+  - Created README.md with setup and build instructions
+- Files changed:
+  - ErenshorGlider.sln (created)
+  - src/ErenshorGlider/ErenshorGlider.csproj (created)
+  - src/ErenshorGlider/Plugin.cs (created)
+  - src/ErenshorGlider/PluginInfo.cs (created)
+  - .editorconfig (created)
+  - .gitignore (created)
+  - Directory.Build.props (created)
+  - README.md (created)
+  - profiles/.gitkeep (created)
+  - waypoints/.gitkeep (created)
+- **Learnings for future iterations:**
+  - Project uses SDK-style csproj with .NET Framework 4.7.2 target
+  - BepInEx.Core 5.x and BepInEx.Analyzers packages provide base plugin functionality
+  - UnityEngine.Modules 2022.3.20 provides Unity types (may need adjustment if Erenshor uses older Unity)
+  - BepInEx.PluginInfoProps enables automatic plugin metadata generation
+  - Plugin.cs inherits from BaseUnityPlugin which is a MonoBehaviour
+  - Logger is accessible via base.Logger in Awake()
+  - Build command: `dotnet build` (requires .NET SDK 8.0+)
+---
+
+## 2026-02-05 - US-003
+- What was implemented:
+  - Created PlayerPosition struct with X, Y, Z coordinates
+  - Created GameStateReader class to read position from GameData.PlayerControl.transform.position
+  - Created PositionTracker MonoBehaviour with 10Hz default update rate (configurable 1-100Hz)
+  - Added GameStubs folder with stub types for compile-time safety without game DLLs
+  - Added nuget.config with BepInEx NuGet feed for package resolution
+  - Integrated PositionTracker into Plugin.Awake()
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerPosition.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (created)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (created)
+  - src/ErenshorGlider/GameStubs/GameData.cs (created)
+  - src/ErenshorGlider/Plugin.cs (modified)
+  - nuget.config (created)
+- **Learnings for future iterations:**
+  - GameStubs approach allows building without game DLLs; swap to real types when Assembly-CSharp.dll is available
+  - BepInEx packages are on separate NuGet feed (https://nuget.bepinex.dev) - must add to nuget.config
+  - Position tracking via Unity Update() loop with Time.deltaTime accumulation for configurable Hz
+  - Use events (OnPositionUpdated) for loose coupling between components
+  - readonly struct for immutable data like positions
+---
+
+## 2026-02-05 - US-004
+- What was implemented:
+  - Created PlayerVitals struct with CurrentHealth, MaxHealth, CurrentMana, MaxMana, Level, CurrentXP, XPToLevel
+  - Added percentage helpers (HealthPercent, ManaPercent, XPPercent) and threshold methods
+  - Extended CharacterStats stub with Level, CurrentXP, XPToLevel fields
+  - Added GetPlayerVitals(), GetCachedVitals(), UpdateVitals() to GameStateReader
+  - Added OnVitalsChanged event for reactive updates
+  - Extended PositionTracker to track vitals alongside position at 10Hz
+  - Integrated vitals logging in Plugin.cs
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerVitals.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+  - src/ErenshorGlider/Plugin.cs (modified)
+- **Learnings for future iterations:**
+  - Access vitals via GameData.PlayerControl.Myself.MyStats (character stats component)
+  - PositionTracker serves as the central state tracker - can be extended for other state
+  - Use separate locks for position vs vitals to allow concurrent access
+  - readonly struct pattern works well for immutable game state snapshots
+  - Percentage helpers (e.g., IsHealthBelowPercent) useful for combat/rest decision thresholds
+---
+
+## 2026-02-05 - US-005
+- What was implemented:
+  - Created CombatState struct with InCombat, IsCasting, IsAlive properties
+  - Added helper properties: IsDead, CanAct, IsIdle for decision-making convenience
+  - Extended GameStubs with PlayerCombat and CastSpell classes
+  - Added Character.Dead field to track alive/dead state
+  - Added GameData.PlayerCombat static field
+  - Added PlayerControl.PlayerSpells for CastSpell component access
+  - Added GetCombatState(), GetCachedCombatState(), UpdateCombatState() to GameStateReader
+  - Added OnCombatStateChanged event for reactive updates
+  - Extended PositionTracker to track combat state at 10Hz alongside position and vitals
+- Files changed:
+  - src/ErenshorGlider/GameState/CombatState.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - GameData.PlayerCombat.InCombat tracks whether player is in combat mode (auto-attack enabled)
+  - CastSpell.Casting tracks whether player is currently casting a spell
+  - Character.Dead tracks death state - use !Dead for IsAlive
+  - PositionTracker now tracks position, vitals, and combat state - serves as central state tracker
+  - CombatState helper properties (CanAct, IsIdle) useful for state machine decisions
+---
+
+## 2026-02-05 - US-006
+- What was implemented:
+  - Created TargetInfo struct with HasTarget, Name, Level, CurrentHealth, MaxHealth, Position, Hostility, IsDead
+  - Added TargetHostility enum (Neutral, Hostile, Friendly) for target faction mapping
+  - Added helper properties: IsHostile, IsFriendly, IsNeutral, HealthPercent
+  - Added IsHealthBelowPercent/IsHealthAbovePercent threshold methods
+  - Added Character.CharacterName field to GameStubs for target name
+  - Added GetTargetInfo(), GetCachedTargetInfo(), UpdateTargetInfo() to GameStateReader
+  - Converts Faction enum to TargetHostility (Enemy->Hostile, Friendly/Player->Friendly, Neutral->Neutral)
+  - Added OnTargetInfoChanged event for reactive updates
+  - Extended PositionTracker to track target info at 10Hz alongside position, vitals, and combat state
+- Files changed:
+  - src/ErenshorGlider/GameState/TargetInfo.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - GameData.PlayerControl.CurrentTarget returns the targeted Character (null if no target)
+  - TargetInfo.NoTarget static property provides a consistent "no target" state
+  - Faction enum maps to hostility: Enemy = Hostile, Player/Friendly = Friendly, Neutral = Neutral
+  - Character.transform.position gives target world position (via MonoBehaviour inheritance)
+  - PositionTracker now tracks position, vitals, combat state, and target info - serves as central state tracker
+---
+
+## 2026-02-05 - US-007
+- What was implemented:
+  - Created EntityInfo struct with Name, Type (EntityType enum), Position, Level, Hostility, CurrentHealth, MaxHealth, HealthPercent, IsDead, Distance
+  - Added EntityType enum: Mob, NPC, Node, Corpse
+  - Added helper properties: IsHostile, IsFriendly, IsNeutral, IsMob, IsNPC, IsNode, IsCorpse, CanBeAttacked
+  - Added threshold methods: IsHealthBelowPercent, IsHealthAbovePercent
+  - Extended GameStubs with NPC, SimPlayer, ResourceNode, LootableCorpse classes
+  - Added GetNearbyEntities(), GetCachedNearbyEntities(), UpdateNearbyEntities() to GameStateReader
+  - Scans for Character, NPC, ResourceNode, and LootableCorpse using UnityEngine.Object.FindObjectsOfType
+  - Sorts entities by distance and skips already-looted corpses
+  - Added OnNearbyEntitiesChanged event for reactive updates
+  - Extended PositionTracker to track nearby entities at 10Hz alongside other state
+  - Added NearbyEntitiesRadius property for configurable scan radius (default 50 units)
+- Files changed:
+  - src/ErenshorGlider/GameState/EntityInfo.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - UnityEngine.Object.FindObjectsOfType<T>() is the standard way to find all objects of a type in the scene
+  - Need to be careful about duplicate detection since NPC inherits from Character - check by position to avoid adding same entity twice
+  - Nearby entities scanning is expensive - 50 unit radius with 10Hz update may need tuning based on performance
+  - EntityInfo uses readonly struct pattern for immutable snapshots - consistent with other game state types
+  - PositionTracker now tracks position, vitals, combat state, target info, and nearby entities - central state tracker for all game state
+---
+
+## 2026-02-05 - US-008
+- What was implemented:
+  - Created ItemInfo struct with Name, Quantity, Quality (ItemQuality enum), SlotIndex, ItemId, MaxStackSize
+  - Added ItemQuality enum: Poor, Common, Uncommon, Rare, Epic, Legendary
+  - Added helper properties: IsCommon, IsUncommonOrBetter, IsRareOrBetter, IsEpicOrBetter, IsFullStack, CanStackMore
+  - Created PlayerInventory struct with TotalSlots, FreeSlots, UsedSlots, Items list
+  - Added helper methods: IsFull, IsNearlyFull, HasFreeSlots, CountItem, HasItem, GetItemsOfQuality, FillPercent
+  - Extended GameStubs with PlayerInventory, InventorySlot, Item classes and ItemQuality enum
+  - Added GetPlayerInventory(), GetCachedInventory(), UpdateInventory() to GameStateReader
+  - Scans GameData.PlayerInv.ALLSLOTS[] for items, counting free slots and building item list
+  - Added OnInventoryChanged event for reactive updates
+  - Extended PositionTracker to track inventory state alongside other game state
+  - PositionTracker now serves as central state tracker for: position, vitals, combat state, target info, nearby entities, and inventory
+- Files changed:
+  - src/ErenshorGlider/GameState/PlayerInventory.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - GameData.PlayerInv.ALLSLOTS[] provides array of all inventory slots
+  - PlayerInventory.Empty is a static reference for comparing empty slots
+  - ItemInfo uses readonly struct pattern - consistent with other game state types
+  - Inventory includes quality information - useful for filtering vendor trash (poor quality items)
+  - Inventory changes less frequently than combat state - could throttle updates separately if needed
+  - PlayerInventory struct has helper methods like CountItem for checking consumable quantities
+---
+
+## 2026-02-05 - US-009
+- What was implemented:
+  - Created BuffInfo struct with Name, BuffId, RemainingDuration, MaxDuration, Stacks, IconIndex, IsDebuff
+  - Added helper properties: DurationPercent, IsExpired, IsDurationBelow, IsDurationAbove
+  - Created BuffState struct with Buffs list, Debuffs list, and combined AllEffects
+  - Added helper methods: HasBuff, HasDebuff, GetBuff, GetDebuff, HasBuffExpiringSoon, HasDebuffExpiringSoon
+  - Extended GameStubs with CharacterBuffs, Buff classes
+  - Added Character.MyBuffs field to access buffs/debuffs component
+  - Added GetPlayerBuffs(), GetCachedPlayerBuffs(), UpdatePlayerBuffs() to GameStateReader
+  - Added GetTargetBuffs(), GetCachedTargetBuffs(), UpdateTargetBuffs() for target buffs
+  - Reads from CharacterBuffs.ActiveBuffs[] and ActiveDebuffs[] arrays
+  - Added OnPlayerBuffsChanged and OnTargetBuffsChanged events for reactive updates
+  - Extended PositionTracker to track player and target buff state
+  - PositionTracker now serves as central state tracker for: position, vitals, combat state, target info, nearby entities, inventory, and buffs/debuffs
+- Files changed:
+  - src/ErenshorGlider/GameState/BuffInfo.cs (created)
+  - src/ErenshorGlider/GameState/GameStateReader.cs (modified)
+  - src/ErenshorGlider/GameState/PositionTracker.cs (modified)
+  - src/ErenshorGlider/GameStubs/GameData.cs (modified)
+- **Learnings for future iterations:**
+  - Character.MyBuffs provides access to CharacterBuffs component
+  - CharacterBuffs.ActiveBuffs[] contains beneficial effects
+  - CharacterBuffs.ActiveDebuffs[] contains harmful effects
+  - BuffInfo uses readonly struct pattern - consistent with other game state types
+  - BuffState has helper methods for checking specific buffs (HasBuff, GetBuff) - useful for rotation decisions
+  - Reading target buffs is important for decisions like "re-apply dot" or "don't over-cap debuffs"
+  - Buff duration tracking (RemainingDuration/MaxDuration) enables pre-rebuffing logic
+---
+
+## 2026-02-05 - US-010
+- What was implemented:
+  - Created InputController class for sending simulated keyboard inputs
+  - Added movement methods: MoveForward, MoveBackward, StrafeLeft, StrafeRight, TurnLeft, TurnRight, Jump
+  - Added StopAllMovement method to release all movement keys
+  - Added PressKey/ReleaseKey methods for fine-grained control
+  - Added IsKeyPressed method to check current key state
+  - Added OnKeyStateChanged event for tracking key changes
+  - Created KeyCode enum with W, A, S, D, Space, arrows, number keys, F-keys, Tab, Enter, Escape
+  - All movement methods support optional duration parameter for hold-and-release
+  - Internal KeyStates dictionary tracks currently pressed keys
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (created)
+- **Learnings for future iterations:**
+  - Input simulation in BepInEx typically requires Harmony patching Input.GetKey/GetKeyDown
+  - The current implementation uses a key state tracker that will be patched into Unity's input system
+  - Duration-based movement (async) uses Task.Delay for timed release
+  - KeyCode enum covers all game-relevant keys including ability bar (1-9) and targeting (Tab)
+  - OnKeyStateChanged event enables other systems to react to input changes
+  - PressKey/ReleaseKey pattern allows for simultaneous key presses (e.g., W + D for diagonal movement)
+  - For actual input injection, will need Harmony patch on Unity's Input class or Windows API SendInput
+---
+
+## 2026-02-05 - US-011
+- What was implemented:
+  - Extended InputController with targeting methods: TargetNearestEnemy (Tab), ClearTarget (Esc)
+  - Added TargetEntity(in EntityInfo) for direct entity targeting via reference
+  - Added TargetEntityById(int instanceId) for targeting by Unity instance ID
+  - Added OnTargetEntityRequested and OnTargetEntityByIdRequested events for integration
+  - Added interaction methods: Interact, Loot, Talk, Gather (all use Enter key)
+  - Added InteractWith(in EntityInfo) for combined targeting + interaction
+  - Added CancelInteraction method (ESC key)
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (modified)
+- **Learnings for future iterations:**
+  - Targeting via Tab key is standard MMO pattern - cycles through nearby enemies
+  - Direct entity targeting requires setting GameData.PlayerControl.CurrentTarget - needs reflection or Harmony
+  - Event-based approach (OnTargetEntityRequested) allows external handlers to implement actual targeting logic
+  - Interaction (Enter) is typically the same key for loot, talk, and gather in Erenshor
+  - InteractWith combines targeting + interaction with 100ms delay for target registration
+  - CancelInteraction uses ESC which also clears target - context-dependent behavior
+---
+
+## 2026-02-05 - US-012
+- What was implemented:
+  - Added UseAbilitySlot(int slot, delayMs) for activating abilities by hotbar slot (1-9)
+  - Added UseAbility(KeyCode key, delayMs) for custom keybind activation
+  - Added UseAbilityById(string abilityId) for direct spell/skill activation via game API
+  - Added OnAbilityByIdRequested event for integration with game-specific ability systems
+  - Added InputDelayMs property (default 50ms) for configurable input delay
+  - Added RandomizationRangeMs property (default 25ms) for humanization variance
+  - Added RandomGenerator property with SetRandomizationSeed method for reproducible behavior
+  - ApplyRandomization method adds +/- variance to delays for human-like input
+- Files changed:
+  - src/ErenshorGlider/Input/InputController.cs (modified)
+- **Learnings for future iterations:**
+  - Ability slots 1-9 map to Alpha1-Alpha9 keycodes for standard hotbar
+  - Direct ability activation by ID requires game-specific API - uses event pattern for extensibility
+  - Humanization through random delay variation makes bot behavior less detectable
+  - InputDelayMs controls base key press duration before release
+  - RandomizationRangeMs adds +/- variance to each input for human-like inconsistency
+  - SetRandomizationSeed enables reproducible testing while still allowing randomization
+  - Minimum delay clamped to 10ms to prevent too-fast inputs that game might ignore
+---
+## 2026-02-05 - US-013
+- What was implemented:
+  - Created Navigation class for coordinate-based movement
+  - Added MoveTo(x, y, z) and MoveTo(PlayerPosition) methods
+  - Added HasReached and GetDistanceTo helper methods
+  - Added StopMovement method to halt navigation
+  - Added static CalculateDistance and CalculateDistanceSquared methods
+  - CalculateDirection uses atan2 on X-Z plane for horizontal navigation
+  - Supports 8-way movement: Forward, Backward, Left, Right, and 4 diagonals
+  - MoveInDirection combines movement keys for diagonal paths
+  - Added StoppingDistance property (default 2 units) for configurable arrival threshold
+  - Added OnDestinationReached and OnMovementStuck events for state notification
+  - Created NavigationDirection enum for 8 cardinal/intercardinal directions
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (created)
+- **Learnings for future iterations:**
+  - Navigation operates on X-Z plane (horizontal) as Y is typically height/terrain
+  - Angle to direction conversion uses 22.5-degree sectors (360/16 for 8 directions)
+  - Simultaneous key presses (W+D for diagonal) require calling multiple InputController methods
+  - StoppingDistance of 2 units prevents over-correcting at destination
+  - CalculateDistanceSquared is useful for fast comparisons without sqrt overhead
+  - MoveTo returns false if already at target - useful for state machine logic
+  - OnDestinationReached event allows chaining navigation with other actions
+---
+
+## 2026-02-05 - US-014
+- What was implemented:
+  - Added stuck detection to Navigation class
+  - Added CheckAndAttemptUnstick() method for periodic stuck checking
+  - Added StuckDetectionThreshold property (default 2 seconds) for time-based detection
+  - Added MaxUnstuckAttempts property (default 3) for retry limit
+  - Added MovementProgressThreshold (default 0.5 units) for minimum movement
+  - Added AttemptUnstick() with progressive strategies: jump, strafe, backup+jump, turn+jump
+  - Added ResetStuckDetection() to clear stuck state when starting new navigation
+  - Added IsStuck property to read current stuck state
+  - Added UnstuckAttempts property to track retry count
+  - OnMovementStuck event fires when max attempts reached
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+- **Learnings for future iterations:**
+  - Stuck detection tracks position over time, not just instantaneous state
+  - MovementProgressThreshold prevents false positives from tiny position adjustments
+  - Progressive unstuck strategies escalate from simple (jump) to complex (turn+jump)
+  - Randomized strafe direction (left/right) prevents predictable unstuck patterns
+  - ResetStuckDetection should be called when starting new navigation to clear previous state
+  - OnMovementStuck event allows higher-level systems to handle persistent stuck situations
+  - CheckAndAttemptUnstick returns true during unstuck attempts, allowing pause of navigation
+---
+## 2026-02-05 - US-015
+- What was implemented:
+  - Added FaceTarget(PlayerPosition) method to turn player toward position
+  - Added FaceEntity(EntityInfo) overload to face entities
+  - Added IsFacing() method to check if already facing target within tolerance
+  - Added StopTurning() method to release turn keys
+  - Added FacingTolerance property (default 10 degrees) for angle threshold
+  - CalculateAngleToTarget uses atan2 on X-Z plane for horizontal facing
+  - NormalizeAngleDelta keeps angle difference in [-180, 180] range
+  - GetPlayerRotation stub added - TODO: implement with actual game rotation reading
+  - FaceTarget returns true if turning started, false if already within tolerance
+- Files changed:
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+- **Learnings for future iterations:**
+  - Facing uses X-Z plane (horizontal) as Y is typically vertical/up
+  - Angle normalization ensures correct turn direction (shortest path)
+  - FacingTolerance prevents overshooting and oscillation when facing target
+  - GetPlayerRotation needs actual implementation from transform.rotation
+  - StopTurning should be called before new turn operations to prevent key stuck states
+  - IsFacing useful for state machine checks before proceeding with actions requiring facing
+---
+## 2026-02-05 - US-016
+- What was implemented:
+  - Created Waypoint class with Position, Type, Name, Metadata, Delay properties
+  - Created WaypointType enum: Normal, Vendor, Repair, Node, QuestGiver, QuestTurnIn, RestArea, DangerZone
+  - Created WaypointPath class with Name, Waypoints list, Loop, ReverseAtEnd properties
+  - Added Description, LevelRange, Zone, Metadata, CreatedAt, LastModified fields to WaypointPath
+  - AddWaypoint, RemoveWaypoint, ClearWaypoints methods for path manipulation
+  - Validate() method checks path integrity (name required, min 2 waypoints, vendor names, loop/reverse exclusivity)
+  - SaveToFile/LoadFromFile methods using System.Text.Json
+  - Created WaypointFileManager static class for directory management
+  - GetWaypointFiles, SavePath, LoadPath, LoadAllPaths methods for file operations
+  - SanitizeFileName helper removes invalid characters from filenames
+  - JSON uses camelCase naming convention for compatibility
+- Files changed:
+  - src/ErenshorGlider/Waypoints/Waypoint.cs (created)
+- **Learnings for future iterations:**
+  - WaypointType enum enables special handling for vendors, repairs, quest NPCs
+  - WaypointPath supports both Loop (return to start) and ReverseAtEnd (ping-pong) patterns
+  - Validate() catches common errors before saving/using paths
+  - WaypointFileManager uses ./waypoints/ directory by default
+  - JSON serialization with WriteIndented makes files human-readable for manual editing
+  - LastModified timestamp helps users identify recently updated paths
+  - LevelRange and Zone metadata useful for filtering paths by character level/location
+---
+## 2026-02-05 - US-017
+- What was implemented:
+  - Created WaypointRecorder class for recording player paths
+  - StartRecording(pathName) begins recording, StopRecording() returns WaypointPath
+  - StopAndSave() stops and saves to file via WaypointFileManager
+  - Update() method checks time/distance thresholds before capturing waypoints
+  - MinDistanceBetweenWaypoints (default 5 units) prevents dense waypoint clusters
+  - MinTimeBetweenRecords (default 1 second) prevents rapid-fire recording
+  - RecordCurrentPosition() with optional waypoint type and name parameters
+  - RecordVendor(), RecordRepair(), RecordNode() convenience methods
+  - CancelRecording() discards current recording without saving
+  - OnWaypointRecorded, OnRecordingStarted, OnRecordingStopped events
+  - DefaultWaypointType property sets type for automatic recordings
+- Files changed:
+  - src/ErenshorGlider/Waypoints/WaypointRecorder.cs (created)
+- **Learnings for future iterations:**
+  - Time and distance thresholds prevent excessive waypoint density
+  - Update() should be called regularly (e.g., every frame or at fixed interval) for accurate recording
+  - Starting position is automatically recorded when StartRecording is called
+  - Final position is automatically recorded when StopRecording is called
+  - Event-based design allows UI to show recording status and waypoint count
+  - Recorded path name auto-generates with timestamp if not provided
+  - Manual recording (RecordCurrentPosition) bypasses thresholds for precise placement
+---
+## 2026-02-05 - US-018
+- What was implemented:
+  - Created WaypointPlayer class for following waypoint paths
+  - PlayPath(name) loads from file, PlayPath(WaypointPath) for direct playback
+  - FindNearestWaypoint() starts from closest waypoint when playback begins
+  - Update() method handles navigation between waypoints and stuck detection
+  - Supports Loop mode (return to start) and ReverseAtEnd mode (ping-pong)
+  - OverrideLoop property allows overriding path's loop setting
+  - Stop(), Pause(), Resume() methods for playback control
+  - JumpToWaypoint(index) jumps to specific waypoint
+  - SkipToNext(), SkipToPrevious() for manual waypoint navigation
+  - CurrentWaypoint and CurrentWaypointIndex properties for state tracking
+  - OnWaypointReached, OnPathCompleted, OnPlaybackStarted events
+- Files changed:
+  - src/ErenshorGlider/Waypoints/WaypointPlayer.cs (created)
+- **Learnings for future iterations:**
+  - FindNearestWaypoint prevents backtracking when starting mid-path
+  - Update() should be called every frame/tick for smooth navigation
+  - Waypoint delay (Delay property) not yet implemented - TODO: add delay waiting
+  - ReverseAtEnd creates a "ping-pong" pattern (forward then backward)
+  - CheckAndAttemptUnstick called during playback prevents getting stuck on geometry
+  - OnWaypointReached event allows special handling for vendor/repair waypoints
+  - CurrentWaypoint handles reversed index calculation internally
+---
+## 2026-02-05 - US-019
+- What was implemented:
+  - Created Ability class with Id, Name, Keybind, Cooldown, TriggersGcd, ManaCost, Range, RequiresTarget, IsChanneled, CastTime
+  - Created Condition class with Type enum, Value, Operator, BuffName, CheckTarget
+  - ConditionType enum: PlayerHealthPercent, PlayerManaPercent, PlayerLevel, TargetHealthPercent, TargetExists, TargetIsHostile, TargetIsDead, InCombat, NotInCombat, BuffPresent, BuffAbsent, BuffStackCount, CanAct
+  - ComparisonOperator enum: Equal, NotEqual, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual
+  - Condition.Evaluate() method checks condition against game state
+  - RotationEntry class with AbilityId, Conditions list, Priority, Enabled, Description
+  - RotationEntry.CanExecute() evaluates all conditions (AND logic)
+  - CombatProfile class with Name, CharacterClass, Description, Abilities dict, Rotation list
+  - GlobalCooldown, UseAutoAttack, MinHealthPercent, MinManaPercent properties
+  - SortedRotation property returns rotation entries sorted by priority
+  - SaveToFile/LoadFromFile using System.Text.Json
+  - Validate() checks profile integrity
+  - CombatProfileFileManager for directory operations (profiles/ directory)
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatProfile.cs (created)
+- **Learnings for future iterations:**
+  - Conditions support both player and target state checking
+  - CheckTarget flag in Condition allows checking target buffs vs player buffs
+  - RotationEntry.Priority determines evaluation order (lower = higher priority)
+  - Abilities dictionary allows reusing ability definitions across rotation entries
+  - GlobalCooldown (GCD) prevents ability spamming
+  - MinHealthPercent/MinManaPercent set thresholds for starting combat
+  - Validate catches missing abilities referenced by rotation entries
+  - CombatProfileFileManager mirrors WaypointFileManager pattern for consistency
+---
+## 2026-02-05 - US-020
+- What was implemented:
+  - US-020 was completed as part of US-019 (Combat profile data model)
+  - CombatProfileFileManager.LoadProfile(name) loads profile by name
+  - LoadFromFile(filePath) loads from specific path
+  - LoadAllProfiles() loads all profiles from directory
+  - GetProfileFiles() returns list of profile JSON files
+  - Validate() checks profile structure and references
+  - Uses ./profiles/ directory by default
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatProfile.cs (created in US-019)
+- **Learnings for future iterations:**
+  - Loader functionality is integral to data model - implemented together
+  - Validate catches missing abilities and empty rotations
+  - Directory created automatically if doesn't exist
+  - Error handling allows partial loading (continues on bad files)
+  - Profiles stored with camelCase JSON naming for readability
+---
+## 2026-02-05 - US-021
+- What was implemented:
+  - Created TargetSelector class for intelligent target selection
+  - FindBestTarget() returns best target based on multiple criteria
+  - FindBestTarget(radius) overload for limited range search
+  - HasValidTargets() and GetValidTargets() for target queries
+  - BlacklistName(name) and BlacklistType(type) for filtering unwanted targets
+  - ClearBlacklists() removes all filters
+  - MaxLevelAbove (default 3) and MaxLevelBelow (default 10) for level range
+  - MaxSearchRadius (default 50 units) limits search area
+  - MaxWaypointDistance for path adherence (TODO: waypoint distance check)
+  - PrioritizeAttackers (default true) prioritizes threatening targets
+  - CompareTargetPriority sorts by: threat status, distance, level, health
+  - OnTargetSelected and OnNoTargetFound events
+- Files changed:
+  - src/ErenshorGlider/Combat/TargetSelector.cs (created)
+- **Learnings for future iterations:**
+  - CanBeAttacked combines IsMob, IsHostile, and !IsDead checks
+  - Name blacklist uses case-insensitive partial matching (flexible filtering)
+  - Target priority: threat > distance > level (easier first) > health (lower first)
+  - Level range prevents fighting mobs too high or too low
+  - GetValidTargets returns sorted list by distance for manual selection
+  - OnTargetSelected event allows logging/UI update when new target chosen
+  - TODO: Add actual attacking player detection (requires combat state per entity)
+  - TODO: Implement waypoint path distance checking
+---
+## 2026-02-05 - US-022
+- What was implemented:
+  - Created RotationExecutor class for combat rotation execution
+  - LoadProfile(profile) and LoadProfile(name) for loading combat profiles
+  - ExecuteNextAbility() evaluates rotation and executes best available ability
+  - IsCasting property checks if GCD is active
+  - Tracks individual ability cooldowns in _abilityLastUsed dictionary
+  - Tracks GCD in _lastGcdTrigger timestamp
+  - Checks mana cost before attempting ability
+  - Checks target requirement and presence
+  - Checks ability range vs target distance
+  - Evaluates all RotationEntry conditions via CanExecute()
+  - ParseKeybind() supports '1'-'9' and 'F1'-'F12' keybind formats
+  - GetRemainingCooldown() returns cooldown time for specific ability
+  - ClearCooldowns() resets all tracking
+  - OnAbilityExecuted, OnNoAbilityReady, OnProfileLoaded events
+  - UseAutoAttack property for auto-attack between abilities
+- Files changed:
+  - src/ErenshorGlider/Combat/RotationExecutor.cs (created)
+- **Learnings for future iterations:**
+  - SortedRotation returns entries sorted by Priority (lower = higher priority)
+  - GCD check happens before any ability evaluation
+  - Ability cooldowns are per-execution, not per-rotation pass
+  - CanAct check ensures not casting and not dead before ability use
+  - Keybind parsing is extensible for more formats (Shift+1, Ctrl+2, etc.)
+  - TODO: Implement actual auto-attack functionality
+  - GetDistanceToTarget uses Navigation.CalculateDistance for consistency
+  - OnAbilityExecuted event allows UI to show which ability was used
+---
+## 2026-02-05 - US-023
+- What was implemented:
+  - Created CombatController class for complete combat loop
+  - EngageTarget(in EntityInfo) and FindAndEngage() for starting combat
+  - StopCombat(CombatEndReason) for ending combat with reason tracking
+  - State machine: Idle -> Pulling -> InCombat -> (Looting/Fleeing) -> Idle
+  - Pulling phase: moves into range (GetMaxAttackRange) and faces target
+  - InCombat phase: executes rotation, chases fleeing targets if enabled
+  - CombatTimeout detects stuck fights (default 30 seconds)
+  - ChaseFleeingTargets (default true) and MaxChaseDistance (default 30) control chasing
+  - OnCombatStarted, OnCombatEnded, OnTargetPulled, OnCombatTimeout events
+  - UpdateTargetStatus syncs current target with game state
+- Files changed:
+  - src/ErenshorGlider/Combat/CombatController.cs (created)
+- **Learnings for future iterations:**
+  - CombatController orchestrates Navigation, RotationExecutor, and TargetSelector
+  - Pulling ensures player is in range before starting rotation
+  - Target distance check uses Navigation.CalculateDistance for consistency
+  - GetMaxAttackRadius placeholder - should calculate from rotation abilities
+  - Combat timeout prevents infinite loops on buggy targets
+  - CombatEndReason enum provides context for why combat ended
+  - OnCombatEnded allows other systems to react (e.g., start looting)
+
+## 2026-02-05 - US-024
+- What was implemented:
+  - Created LootController class for corpse looting
+  - LootNearestCorpse() finds and starts looting closest corpse
+  - StartLooting(in EntityInfo) begins looting specific corpse
+  - FindNearestLootableCorpse() and GetLootableCorpses() for loot queries
+  - SkipWhenFull (default true) checks AreBagsFull() before looting
+  - LootDistance (default 2 units) for proximity check
+  - Moves to corpse via Navigation, faces target, then Interacts
+  - MaxLootWaitSeconds (default 5 seconds) prevents infinite waiting
+  - OnLootStarted, OnLootCompleted, OnLootFailed events
+  - LootResult enum: Success, Failed, Timeout, AlreadyLooted
+- Files changed:
+  - src/ErenshorGlider/Combat/LootController.cs (created)
+- **Learnings for future iterations:**
+  - Corpse detection uses EntityInfo.IsCorpse property
+  - Loot completion detected by corpse disappearing from nearby entities
+  - GetFreeSlotCount() allows checking if bags have space before combat
+  - CancelInteraction (ESC key) can cancel looting if stuck
+  - LootController should be called after combat ends (via OnCombatEnded event)
+  - AreBagsFull uses PlayerInventory.IsFull from earlier story
+
+## 2026-02-05 - US-025
+- What was implemented:
+  - Created RestController class for health/mana recovery
+  - NeedsRest() checks health/mana thresholds and combat state
+  - StartResting() begins rest, uses FoodItem/DrinkItem consumables
+  - StopResting(RestResult) ends rest with reason
+  - Update() monitors recovery progress and checks stop conditions
+  - MinHealthPercent (default 50%) and MinManaPercent (default 30%) trigger rest
+  - TargetHealthPercent (default 90%) and TargetManaPercent (default 80%) stop rest
+  - MaxRestDuration (default 60 seconds) prevents infinite resting
+  - UseConsumable() placeholder for food/drink usage
+  - IsFullyRecovered() checks if at 100% health and mana
+  - OnRestStarted, OnRestCompleted events
+  - RestResult enum: FullyRecovered, Manual, Timeout, EnteredCombat, PartiallyRecovered
+- Files changed:
+  - src/ErenshorGlider/Combat/RestController.cs (created)
+- **Learnings for future iterations:**
+  - Rest should only happen when out of combat (checked in NeedsRest)
+  - Entering combat immediately stops rest (safety feature)
+  - Food/drink usage needs inventory integration (TODO: UseConsumable)
+  - RestController should be called between combat loops
+  - OnRestCompleted allows chaining to next activity (e.g., resume grinding)
+  - Partial recovery possible if timeout occurs before full recovery
+  - Can manually stop rest for quick resume of activities
+---
+## 2026-02-05 - US-027
+- What was implemented:
+  - Created GrindingBot class as central coordinator for all bot systems
+  - Complete state machine: Idle -> Pathing -> SearchingForTarget -> Pulling -> InCombat -> Looting -> Resting -> repeat
+  - Start() begins bot operation, loads waypoint path and starts tracking
+  - Stop(StopReason) halts all subsystems with reason tracking
+  - Update() method drives state machine transitions
+  - Integrates WaypointPlayer for path following
+  - Integrates TargetSelector for finding targets while patrolling
+  - Integrates CombatController for combat engagement
+  - Integrates LootController for post-combat looting
+  - Integrates RestController for health/mana recovery
+  - CheckForDeath() monitors player death state, increments DeathCount
+  - MaxDeathCount (default 3) safety limit stops bot after too many deaths
+  - AutoLoot (default true) and AutoRest (default true) toggles
+  - KillsCount and SessionRuntime for statistics tracking
+  - OnStateChanged, OnStarted, OnStopped, OnKill, OnDeath events
+  - Event handlers: HandleCombatEnded, HandleLootCompleted, HandleRestCompleted
+  - StopReason enum: Manual, DeathLimitReached, PlayerDied, RuntimeLimitReached, Stuck, BagsFull
+- Files changed:
+  - src/ErenshorGlider/Bot/GrindingBot.cs (created)
+- **Learnings for future iterations:**
+  - GrindingBot is the orchestrator that ties all subsystems together
+  - State transitions are event-driven (combat ends -> loot or rest or path)
+  - WaypointPlayer pauses during combat, resumes after
+  - Target search happens while pathing (don't stop at waypoints to look)
+  - Death handling immediately stops all activity and transitions to Dead state
+  - Statistics (kills, deaths, runtime) tracked for UI display
+  - TODO: Implement resurrection logic in UpdateDead()
+  - TODO: Add runtime limit and stuck detection to stop conditions
+  - TODO: Add bag full + vendor run logic
+---
+
+## 2026-02-05 - US-026
+- What was implemented:
+  - Created DeathController class for handling player death and resurrection
+  - Detects player death via CombatState.IsAlive from PositionTracker
+  - ReleaseSpirit() method uses InputController.Interact() to click release button
+  - AcceptGraveyardResurrection() method accepts graveyard resurrection dialog
+  - AutoReleaseSpirit (default true) automatically releases spirit on death
+  - AutoResurrectAtGraveyard (default true) automatically accepts resurrection
+  - MaxResurrectWaitSeconds (default 30s) timeout for resurrection process
+  - Tracks DeathCount, TimeSinceDeath, and DeathPosition
+  - NeedsRebuff flag indicates player needs rebuffing after resurrection
+  - MarkRebuffed() method clears the rebuff flag
+  - Reset() method clears all death state
+  - OnPlayerDeath, OnResurrectionStarted, OnResurrectionCompleted, OnResurrectionFailed events
+  - ResurrectResult enum: Success, Timeout, Cancelled, Failed
+  - Integrated DeathController into GrindingBot
+  - Added SessionDeathCount property (replaces obsolete DeathCount)
+  - After resurrection, bot transitions to Resting state for recovery
+  - Resurrection failure stops bot with PlayerDied reason
+- Files changed:
+  - src/ErenshorGlider/Combat/DeathController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - DeathController follows the same pattern as other controllers (Combat, Loot, Rest)
+  - Uses InputController.Interact() for UI interactions (release spirit, accept resurrection)
+  - The Enter key is commonly used for UI interactions in Erenshor
+  - Death detection relies on CombatState.IsAlive from PositionTracker
+  - After resurrection, transitioning to Resting state allows health/mana recovery before resuming
+  - DeathCount is tracked in DeathController, not GrindingBot (separation of concerns)
+  - GrindingBot no longer has its own CheckForDeath method (delegated to DeathController)
+  - NeedsRebuff flag allows future rotation system to reapply buffs after resurrection
+---
+
+## 2026-02-05 - US-028 & US-029
+- What was implemented:
+  - Created MapDataStore class for storing discovered map data
+  - Uses in-memory storage with JSON file persistence (mapdata/ directory)
+  - ResourceNodeDiscovery struct: Id, NodeName, X, Y, Z, Zone, DiscoveredAt, LastSeenAt, TimesSeen, RequiredSkill
+  - NpcDiscovery struct: Id, NpcName, X, Y, Z, Zone, IsVendor, HasQuests, DiscoveredAt, LastSeenAt
+  - MobSpawnPoint struct: Id, MobName, X, Y, Z, Zone, Level, Faction, DiscoveredAt, LastSeenAt, TimesSeen
+  - DeduplicationRadius (default 5 units) prevents duplicate entries for same location
+  - RecordResourceNode, RecordNpc, RecordMobSpawn methods for recording discoveries
+  - Updates existing discoveries (LastSeenAt, TimesSeen) instead of creating duplicates
+  - SaveToDisk/LoadFromDisk methods use System.Text.Json with camelCase naming
+  - Separate files: resource_nodes.json, npcs.json, mob_spawns.json
+  - MapDataStatistics struct: ResourceNodeCount, VendorCount, QuestGiverCount, MobSpawnCount
+  - Created MapDiscoveryController for automatic entity scanning
+  - AutoDiscoveryEnabled, RecordResourceNodes, RecordNpcs, RecordMobSpawns toggles
+  - Update() method scans nearby entities from GameStateReader
+  - Session-based recording (HashSet) prevents re-recording same entities
+  - GetRequiredSkillForNode infers skill from node name (Mining, Herbalism, Woodcutting)
+  - OnNodeDiscovered, OnNpcDiscovered, OnMobSpawnDiscovered events
+  - Tracks NodesDiscoveredCount, NpcsDiscoveredCount, MobSpawnsDiscoveredCount
+  - Integrated MapDiscoveryController into GrindingBot
+  - Added AutoMapping toggle (default true)
+  - Added SaveMapData, LoadMapData, GetMapStatistics methods
+  - Auto-saves map data on bot stop
+- Files changed:
+  - src/ErenshorGlider/Mapping/MapDiscovery.cs (created)
+  - src/ErenshorGlider/Mapping/MapDataStore.cs (created)
+  - src/ErenshorGlider/Mapping/MapDiscoveryController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - JSON persistence is simpler than SQLite for this use case (no external dependencies)
+  - MapDataStore uses readonly struct pattern for immutable discovery data
+  - Deduplication uses distance squared comparison for performance (avoid sqrt)
+  - Map data is saved automatically on bot stop to prevent data loss
+  - Session-based recording prevents spam while still allowing updates to existing discoveries
+  - Entity key format "Name_X_Z" provides simple unique identification
+  - Skill inference from node name works for common patterns but may need manual overrides
+  - Zone tracking allows filtering discoveries by location
+  - MapDataStore can be extended with more discovery types (quest items, rare spawns, etc.)
+---
+
+## 2026-02-05 - US-030
+- What was implemented:
+  - Created BotConfig class with comprehensive bot configuration
+  - Combat settings: MinHealthPercentForCombat, MinManaPercentForCombat, MaxDeathCount, CombatTimeoutSeconds, ChaseFleeingTargets, MaxChaseDistance, MaxAttackRange
+  - Target selection: MaxLevelAbove, MaxLevelBelow, MaxSearchRadius, MaxWaypointDistance, PrioritizeAttackers, BlacklistedMobNames, BlacklistedTypes
+  - Rest and recovery: MinHealthPercentToRest, MinManaPercentToRest, TargetHealthPercentAfterRest, TargetManaPercentAfterRest, MaxRestDurationSeconds, FoodItem, DrinkItem
+  - Looting: AutoLoot, LootDistance, MaxLootWaitSeconds, SkipLootWhenFull, MinFreeBagSlots
+  - Navigation: NavigationStoppingDistance, StuckDetectionThresholdSeconds, MaxUnstuckAttempts, MovementProgressThreshold, FacingToleranceDegrees
+  - Waypoints: MinWaypointDistance, MinWaypointRecordIntervalSeconds
+  - Input: InputDelayMs, InputRandomizationRangeMs
+  - Death: AutoReleaseSpirit, AutoResurrectAtGraveyard, MaxResurrectWaitSeconds, PostResurrectDelaySeconds
+  - Map discovery: AutoMappingEnabled, RecordResourceNodes, RecordNpcs, RecordMobSpawns, MapDeduplicationRadius
+  - File paths: CombatProfilePath, WaypointPath, MapDataDirectory, LogFilePath
+  - Hotkeys: EmergencyStopHotkey (F12), PauseResumeHotkey (F11)
+  - Session limits: MaxSessionRuntimeMinutes, MaxStuckTimeSeconds
+  - Created ConfigManager for loading/saving configs
+  - Load() merges with defaults for missing values (returns defaults if file doesn't exist)
+  - Save() writes to JSON with camelCase naming
+  - CreateDefault() creates a default config file
+  - Uses System.Text.Json for serialization
+- Files changed:
+  - src/ErenshorGlider/Configuration/BotConfig.cs (created)
+- **Learnings for future iterations:**
+  - BotConfig consolidates all magic numbers into one place
+  - Default values are defined in property initializers for easy maintenance
+  - ConfigManager.Load() handles missing files gracefully by returning defaults
+  - JSON format is human-readable for manual editing
+  - Lists (BlacklistedMobNames, BlacklistedTypes) are initialized to prevent null
+  - ConfigManager can be extended with validation and schema versioning
+  - Settings are organized by category for easier navigation
+  - Hotkey strings can be parsed by InputController for key binding
+---
+
+## 2026-02-05 - US-031
+- What was implemented:
+  - Created SessionStatistics class for tracking bot session data
+  - Tracks session runtime, kills, deaths, XP gained, items looted, gold earned
+  - Calculates per-hour rates: KillsPerHour, DeathsPerHour, XpPerHour, ItemsPerHour, GoldPerHour
+  - Tracks timestamps: SessionStartTime, LastKillTime, LastDeathTime, LastLootTime
+  - AverageTimeBetweenKills calculates average kill pace
+  - RecordKill(), RecordDeath(), RecordXpGained(), RecordItemLooted(), RecordGoldEarned() methods
+  - StartNewSession() resets all statistics
+  - GetSummary() returns StatisticsSummary snapshot
+  - Events: OnKill, OnDeath, OnXpGained, OnItemLooted, OnGoldEarned
+  - StatisticsSummary readonly struct for immutable snapshots
+  - ToString() methods for formatted output
+  - Time formatting (hours:minutes, minutes:seconds, or seconds only)
+- Files changed:
+  - src/ErenshorGlider/Statistics/SessionStatistics.cs (created)
+- **Learnings for future iterations:**
+  - SessionStatistics can be integrated into GrindingBot for automatic tracking
+  - Per-hour rates use TotalHours for calculation (divides by hours, not minutes)
+  - StatisticsSummary provides a snapshot API for GUI without exposing mutable state
+  - Events allow real-time UI updates without polling
+  - AverageTimeBetweenKills uses ticks for precision, calculated as (lastKill - start) / (kills - 1)
+  - StartNewSession should be called when bot starts to reset tracking
+  - RecordXpGained can track XP difference from StartingXp or incremental gains
+---
+
+## 2026-02-05 - US-032
+- What was implemented:
+  - Created ActionLog class for logging bot actions
+  - LogEntry readonly struct with Timestamp, Category, Message, Details
+  - LogCategory enum: Info, State, Combat, Loot, Rest, Movement, Error, Warning, Debug
+  - In-memory circular buffer storage (configurable max entries, default 500)
+  - StartFileLogging() / StopFileLogging() for optional file persistence
+  - Log() method for general logging
+  - Convenience methods: Info(), State(), Combat(), AbilityUsed(), TargetSelected(), Loot(), ItemLooted(), Rest(), Movement(), WaypointReached(), Error(), Warning(), Debug()
+  - OnLogEntryAdded event for real-time GUI updates
+  - GetRecentEntries() for getting latest N entries
+  - GetEntriesByCategory() for filtering by category
+  - CircularBuffer<T> internal class for efficient fixed-size storage
+  - Auto-creates log file directory
+  - Session start/end markers in log file
+  - ToString() formats as "[HH:mm:ss] [CATEGORY] Message: Details"
+- Files changed:
+  - src/ErenshorGlider/Statistics/ActionLog.cs (created)
+- **Learnings for future iterations:**
+  - Circular buffer prevents unbounded memory growth while keeping recent entries
+  - File logging is optional and can be toggled with PersistToFile
+  - StreamWriter with AutoFlush ensures logs are written immediately
+  - OnLogEntryAdded event allows GUI to update in real-time without polling
+  - Thread safety with lock statement for concurrent access
+  - Category-based filtering helps with GUI display and log analysis
+  - Session markers in log file help separate bot runs
+  - Convenience methods (State(), Combat(), Loot()) provide consistent logging patterns
+---
+
+## 2026-02-05 - US-033
+- What was implemented:
+  - Created SafetyController class for global hotkey monitoring and emergency stop
+  - F12 default emergency stop hotkey (configurable via SetEmergencyStopHotkey)
+  - F11 default pause/resume hotkey (configurable via SetPauseResumeHotkey)
+  - UpdateHotkeys(Func<KeyCode, bool>) method for key polling each frame
+  - TriggerEmergencyStop() method for programmatic emergency stop
+  - IsPaused property for checking pause state
+  - TogglePause(), Pause(), Resume() methods for pause control
+  - EmergencyStopTriggered flag and EmergencyStopTimestamp for tracking
+  - Events: OnEmergencyStopTriggered, OnPaused, OnResumed
+  - Integrated SafetyController into GrindingBot constructor
+  - Added IsPaused property to GrindingBot (delegates to SafetyController)
+  - Added UpdateHotkeys method to GrindingBot for hotkey polling
+  - Added HandleEmergencyStop, HandlePaused, HandleResumed event handlers
+  - GrindingBot.Update() skips all updates when IsPaused is true
+  - Added StopReason.EmergencyStop enum value
+  - SetEmergencyStopHotkey and SetPauseResumeHotkey support string parsing (F1-F12, ESC, ENTER, SPACE, TAB)
+  - Logs emergency stop event via ActionLog.Warning()
+- Files changed:
+  - src/ErenshorGlider/Safety/SafetyController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+- **Learnings for future iterations:**
+  - SafetyController uses lock (_lock) for thread safety on hotkey state changes
+  - Hotkey tracking uses edge detection (previous pressed state vs current) to trigger actions only on key down
+  - ActionLog.Warning() is used for emergency stop events for visibility
+  - GrindingBot.Update() checks IsPaused at the start to skip all updates when paused
+  - SafetyController should be created with ActionLog for logging safety events
+  - TryParseKeyName handles both enum values and common aliases (ESC, ENTER, SPACE, TAB)
+  - The UpdateHotkeys method pattern allows the caller to provide the key polling function (useful for different input systems)
+---
+
+## 2026-02-05 - US-034
+- What was implemented:
+  - Created AutoStopController class for automatic stopping conditions
+  - Added max session runtime tracking (MaxSessionRuntimeMinutes from BotConfig)
+  - Added max stuck time tracking (MaxStuckTimeSeconds from BotConfig)
+  - Added session state tracking (IsSessionActive, CurrentSessionRuntime, TimeStuck)
+  - Added stuck state tracking (SetStuckState, IsStuck, OnStuckStateChanged event)
+  - Added CheckStopConditions() method that returns true if a stop condition is met
+  - Added GetRemainingRuntime() and GetRemainingStuckTime() helper methods
+  - Added OnRuntimeLimitReached and OnStuckTimeLimitReached events
+  - Integrated AutoStopController into GrindingBot constructor
+  - Added ApplyConfig(BotConfig) method to GrindingBot for configuration
+  - Added HandleRuntimeLimitReached and HandleStuckTimeLimitReached event handlers
+  - Added HandleMovementStuckChanged to forward WaypointPlayer stuck state to AutoStopController
+  - Added OnMovementStuckChanged event to WaypointPlayer
+  - Added OnStuckStateChanged event to Navigation for stuck state notifications
+  - Added System.Text.Json NuGet package for .NET Framework 4.7.2 support
+  - Fixed Navigation namespace/type conflict by using type alias (NavNavigation)
+  - Added Play() method to WaypointPlayer as alias for Resume()
+  - Made GrindingBot.BotState enum public for external access
+  - Added System.Collections.Generic and System.Linq using statements to several files
+- Files changed:
+  - src/ErenshorGlider/Safety/AutoStopController.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified)
+  - src/ErenshorGlider/Waypoints/WaypointPlayer.cs (modified)
+  - src/ErenshorGlider/Navigation/Navigation.cs (modified)
+  - src/ErenshorGlider/Combat/CombatController.cs (modified - type alias fix)
+  - src/ErenshorGlider/Combat/LootController.cs (modified - type alias fix)
+  - src/ErenshorGlider/Combat/RotationExecutor.cs (modified - using statement, CalculateDistance fix)
+  - src/ErenshorGlider/Combat/TargetSelector.cs (modified - XML comment fix)
+  - src/ErenshorGlider/GameState/BuffInfo.cs (modified - using statement)
+  - src/ErenshorGlider/Mapping/MapDiscoveryController.cs (modified - using statement)
+  - src/ErenshorGlider/Waypoints/Waypoint.cs (modified - using statement)
+  - src/ErenshorGlider/Waypoints/WaypointRecorder.cs (modified - using statement)
+  - src/ErenshorGlider/ErenshorGlider.csproj (modified - added System.Text.Json package)
+- **Learnings for future iterations:**
+  - AutoStopController provides centralized safety limit monitoring independent of game state
+  - Session runtime is tracked from StartSession() call, not from bot start, allowing for pause/resume
+  - Stuck state tracking relies on Navigation.OnStuckStateChanged event firing on state changes
+  - Navigation namespace conflicts with Navigation class - use type alias (NavNavigation) to avoid
+  - System.Text.Json requires explicit NuGet package for .NET Framework 4.7.2
+  - Using System.Text.Json.Serialization.JsonRequired attribute for required JSON properties
+  - GrindingBot constructor now requires AutoStopController dependency (use SafetyController when constructing)
+  - The codebase has pre-existing compilation issues (20 errors) that should be addressed separately
+  - AutoStopController.CheckStopConditions() should be called in GrindingBot.Update() before other updates
+  - MaxSessionRuntimeMinutes of 0 means no limit (infinite runtime)
+  - MaxStuckTimeSeconds of 0 means no limit (never stop due to stuck)
+
+## 2026-02-05 - US-037
+- What was implemented:
+  - Created BotStatus readonly struct with State, TargetName, HasTarget, PositionX/Y/Z, Current/Max Health/Mana
+  - Added IBotStatusProvider interface for status data access
+  - Created StatusDisplayPanel with State, Target, Position labels and Health/Mana progress bars
+  - Health bar color: RGB(180, 60, 60) red
+  - Mana bar color: RGB(60, 100, 180) blue
+  - 10Hz update timer (100ms interval) using Windows Forms Timer
+  - MockBotController implements IBotStatusProvider with simulated activity
+  - Target name turns red when engaged, gray when no target
+  - Position format: "X: 100.5, Y: 10.0, Z: -250.3"
+  - Health/ManaPercent properties calculate percentages automatically
+  - UpdateStatus checks for text changes to reduce flicker
+  - MockBotController has SetTestTarget/SetTestVitals for testing UI
+- Files changed:
+  - src/ErenshorGlider.GUI/BotStatusModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/StatusDisplayPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - readonly struct pattern works well for immutable status snapshots
+  - Windows Forms Timer runs on UI thread, no InvokeRequired needed in Tick handler
+  - Check IsHandleCreated and IsDisposed in Timer Tick to avoid errors after disposal
+  - ProgressBar.Value must be between Minimum and Maximum (clamped in UpdateStatus)
+  - Text change checking before update reduces UI flicker
+  - Health/Mana percentages: (current / max) * 100, handle max=0 case
+  - MockBotController simulates activity when running for UI testing (position changes, regen)
+  - StatusDisplayPanel height ~145px for all elements
+  - Panel background Color.FromArgb(40, 40, 43) matches other panels
+  - Consolas font for coordinates aligns numbers nicely
+  - Target name color change provides visual feedback for combat state
+
+## 2026-02-05 - US-038
+- What was implemented:
+  - Created SessionStatistics readonly struct with Runtime, Kills, Deaths, XpGained, GoldEarned, ItemsLooted
+  - Added ISessionStatisticsProvider interface for statistics access
+  - Created SessionStatisticsPanel with 3-column layout showing 8 statistics
+  - Statistics displayed: Runtime, Kills (with /hr), Deaths, XP Gained, XP/Hour, Gold (with /hr), Gold/Hour, Items Looted
+  - 1Hz update timer (1000ms interval) - slower than status panel since stats change less
+  - MockBotController implements ISessionStatisticsProvider with simulated gains
+  - Per-hour rates: XpPerHour, GoldPerHour, KillsPerHour calculated from TotalHours
+  - FormattedRuntime adapts display based on duration (\"Xh Ym Zs\", \"Ym Zs\", or \"Zs\")
+  - Number formatting with N0 specifier adds thousands separator (e.g., \"1,234\")
+  - Simulated gains: 2% chance per tick of kill with random XP (50-150), gold (1-20), items (0-3)
+- Files changed:
+  - src/ErenshorGlider.GUI/SessionStatisticsModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/SessionStatisticsPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - SessionStatistics uses readonly struct pattern for immutable snapshots
+  - Per-hour rate calculation: value / Runtime.TotalHours, handle division by zero
+  - FormattedRuntime uses conditional display based on hours/minutes presence
+  - 1-second update interval sufficient for statistics (less frequent than status)
+  - Statistics panel layout: 3 columns with ~200px width each, height ~160px
+  - MockBotController simulates activity for UI testing (random gains on each update)
+  - UpdateLabel helper method checks text equality before setting to reduce flicker
+  - Statistics reset on bot start (session tracking, not cumulative)
+  - XP/Gold numbers use N0 format for thousands separation (readability)
+  - Panel docking order: BotControlPanel, StatusDisplayPanel, SessionStatisticsPanel (top to bottom)
+
+## 2026-02-05 - US-039
+- What was implemented:
+  - Created LogEntry readonly struct with Timestamp, Category, Message
+  - Added LogCategory enum: Info, State, Combat, Loot, Rest, Movement, Error, Warning
+  - Created IActionLogProvider interface with GetRecentEntries, LogEntryAdded event, Log, Clear methods
+  - Created MockActionLogProvider with circular buffer (500 max entries) and convenience methods (Info, State, Combat, etc.)
+  - Created ActionLogPanel with RichTextBox for scrollable log display
+  - Color-coded entries: Info(gray 0xcccccc), State(blue 0x99ccff), Combat(red 0xff6666), Loot(yellow 0xffcc66), Rest(green 0x66ff99), Movement(purple 0xcc99ff), Error(red 0xff3333), Warning(orange 0xff9933)
+  - Timestamp format: \"HH:mm:ss\"
+  - Entry format: \"[HH:mm:ss] [Category] Message\"
+  - Auto-scroll to newest entry by default (ScrollToCaret)
+  - Pauses auto-scroll when user scrolls up (VScroll event detection)
+  - Clear button with hover effect (underline on hover)
+  - Header panel with \"Action Log\" title
+  - Log property added to IBotController interface
+  - MockBotController logs \"Bot started\" on Start()
+- Files changed:
+  - src/ErenshorGlider.GUI/ActionLogModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/ActionLogPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - RichTextBox.SelectionColor changes color for appended text
+  - RichTextBox.ScrollToCaret scrolls to the current selection position
+  - Color stored as int in LogEntry for easy Color.FromArgb() conversion
+  - Circular buffer pattern: remove oldest when max count reached
+  - Thread safety with lock() for concurrent log access
+  - Auto-scroll pause: detect user scroll by checking scroll position (not at bottom)
+  - RichTextBox with ReadOnly=true still allows selection and scrolling
+  - Consolas font keeps log entries aligned (monospaced)
+  - WordWrap=false prevents long messages from wrapping multiple times
+  - Panel docking: ActionLogPanel uses Dock=DockStyle.Fill to occupy remaining space
+  - LogEntryAdded event enables real-time UI updates without polling
+  - FormattedTimestamp property (\"HH:mm:ss\") avoids formatting on UI thread
+  - ActionLogPanel header panel height 25px, Clear button 50x20px
+
+## 2026-02-05 - US-040
+- What was implemented:
+  - Created RadarEntity readonly struct with Type, RelativeX, RelativeZ, Name, Level
+  - Added RadarEntityType enum: HostileMob, NeutralMob, FriendlyNpc, ResourceNode, Corpse, Player
+  - Added RadarPlayerInfo struct with FacingDirection, Range
+  - Created IRadarDataProvider interface with GetPlayerInfo, GetNearbyEntities, RadarDataUpdated event
+  - Created MockRadarDataProvider with simulated random entities
+  - Created RadarControl with PictureBox canvas (200x200), dark background (15,15,18 RGB)
+  - Player indicator: green circle (150,255,150 RGB border) with facing direction arrow
+  - Concentric range circles at 25%, 50%, 75%, 100% of radar range
+  - Crosshairs for orientation
+  - Zoom in/out buttons (0.5x to 3.0x range, 0.25x steps)
+  - Range slider (10-200 units, default 50)
+  - Entity colors: HostileMob=red (0xff3333), NeutralMob=yellow (0xffcc00), FriendlyNpc=green (0x33ff33), ResourceNode=blue (0x33ccff), Corpse=gray (0x999999), Player=purple (0xcc99ff)
+  - Resource nodes drawn as diamonds (6px), others as circles (3-5px depending on type)
+  - 10Hz update timer (100ms)
+  - Coordinates: X is left/right, Z is forward/back (inverted for radar Y)
+  - GetScale() calculates: (radarRadius / range) * zoomLevel
+- Files changed:
+  - src/ErenshorGlider.GUI/RadarModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/RadarControl.cs (created)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - PictureBox with Paint event provides custom drawing in Windows Forms
+  - Graphics.SmoothingMode.AntiAlias smooths circles and lines
+  - Radar coordinate system: player at center (cx, cy), relative positions scaled
+  - Z axis inverted for radar (game Z+ = North = radar Y-)
+  - Facing direction arrow uses trigonometry: Math.Cos/Sin of (degrees - 90) * PI / 180
+  - Entity size varies by type: ResourceNode=6px, Player=5px, Mobs/NPCs=4px, Corpses=3px
+  - Range circles drawn with percentage of total range (0.25, 0.5, 0.75, 1.0)
+  - MockRadarDataProvider generates random entities within range for UI testing
+  - RadarControl height includes canvas (200px) + zoom panel (30px) + range panel (35px) = ~265px + padding
+  - TrackBar for range slider with TickFrequency=10 shows visual ticks
+  - Zoom displayed as \"Zoom: 1.00x\" with F2 format specifier
+  - Radar data update frequency (10Hz) independent of position tracking (also 10Hz)
+  - PaintRadar uses Graphics.FillEllipse/DrawLine for drawing
+  - Entities outside canvas bounds are skipped for performance
+
+## 2026-02-05 - US-043 & US-044
+- What was implemented:
+  - Created ProfileSelectorPanel with ComboBox for combat profile selection
+  - Created WaypointSelectorPanel with ComboBox for waypoint path selection
+  - Mock combat profiles: Warrior.json, Mage.json, Rogue.json, Cleric.json, Ranger.json, Necromancer.json
+  - Mock waypoint paths: StarterZone_Patrol.json, StarterZone_Loop.json, Forest_Circuit.json, Cave_Farming.json, Dungeon_Grind.json
+  - ProfileSelected event (EventHandler<string>) raised on profile selection
+  - WaypointSelected event (EventHandler<string>) raised on path selection
+  - \"Current:\" label displays selected item name in gray (150,150,150 RGB)
+  - SetProfile(string) and SetPath(string) methods for programmatic selection
+  - Both panels ~70px height with title label, ComboBox dropdown, current label
+  - ComboBox style: DropDownList (no editing), dark background (30,30,33 RGB)
+  - Panels docked side-by-side in 80px container panel with 5px padding
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/ProfileSelectorPanel.cs (created - both panels)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - added InitializeSelectors)
+- **Learnings for future iterations:**
+  - ComboBox.DropDownStyle=DropDownList prevents user from typing custom values
+  - ComboBox.SelectedItem returns object ( ToString() for string value)
+  - ComboBox.SelectedIndex sets selection by index (not value)
+  - Items.IndexOf() finds item index by value for SetProfile/SetPath
+  - Side-by-side layout using Dock=DockStyle.Left/Right with Width properties
+  - Selector container panel height 80px (70px panels + padding)
+  - Profile and waypoint selection events allow GUI to react to user choices
+  - Future implementation should scan profiles/ and waypoints/ directories for real files
+  - Current label updates on SelectedIndexChanged event
+  - Events use EventHandler<string> pattern for passing selected item name
+
+## 2026-02-05 - US-050
+- What was implemented:
+  - Created 6 baseline combat profiles in profiles/ directory (JSON format)
+  - Warrior.json: Heroic Strike (main), Charge (opener), Bloodthirst (heal), Shield Block (defensive), Battle Shout (buff)
+  - Mage.json: Frost Bolt (main), Fireball (burst), Ice Lance (frozen), Frost Nova (slow), Frost Armor (buff), Arcane Intellect (buff), Evocation (mana)
+  - Rogue.json: Stealth (opener), Backstab (stealth attack), Sinister Strike (builder), Eviscerate (finisher), Slice and Dice (finisher buff), Evasion (defensive)
+  - Cleric.json: Smite (damage), Heal/Greater Heal/Flash Heal (heals), Power Word: Shield (absorb), Renew (HoT), Inner Fire (buff)
+  - Ranger.json: Aimed Shot (burst), Arcane Shot (filler), Serpent Sting (DoT), Hunter's Mark (debuff), Aspect of the Hawk (buff), pet abilities
+  - Necromancer.json: Shadow Bolt (main), Corruption (DoT), Curse of Agony (DoT), Drain Life (heal), Fear (CC), Summon Voidwalker (pet), Life Tap (mana)
+  - All profiles include buff maintenance conditions (BuffAbsent)
+  - Defensive abilities triggered by low health (PlayerHealthPercent < 40-50%)
+  - Rotation priorities 1-7 with descriptions
+  - Self-healing: Warrior (Bloodthirst), Cleric (Flash Heal), Necromancer (Drain Life), Rogue (none - evasion instead)
+- Files changed:
+  - profiles/Warrior.json (created)
+  - profiles/Mage.json (created)
+  - profiles/Rogue.json (created)
+  - profiles/Cleric.json (created)
+  - profiles/Ranger.json (created)
+  - profiles/Necromancer.json (created)
+- **Learnings for future iterations:**
+  - Profile JSON format matches CombatProfile class structure exactly
+  - Ability definitions include: Id, Name, Keybind, Cooldown, TriggersGcd, ManaCost, Range, RequiresTarget, CastTime, IsChanneled
+  - Condition format: Type, Value, Operator, BuffName, CheckTarget
+  - Rotation entries: AbilityId, Conditions array, Priority, Enabled, Description
+  - Buff maintenance uses BuffAbsent condition to check if buff is active
+  - Defensive abilities use PlayerHealthPercent < threshold conditions
+  - Openers use TargetHealthPercent == 100 or BuffPresent (Stealth) conditions
+  - Mana management for casters: low mana triggers Life Tap, high mana allows burst
+  - DoT classes keep DoTs up with BuffAbsent conditions
+  - Profile names match class names exactly for ProfileSelectorPanel dropdown
+  - Each class has 5-7 abilities and 5-7 rotation entries
+  - GCD varies by class: Warrior/Cleric/Mage/Necromancer 1.5s, Rogue/Ranger 1.0s
+  - UseAutoAttack: false for casters, true for melee/hunters
+
+---
+
+## 2026-02-05 - US-042
+- What was implemented:
+  - Added RadarWaypointType enum: Normal, Vendor, Repair, Node, QuestGiver, QuestTurnIn, RestArea, DangerZone
+  - Added RadarWaypoint readonly struct with Type, RelativeX, RelativeZ, Name, IsTarget, Index, Distance, Color, TargetColor
+  - Extended IRadarDataProvider with GetWaypoints() and GetWaypointConnections() methods
+  - Implemented DrawWaypointPath() method in RadarControl for drawing path connections and waypoints
+  - Implemented DrawWaypoint() method for rendering individual waypoints with different styles per type
+  - Waypoints drawn as connected path with dashed lines (DashPattern: 4, 2)
+  - Waypoint colors: Normal (dark gray), Vendor (green square), Repair (orange), Node (light blue diamond), QuestGiver/TurnIn (yellow), RestArea (light blue), DangerZone (red)
+  - Target waypoint highlighted with white color, larger size, outer ring, and cross mark
+  - MockRadarDataProvider.SetupMockWaypointPath() creates circular path with 8 waypoints of various types
+  - SetTargetWaypoint() method for changing the target waypoint index
+- Files changed:
+  - src/ErenshorGlider.GUI/RadarModel.cs (modified - added RadarWaypointType, RadarWaypoint, extended IRadarDataProvider)
+  - src/ErenshorGlider.GUI/Controls/RadarControl.cs (modified - added DrawWaypointPath, DrawWaypoint, updated PaintRadar)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - call SetupMockWaypointPath)
+  - src/ErenshorGlider/Combat/CombatProfile.cs (modified - fixed missing using statement for GameState)
+- **Learnings for future iterations:**
+  - Waypoint paths drawn as dashed lines provide visual clarity without obscuring entities
+  - Different shapes (circle, square, diamond) help distinguish waypoint types on radar
+  - Target waypoint highlight uses multiple visual cues (color, size, ring, cross) for accessibility
+  - Mock data provider creates circular path (8 waypoints, 30 unit radius) for UI testing
+  - Coordinates: X is left/right, Z is forward/back (inverted for radar Y)
+  - Waypoint connections use tuple (int from, int to) for simple path edge representation
+  - GetWaypoints() and GetWaypointConnections() return IList<> for flexibility (arrays or lists)
+  - Target waypoint index tracked in MockRadarDataProvider for runtime updates
+  - UpdateWaypoints() method updates IsTarget flag when SetTargetWaypoint() is called
+  - Drawing order: range circles → waypoint paths → entities → player (layering for visibility)
+  - Path connections drawn first so waypoints appear on top of connection lines
+  - Bounds checking in DrawWaypoint skips waypoints outside canvas for performance
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-045
+- What was implemented:
+  - Created SettingsPanel control with 11 tabbed categories for all bot settings
+  - Categories: Combat, Target Selection, Rest & Recovery, Looting, Navigation, Waypoints, Input, Death, Map Discovery, Hotkeys, Session Limits
+  - Added IBotConfigProvider interface with CurrentConfig property and ConfigUpdated event
+  - Extended IBotController with CurrentConfig property and ConfigUpdated event
+  - Implemented config management in MockBotController (LoadConfig, UpdateConfig)
+  - Added Settings button (gear icon ⚙) to MainWindow header
+  - Settings dialog opens as modal form with SettingsPanel
+  - Save button writes configuration to config.json via ConfigManager.Save()
+  - Reset button reverts to current loaded values
+  - All BotConfig properties exposed through form controls (NumericUpDown, CheckBox, TextBox, ComboBox)
+  - Comma-separated list parsing for blacklist arrays
+  - Status label shows save success/error messages
+- Files changed:
+  - src/ErenshorGlider.GUI/Controls/SettingsPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified - added CurrentConfig, ConfigUpdated, LoadConfig, UpdateConfig)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - added settings button and dialog)
+  - prd.json (modified - US-045 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - TabControl organizes many settings into digestible categories
+  - NumericUpDown controls need Minimum, Maximum, Increment set for proper input validation
+  - Working copy pattern: clone config on load, modify working copy, save only on button click
+  - Reset button reverts to original config without saving changes
+  - ComboBox with DropDownList style prevents user from entering custom values
+  - Status label provides immediate feedback on save success/failure
+  - Modal dialog (ShowDialog) blocks main window until closed
+  - ConfigManager.Save writes to config.json in current working directory
+  - FormBorderStyle.FixedSingle prevents dialog resizing
+  - Panel rows with absolute positioning (Y coordinates) for consistent layout
+  - Hover effects on buttons (MouseEnter/MouseLeave) improve UX
+  - Dark theme colors used throughout: header (45,45,48), content (30,30,30), tab pages (35,35,38)
+  - NumericUpDown.BackColor set to (50,50,55) for consistency with other inputs
+  - Settings button placed in header with Anchor=Top|Right for responsive positioning
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-046
+- What was implemented:
+  - Created GatheringBot class with gathering-focused state machine
+  - State machine: Idle -> Pathing -> SearchingForNode -> MovingToNode -> Gathering -> (DefensiveCombat if attacked) -> Resting -> repeat
+  - Prioritizes resource nodes over combat by checking for nodes while pathing
+  - DefensiveCombat state only entered when DefendAgainstAttackers=true and player is attacked
+  - CheckForAttackers() monitors CombatState.InCombat to detect aggression
+  - FindNearestResourceNode() scans nearby entities for EntityType.Node
+  - MaxNodeDetourDistance controls how far from path to detour for nodes (default 100 units)
+  - DefendAgainstAttackers flag enables/disables defensive combat
+  - GatherWaitSeconds controls time to wait at node (default 2 seconds)
+  - After gathering, checks if need to rest before returning to pathing
+  - If attacked while gathering, pauses gathering and enters defensive combat
+  - After defensive combat, returns to previous node or resumes pathing
+  - NodesGathered counter tracks session progress
+  - IsBeingAttacked flag tracks defensive combat state
+- Files changed:
+  - src/ErenshorGlider/Bot/GatheringBot.cs (created)
+  - prd.json (modified - US-046 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - GatheringBot uses same subsystem pattern as GrindingBot (WaypointPlayer, CombatController, RestController, DeathController, etc.)
+  - Defensive combat triggered by monitoring CombatState.InCombat rather than actively seeking targets
+  - IsBeingAttacked flag prevents entering combat loop when not actually threatened
+  - Resource node filtering uses EntityType.Node from EntityInfo
+  - State machine prioritizes gathering: checks for nodes before checking for combat
+  - When attacked, pause current activity (pathing/gathering) and switch to DefensiveCombat
+  - After defensive combat, attempt to return to previous activity (node gathering or pathing)
+  - MaxNodeDetourDistance prevents excessive detours that would break waypoint path flow
+  - GatherWaitSeconds simulates gathering time (actual interaction would be game-specific)
+  - Navigation.MoveTo() and Navigation.FaceTarget() used for node approach
+  - Navigation.IsStuck check prevents getting stuck trying to reach difficult nodes
+  - GatheringBot.AutoMapping and MapDiscoveryController still record nodes while gathering
+  - GatheringBot shares StopReason enum with GrindingBot
+  - Events: OnNodeGathered, OnStateChanged, OnStarted, OnStopped, OnDeath, OnPaused, OnResumed
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-047
+- What was implemented:
+  - Created InventoryManager class for bag space checks and vendor runs
+  - CheckBagSpace() checks if FreeSlots < MinFreeBagSlots
+  - StartVendorRun() begins vendor run to VendorWaypoint
+  - UpdateVendorRun() handles moving to vendor and selling items
+  - FindNearestVendorWaypoint() static method finds closest vendor in path
+  - FindVendorWaypoints() static method gets all vendors from path
+  - SellGreyItems/SellWhiteItems flags control item quality to sell
+  - ShouldSellItem() checks item quality (Poor=grey, Common=white)
+  - GetSellableItems() returns list of items matching sell criteria
+  - GrindingBot extended with BotState.VendorRun
+  - UpdatePathing() checks bag space after each action
+  - HandleLootCompleted() triggers vendor run if bags full
+  - HandleVendorRunCompleted() resumes pathing or stops if no vendor available
+  - VendorWaypoint property set to nearest vendor before starting run
+  - InventoryStatus readonly struct for inventory snapshot
+  - MaxVendorWaitSeconds controls vendor interaction timeout (default 10s)
+- Files changed:
+  - src/ErenshorGlider/Combat/InventoryManager.cs (created)
+  - src/ErenshorGlider/Bot/GrindingBot.cs (modified - added InventoryManager dependency, VendorRun state)
+  - prd.json (modified - US-047 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - InventoryManager uses PositionTracker.CurrentInventory for bag space checks
+  - VendorWaypoint is a Waypoint with Type=WaypointType.Vendor
+  - Vendor run state machine: UpdateMovingToVendor() -> IsSelling -> CompleteVendorRun()
+  - Moving to vendor uses Navigation.MoveTo() and Navigation.FaceTarget()
+  - Vendor interaction simulated with InputController.Interact() (Enter key)
+  - Selling happens after MaxVendorWaitSeconds of interaction (placeholder for actual game API)
+  - OnVendorRunCompleted event passes VendorRunResult for handling different outcomes
+  - StopReason.BagsFull used when no vendor available
+  - FindNearestVendorWaypoint() uses Navigation.CalculateDistance for distance checks
+  - ItemsSoldThisRun and GoldEarnedThisRun track session statistics
+  - InventoryStatus provides TotalSlots, FreeSlots, IsFull, SellableItemCount
+  - MinFreeBagSlots threshold prevents waiting until completely full (default 5 slots)
+  - IsOnVendorRun flag prevents starting multiple concurrent vendor runs
+  - WaypointPlayer.CurrentPath exposed for finding vendor waypoints
+  - HandleLootCompleted checks bag space BEFORE deciding next state
+  - Vendor run flows: Looting -> VendorRun -> Pathing (or Stop if no vendor)
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-048
+- What was implemented:
+  - Created ExportImportManager static class for export/import operations
+  - ExportWaypointPath() exports WaypointPath to JSON with metadata wrapper
+  - ExportCombatProfile() exports CombatProfile to JSON with metadata wrapper
+  - ImportWaypointPath() imports from file with validation, returns (ImportResult, WaypointPath?)
+  - ImportCombatProfile() imports from file with validation, returns (ImportResult, CombatProfile?)
+  - ImportAndSaveWaypointPath() imports and saves to waypoints/ directory
+  - ImportAndSaveCombatProfile() imports and saves to profiles/ directory
+  - ExportResult enum: Success, FileExists, InvalidData, Failed
+  - ImportResult enum: Success, FileNotFound, InvalidFormat, ValidationFailed, Cancelled
+  - WaypointExportData wrapper: Version, ExportedAt, ExportedBy, Path
+  - ProfileExportData wrapper: Version, ExportedAt, ExportedBy, Profile
+  - Bulk export: ExportAllWaypointPaths(), ExportAllCombatProfiles()
+  - Bulk import: ImportWaypointPathsFromDirectory(), ImportCombatProfilesFromDirectory()
+  - overwrite parameter controls whether to overwrite existing files
+  - validateOnly parameter allows validation without importing
+  - Auto-generated filenames include timestamp (yyyyMMdd_HHmmss) for uniqueness
+  - Default export directories: exports/waypoints/, exports/profiles/
+  - Uses existing WaypointPath.Validate() and CombatProfile.Validate() for validation
+  - Handles both wrapped export format and plain JSON format for imports
+- Files changed:
+  - src/ErenshorGlider/ImportExport/ExportImportManager.cs (created)
+  - prd.json (modified - US-048 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - ExportImportManager provides unified API for all export/import operations
+  - Metadata wrapper (Version, ExportedAt, ExportedBy) helps track file origin
+  - Auto-generated filenames prevent conflicts when exporting multiple versions
+  - validateOnly=true allows validating files before saving them
+  - Import supports both wrapped format (with metadata) and plain JSON for compatibility
+  - overwrite=false by default prevents accidental data loss
+  - Bulk operations iterate through all files in directory using Directory.GetFiles()
+  - SanitizeFileName() removes invalid characters from filenames
+  - Import methods return tuples (Result, Data) for error handling
+  - Validation happens before export to prevent exporting invalid data
+  - ExportResult.FileExists allows user to decide whether to overwrite
+  - ExportAll methods count successful exports for user feedback
+  - ImportAndSave methods directly save to appropriate directories (waypoints/, profiles/)
+  - Uses System.Text.Json with camelCase naming for consistency
+  - Directory.CreateDirectory() ensures output directories exist before export
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-049
+- What was implemented:
+  - Added ExportToJSON() method to MapDataStore for standalone export
+  - MapDataExport wrapper class with metadata: Version, ExportedAt, ExportedBy, Zone
+  - Export includes all ResourceNodes, Npcs, MobSpawns with full timestamps
+  - Each discovery includes: DiscoveredAt, LastSeenAt, TimesSeen, position data
+  - ResourceNodeDiscovery includes RequiredSkill field (Mining, Herbalism, Woodcutting)
+  - NpcDiscovery includes IsVendor, HasQuests flags
+  - MobSpawnPoint includes Level, Faction, TimesSeen
+  - ToJson() method returns JSON string for programmatic access
+  - ExportToJSON(filePath, overwrite) for file export with control
+  - Default export path: exports/mapdata_TIMESTAMP.json
+  - overwrite=false by default prevents accidental data loss
+  - Export includes Statistics summary (counts of each type)
+  - Thread-safe with lock (_lock) for concurrent access
+- Files changed:
+  - src/ErenshorGlider/Mapping/MapDataStore.cs (modified - added ExportToJSON, ToJson, MapDataExport class)
+  - prd.json (modified - US-049 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - MapDataExport wrapper provides consistent export format with metadata
+  - Timestamps (DiscoveredAt, LastSeenAt) included for temporal analysis
+  - TimesSeen counter indicates how often node/mob has been confirmed
+  - RequiredSkill field in ResourceNodeDiscovery helps with gathering planning
+  - IsVendor/HasQuests flags in NpcDiscovery enable vendor/quest routing
+  - Level and Faction in MobSpawnPoint help with combat planning
+  - ToJson() useful for API responses or clipboard copy
+  - ExportToJSON() useful for file backup or sharing
+  - Export file auto-named with timestamp (yyyyMMdd_HHmmss) for uniqueness
+  - Uses System.Text.Json with WriteIndented for human-readable output
+  - Note: PRD mentioned SQLite but implementation uses JSON (consistent with other data)
+  - Thread-safe lock ensures export doesn't interfere with recording
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check

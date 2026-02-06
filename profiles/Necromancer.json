@@ -1,0 +1,187 @@
+{
+  "name": "Necromancer",
+  "characterClass": "Necromancer",
+  "description": "Basic necromancer combat profile with damage over time spells and pet management.",
+  "globalCooldown": 1.5,
+  "useAutoAttack": false,
+  "minHealthPercent": 20,
+  "minManaPercent": 15,
+  "abilities": {
+    "shadowBolt": {
+      "id": "shadowBolt",
+      "name": "Shadow Bolt",
+      "keybind": "1",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 30,
+      "requiresTarget": true,
+      "castTime": 2.5
+    },
+    "corruption": {
+      "id": "corruption",
+      "name": "Corruption",
+      "keybind": "2",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 35,
+      "range": 30,
+      "requiresTarget": true
+    },
+    "curseOfAgony": {
+      "id": "curseOfAgony",
+      "name": "Curse of Agony",
+      "keybind": "3",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 40,
+      "range": 30,
+      "requiresTarget": true
+    },
+    "drainLife": {
+      "id": "drainLife",
+      "name": "Drain Life",
+      "keybind": "4",
+      "cooldown": 0,
+      "triggersGcd": true,
+      "manaCost": 50,
+      "range": 20,
+      "requiresTarget": true,
+      "isChanneled": true,
+      "castTime": 5
+    },
+    "summonVoidwalker": {
+      "id": "summonVoidwalker",
+      "name": "Summon Voidwalker",
+      "keybind": "5",
+      "cooldown": 0,
+      "triggersGcd": false,
+      "manaCost": 100,
+      "range": 0,
+      "requiresTarget": false,
+      "castTime": 10
+    },
+    "lifeTap": {
+      "id": "lifeTap",
+      "name": "Life Tap",
+      "keybind": "6",
+      "cooldown": 0,
+      "triggersGcd": false,
+      "manaCost": 0,
+      "range": 0,
+      "requiresTarget": false
+    },
+    "fear": {
+      "id": "fear",
+      "name": "Fear",
+      "keybind": "7",
+      "cooldown": 20,
+      "triggersGcd": true,
+      "manaCost": 30,
+      "range": 20,
+      "requiresTarget": true
+    }
+  },
+  "rotation": [
+    {
+      "abilityId": "summonVoidwalker",
+      "conditions": [
+        {
+          "type": "NotInCombat"
+        }
+      ],
+      "priority": 1,
+      "enabled": true,
+      "description": "Summon voidwalker pet when available"
+    },
+    {
+      "abilityId": "lifeTap",
+      "conditions": [
+        {
+          "type": "PlayerManaPercent",
+          "value": 30,
+          "operator": "LessThan"
+        },
+        {
+          "type": "PlayerHealthPercent",
+          "value": 60,
+          "operator": "GreaterThan"
+        }
+      ],
+      "priority": 2,
+      "enabled": true,
+      "description": "Life Tap to convert health to mana when safe"
+    },
+    {
+      "abilityId": "curseOfAgony",
+      "conditions": [
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "BuffAbsent",
+          "buffName": "Curse of Agony"
+        }
+      ],
+      "priority": 3,
+      "enabled": true,
+      "description": "Apply Curse of Agony DoT"
+    },
+    {
+      "abilityId": "corruption",
+      "conditions": [
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "BuffAbsent",
+          "buffName": "Corruption"
+        }
+      ],
+      "priority": 4,
+      "enabled": true,
+      "description": "Apply Corruption DoT"
+    },
+    {
+      "abilityId": "fear",
+      "conditions": [
+        {
+          "type": "TargetExists"
+        },
+        {
+          "type": "TargetHealthPercent",
+          "value": 50,
+          "operator": "LessThan"
+        },
+        {
+          "type": "PlayerHealthPercent",
+          "value": 40,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 5,
+      "enabled": true,
+      "description": "Fear enemy when in danger"
+    },
+    {
+      "abilityId": "drainLife",
+      "conditions": [
+        {
+          "type": "PlayerHealthPercent",
+          "value": 50,
+          "operator": "LessThan"
+        }
+      ],
+      "priority": 6,
+      "enabled": true,
+      "description": "Drain Life for healing when low health"
+    },
+    {
+      "abilityId": "shadowBolt",
+      "conditions": [],
+      "priority": 7,
+      "enabled": true,
+      "description": "Shadow Bolt as main damage spell"
+    }
+  ]
+}
