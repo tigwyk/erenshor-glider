@@ -1,45 +1,78 @@
-# Build results
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
-# Visual Studio
-.vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# JetBrains Rider
-.idea/
-*.DotSettings.user
-
-# NuGet
-packages/
-*.nupkg
-project.assets.json
-*.nuget.props
-*.nuget.targets
+# ==============================================
+# .NET / Build outputs
+# ==============================================
+bin/
+obj/
+out/
 
 # Build artifacts
 *.dll
 *.exe
 *.pdb
-!lib/**/*.dll
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
 
-# OS files
-.DS_Store
-Thumbs.db
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.assets.json
+project.fragment.lock.json
+project.lock.json
+artifacts/
+nuget.config~
 
-# User-specific files
-*.rsuser
+# ==============================================
+# Visual Studio
+# ==============================================
+.vs/
+*.suo
+*.user
+*.userosscache
 *.sln.docstates
+*.userfiles
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
+# ==============================================
+# JetBrains Rider
+# ==============================================
+.idea/
+*.DotSettings.user
+*.sln.iml
+
+# ==============================================
 # Mono
+# ==============================================
+mono_crash.*
 mono_crash.*
 
+# ==============================================
 # Unity
+# ==============================================
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -47,6 +80,38 @@ mono_crash.*
 [Bb]uilds/
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
+MemoryCaptures/
+Captured/
 
-# BepInEx specific
+# ==============================================
+# BepInEx
+# ==============================================
 BepInEx/
+plugin offsets/
+*.doorstop_version
+
+# ==============================================
+# OS files
+# ==============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==============================================
+# User-specific files (Rider/VS)
+# ==============================================
+*.rsuser
+*.sln.docstates
+
+# ==============================================
+# Keep these directories but ignore contents
+# ==============================================
+profiles/*
+waypoints/*
+!profiles/.gitkeep
+!waypoints/.gitkeep
