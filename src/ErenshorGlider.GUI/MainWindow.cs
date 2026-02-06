@@ -839,9 +839,9 @@ public class MainWindow : Form
             return;
         }
 
-        // Close any parent forms (settings dialog)
-        var parentForm = FindParentForm(this);
-        parentForm?.Close();
+        // NOTE: Do not attempt to close a parent form from here using `this` (MainWindow),
+        // as that would close the main window instead of just a settings dialog.
+        // Any settings dialog should be closed by the caller using the actual sender/control.
 
         // Show the setup wizard
         using var wizard = new Forms.SetupWizard(_installationService);
