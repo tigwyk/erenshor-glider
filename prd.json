@@ -713,8 +713,8 @@
         "Typecheck passes"
       ],
       "priority": 48,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created ExportImportManager static class with ExportWaypointPath(), ExportCombatProfile(), ImportWaypointPath(), ImportCombatProfile(), ImportAndSaveWaypointPath(), ImportAndSaveCombatProfile(). ExportResult and ImportResult enums track outcomes. Export includes metadata (Version, ExportedAt, ExportedBy). Bulk export: ExportAllWaypointPaths(), ExportAllCombatProfiles(). Bulk import: ImportWaypointPathsFromDirectory(), ImportCombatProfilesFromDirectory(). Validation uses existing Validate() methods on WaypointPath and CombatProfile."
     },
     {
       "id": "US-049",

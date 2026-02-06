@@ -1341,3 +1341,48 @@
   - HandleLootCompleted checks bag space BEFORE deciding next state
   - Vendor run flows: Looting -> VendorRun -> Pathing (or Stop if no vendor)
   - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
+
+---
+
+## 2026-02-05 - US-048
+- What was implemented:
+  - Created ExportImportManager static class for export/import operations
+  - ExportWaypointPath() exports WaypointPath to JSON with metadata wrapper
+  - ExportCombatProfile() exports CombatProfile to JSON with metadata wrapper
+  - ImportWaypointPath() imports from file with validation, returns (ImportResult, WaypointPath?)
+  - ImportCombatProfile() imports from file with validation, returns (ImportResult, CombatProfile?)
+  - ImportAndSaveWaypointPath() imports and saves to waypoints/ directory
+  - ImportAndSaveCombatProfile() imports and saves to profiles/ directory
+  - ExportResult enum: Success, FileExists, InvalidData, Failed
+  - ImportResult enum: Success, FileNotFound, InvalidFormat, ValidationFailed, Cancelled
+  - WaypointExportData wrapper: Version, ExportedAt, ExportedBy, Path
+  - ProfileExportData wrapper: Version, ExportedAt, ExportedBy, Profile
+  - Bulk export: ExportAllWaypointPaths(), ExportAllCombatProfiles()
+  - Bulk import: ImportWaypointPathsFromDirectory(), ImportCombatProfilesFromDirectory()
+  - overwrite parameter controls whether to overwrite existing files
+  - validateOnly parameter allows validation without importing
+  - Auto-generated filenames include timestamp (yyyyMMdd_HHmmss) for uniqueness
+  - Default export directories: exports/waypoints/, exports/profiles/
+  - Uses existing WaypointPath.Validate() and CombatProfile.Validate() for validation
+  - Handles both wrapped export format and plain JSON format for imports
+- Files changed:
+  - src/ErenshorGlider/ImportExport/ExportImportManager.cs (created)
+  - prd.json (modified - US-048 marked complete)
+  - progress.txt (modified - added entry)
+- **Learnings for future iterations:**
+  - ExportImportManager provides unified API for all export/import operations
+  - Metadata wrapper (Version, ExportedAt, ExportedBy) helps track file origin
+  - Auto-generated filenames prevent conflicts when exporting multiple versions
+  - validateOnly=true allows validating files before saving them
+  - Import supports both wrapped format (with metadata) and plain JSON for compatibility
+  - overwrite=false by default prevents accidental data loss
+  - Bulk operations iterate through all files in directory using Directory.GetFiles()
+  - SanitizeFileName() removes invalid characters from filenames
+  - Import methods return tuples (Result, Data) for error handling
+  - Validation happens before export to prevent exporting invalid data
+  - ExportResult.FileExists allows user to decide whether to overwrite
+  - ExportAll methods count successful exports for user feedback
+  - ImportAndSave methods directly save to appropriate directories (waypoints/, profiles/)
+  - Uses System.Text.Json with camelCase naming for consistency
+  - Directory.CreateDirectory() ensures output directories exist before export
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check
