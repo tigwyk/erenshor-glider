@@ -68,8 +68,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Replaced GetPlayerRotation() stub with real implementation using GameData.PlayerControl.transform.rotation.eulerAngles.y. Added null safety for PlayerControl and transform, normalize to 0-360 degrees. Added 11 Navigation unit tests covering distance calculation, direction calculation, HasReached, MoveTo, FaceTarget, IsFacing edge cases."
     },
     {
       "id": "US-005",

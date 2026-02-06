@@ -100,3 +100,31 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-004
+- Replaced Navigation.GetPlayerRotation() stub with real implementation
+- Reads from GameData.PlayerControl.transform.rotation.eulerAngles.y
+- Added null safety checks for PlayerControl and transform
+- Normalizes rotation to 0-360 degree range
+- Added try/catch for graceful error handling during scene transitions
+- Added conditional compilation (#if !USE_REAL_GAME_TYPES) for stub mode
+- Created NavigationTests.cs with 11 unit tests
+- Tests cover CalculateDistance, CalculateDirection, HasReached, MoveTo, FaceTarget, IsFacing
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Navigation/Navigation.cs - Implemented real GetPlayerRotation(), added conditional using
+- src/ErenshorGlider.Tests/Navigation/NavigationTests.cs - New test file with 11 unit tests
+
+**Learnings for future iterations:**
+- Unity Transform.rotation returns a Quaternion with eulerAngles property (Vector3)
+- eulerAngles.y is the Y-axis rotation (yaw/heading) in degrees
+- Need to normalize angles to 0-360 range for consistent comparison
+- Conditional compilation pattern: #if !USE_REAL_GAME_TYPES for stub-specific code
+- TestStubsSetup.CreateMockPlayer() provides test fixtures with transform and position
+- Navigation tests verify public API behavior (FaceTarget, HasReached) which indirectly tests GetPlayerRotation
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---
