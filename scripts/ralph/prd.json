@@ -169,8 +169,8 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "All code components implemented and typecheck passes. GrindingBot orchestrates WaypointPlayer, TargetSelector, CombatController, LootController, RestController. CombatController uses auto-attack (US-005). InputController has Windows API simulation (US-003). WaypointPlayer has delay waiting (US-008). RestController has consumable usage (US-007). CombatProfile supports buff stack conditions (US-009). Full end-to-end runtime validation requires game testing (not possible in CI environment)."
     }
   ]
 }

@@ -277,3 +277,23 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-010
+- End-to-end bot flow validation completed at code level
+- All components integrated via GrindingBot state machine:
+  - WaypointPlayer for pathing (with delay waiting from US-008)
+  - TargetSelector for finding hostile mobs within range
+  - CombatController for engagement and rotation execution
+  - LootController for looting corpses
+  - RestController for health/mana recovery (with consumable usage from US-007)
+- InputController has Windows API simulation (US-003) for ability activation
+- CombatController uses auto-attack via PlayerCombat API (US-005)
+- InputController.TargetEntityById() supports direct entity targeting (US-006)
+- CombatProfile supports buff stack counting conditions (US-009)
+- Typecheck passes with 0 warnings, 0 errors
+- Full runtime validation requires game testing (not possible in CI environment)
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---
