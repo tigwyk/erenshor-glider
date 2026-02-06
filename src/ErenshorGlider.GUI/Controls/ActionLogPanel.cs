@@ -147,7 +147,8 @@ public class ActionLogPanel : Panel
         _logTextBox.VScroll += (s, e) =>
         {
             // If user scrolled up (not at bottom), disable auto-scroll
-            _autoScroll = _logTextBox.GetScrollState(1, 0) == 0; // SB_BOTTOM = 0
+            // Check if the selection is at the end (bottom of text)
+            _autoScroll = _logTextBox.SelectionStart == _logTextBox.TextLength;
         };
     }
 
@@ -204,7 +205,8 @@ public class ActionLogPanel : Panel
 
         // Message in default color
         _logTextBox.SelectionColor = Color.FromArgb(220, 220, 220);
-        _logTextBox.AppendLine(entry.Message);
+        _logTextBox.AppendText(entry.Message);
+        _logTextBox.AppendText(Environment.NewLine);
 
         // Restore selection or select new text
         if (selectText)

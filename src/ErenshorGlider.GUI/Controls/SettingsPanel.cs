@@ -1,26 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using ErenshorGlider.Configuration;
 
 namespace ErenshorGlider.GUI.Controls;
-
-/// <summary>
-/// Interface for providing bot configuration data.
-/// </summary>
-public interface IBotConfigProvider
-{
-    /// <summary>
-    /// Gets the current bot configuration.
-    /// </summary>
-    BotConfig CurrentConfig { get; }
-
-    /// <summary>
-    /// Event raised when configuration is updated.
-    /// </summary>
-    event EventHandler? ConfigUpdated;
-}
 
 /// <summary>
 /// Panel for editing bot settings with categorized tabs.
@@ -31,84 +16,84 @@ public class SettingsPanel : Panel
     private readonly Button _saveButton;
     private readonly Button _resetButton;
     private readonly Label _statusLabel;
-    private readonly IBotConfigProvider _configProvider;
+    private readonly IBotController _configProvider;
     private BotConfig _workingConfig;
 
     // Combat tab controls
-    private readonly NumericUpDown _minHealthCombat;
-    private readonly NumericUpDown _minManaCombat;
-    private readonly NumericUpDown _maxDeathCount;
-    private readonly NumericUpDown _combatTimeout;
-    private readonly CheckBox _chaseFleeing;
-    private readonly NumericUpDown _maxChaseDistance;
-    private readonly NumericUpDown _maxAttackRange;
+    private NumericUpDown _minHealthCombat;
+    private NumericUpDown _minManaCombat;
+    private NumericUpDown _maxDeathCount;
+    private NumericUpDown _combatTimeout;
+    private CheckBox _chaseFleeing;
+    private NumericUpDown _maxChaseDistance;
+    private NumericUpDown _maxAttackRange;
 
     // Target selection tab controls
-    private readonly NumericUpDown _maxLevelAbove;
-    private readonly NumericUpDown _maxLevelBelow;
-    private readonly NumericUpDown _maxSearchRadius;
-    private readonly NumericUpDown _maxWaypointDistance;
-    private readonly CheckBox _prioritizeAttackers;
-    private readonly TextBox _blacklistedMobs;
-    private readonly TextBox _blacklistedTypes;
+    private NumericUpDown _maxLevelAbove;
+    private NumericUpDown _maxLevelBelow;
+    private NumericUpDown _maxSearchRadius;
+    private NumericUpDown _maxWaypointDistance;
+    private CheckBox _prioritizeAttackers;
+    private TextBox _blacklistedMobs;
+    private TextBox _blacklistedTypes;
 
     // Rest and recovery tab controls
-    private readonly NumericUpDown _minHealthRest;
-    private readonly NumericUpDown _minManaRest;
-    private readonly NumericUpDown _targetHealthRest;
-    private readonly NumericUpDown _targetManaRest;
-    private readonly NumericUpDown _maxRestDuration;
-    private readonly TextBox _foodItem;
-    private readonly TextBox _drinkItem;
+    private NumericUpDown _minHealthRest;
+    private NumericUpDown _minManaRest;
+    private NumericUpDown _targetHealthRest;
+    private NumericUpDown _targetManaRest;
+    private NumericUpDown _maxRestDuration;
+    private TextBox _foodItem;
+    private TextBox _drinkItem;
 
     // Looting tab controls
-    private readonly CheckBox _autoLoot;
-    private readonly NumericUpDown _lootDistance;
-    private readonly NumericUpDown _maxLootWait;
-    private readonly CheckBox _skipLootWhenFull;
-    private readonly NumericUpDown _minFreeBagSlots;
+    private CheckBox _autoLoot;
+    private NumericUpDown _lootDistance;
+    private NumericUpDown _maxLootWait;
+    private CheckBox _skipLootWhenFull;
+    private NumericUpDown _minFreeBagSlots;
 
     // Navigation tab controls
-    private readonly NumericUpDown _stoppingDistance;
-    private readonly NumericUpDown _stuckThreshold;
-    private readonly NumericUpDown _maxUnstuckAttempts;
-    private readonly NumericUpDown _movementProgress;
-    private readonly NumericUpDown _facingTolerance;
+    private NumericUpDown _stoppingDistance;
+    private NumericUpDown _stuckThreshold;
+    private NumericUpDown _maxUnstuckAttempts;
+    private NumericUpDown _movementProgress;
+    private NumericUpDown _facingTolerance;
 
     // Waypoints tab controls
-    private readonly NumericUpDown _minWaypointDistance;
-    private readonly NumericUpDown _minWaypointInterval;
+    private NumericUpDown _minWaypointDistance;
+    private NumericUpDown _minWaypointInterval;
 
     // Input tab controls
-    private readonly NumericUpDown _inputDelay;
-    private readonly NumericUpDown _inputRandomization;
+    private NumericUpDown _inputDelay;
+    private NumericUpDown _inputRandomization;
 
     // Death tab controls
-    private readonly CheckBox _autoReleaseSpirit;
-    private readonly CheckBox _autoResurrectGraveyard;
-    private readonly NumericUpDown _maxResurrectWait;
-    private readonly NumericUpDown _postResurrectDelay;
+    private CheckBox _autoReleaseSpirit;
+    private CheckBox _autoResurrectGraveyard;
+    private NumericUpDown _maxResurrectWait;
+    private NumericUpDown _postResurrectDelay;
 
     // Map discovery tab controls
-    private readonly CheckBox _autoMappingEnabled;
-    private readonly CheckBox _recordResourceNodes;
-    private readonly CheckBox _recordNpcs;
-    private readonly CheckBox _recordMobSpawns;
-    private readonly NumericUpDown _mapDedupeRadius;
+    private CheckBox _autoMappingEnabled;
+    private CheckBox _recordResourceNodes;
+    private CheckBox _recordNpcs;
+    private CheckBox _recordMobSpawns;
+    private NumericUpDown _mapDedupeRadius;
 
     // Hotkeys tab controls
-    private readonly ComboBox _emergencyStopHotkey;
-    private readonly ComboBox _pauseResumeHotkey;
+    private ComboBox _emergencyStopHotkey;
+    private ComboBox _pauseResumeHotkey;
 
     // Session limits tab controls
-    private readonly NumericUpDown _maxSessionRuntime;
-    private readonly NumericUpDown _maxStuckTime;
+    private NumericUpDown _maxSessionRuntime;
+    private NumericUpDown _maxStuckTime;
 
     /// <summary>
     /// Creates a new SettingsPanel.
     /// </summary>
     /// <param name="configProvider">The configuration provider.</param>
-    public SettingsPanel(IBotConfigProvider configProvider)
+    public SettingsPanel(IBotController configProvider)
     {
         _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
         _workingConfig = CloneConfig(configProvider.CurrentConfig);
