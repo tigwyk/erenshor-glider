@@ -1042,4 +1042,40 @@
   - XP/Gold numbers use N0 format for thousands separation (readability)
   - Panel docking order: BotControlPanel, StatusDisplayPanel, SessionStatisticsPanel (top to bottom)
 
+## 2026-02-05 - US-039
+- What was implemented:
+  - Created LogEntry readonly struct with Timestamp, Category, Message
+  - Added LogCategory enum: Info, State, Combat, Loot, Rest, Movement, Error, Warning
+  - Created IActionLogProvider interface with GetRecentEntries, LogEntryAdded event, Log, Clear methods
+  - Created MockActionLogProvider with circular buffer (500 max entries) and convenience methods (Info, State, Combat, etc.)
+  - Created ActionLogPanel with RichTextBox for scrollable log display
+  - Color-coded entries: Info(gray 0xcccccc), State(blue 0x99ccff), Combat(red 0xff6666), Loot(yellow 0xffcc66), Rest(green 0x66ff99), Movement(purple 0xcc99ff), Error(red 0xff3333), Warning(orange 0xff9933)
+  - Timestamp format: \"HH:mm:ss\"
+  - Entry format: \"[HH:mm:ss] [Category] Message\"
+  - Auto-scroll to newest entry by default (ScrollToCaret)
+  - Pauses auto-scroll when user scrolls up (VScroll event detection)
+  - Clear button with hover effect (underline on hover)
+  - Header panel with \"Action Log\" title
+  - Log property added to IBotController interface
+  - MockBotController logs \"Bot started\" on Start()
+- Files changed:
+  - src/ErenshorGlider.GUI/ActionLogModel.cs (created)
+  - src/ErenshorGlider.GUI/Controls/ActionLogPanel.cs (created)
+  - src/ErenshorGlider.GUI/BotController.cs (modified)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified)
+- **Learnings for future iterations:**
+  - RichTextBox.SelectionColor changes color for appended text
+  - RichTextBox.ScrollToCaret scrolls to the current selection position
+  - Color stored as int in LogEntry for easy Color.FromArgb() conversion
+  - Circular buffer pattern: remove oldest when max count reached
+  - Thread safety with lock() for concurrent log access
+  - Auto-scroll pause: detect user scroll by checking scroll position (not at bottom)
+  - RichTextBox with ReadOnly=true still allows selection and scrolling
+  - Consolas font keeps log entries aligned (monospaced)
+  - WordWrap=false prevents long messages from wrapping multiple times
+  - Panel docking: ActionLogPanel uses Dock=DockStyle.Fill to occupy remaining space
+  - LogEntryAdded event enables real-time UI updates without polling
+  - FormattedTimestamp property (\"HH:mm:ss\") avoids formatting on UI thread
+  - ActionLogPanel header panel height 25px, Clear button 50x20px
+
 ---
