@@ -2,6 +2,14 @@
 Started: Wed Feb  5 06:30:00 PST 2026
 Branch: ralph/game-integration
 Feature: Replace stub implementations with real Erenshor game API integration using Assembly-CSharp.dll
+
+## Codebase Patterns
+- Conditional compilation: Use `#if !USE_REAL_GAME_TYPES` to toggle between stub and real game types
+- P/Invoke Windows API: Use `[DllImport("user32.dll", SetLastError = true)]` for native Windows functions
+- Native struct marshaling: Use `[StructLayout(LayoutKind.Sequential)]` for structs passed to native code
+- Virtual Key codes: Windows VK constants (0x57='W', 0x20=Space, 0x09=Tab, etc.)
+- SendInput error handling: Check return value (0=failure), use `Marshal.GetLastWin32Error()` for error code
+- Input state tracking: Maintain internal key state dictionary for `IsKeyPressed` queries separate from Windows API
 ---
 
 ## [2025-02-05] - US-001
@@ -59,4 +67,36 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 **Build verification:**
 - ErenshorGlider.Tests build: PASS (0 warnings, 0 errors)
 - Test execution: Requires mono/.NET Framework runtime on Windows
+---
+
+## [2025-02-05] - US-003
+- Created WindowsInputSimulator static class with Windows API P/Invoke declarations
+- Implemented KEYBDINPUT structure for keyboard events (wVk, wScan, dwFlags, time, dwExtraInfo)
+- Implemented INPUT struct with Data union for marshaling to native code
+- Added PressKey(KeyCode) to send KEYEVENTF_KEYDOWN via SendInput
+- Added ReleaseKey(KeyCode) to send KEYEVENTF_KEYUP via SendInput
+- Added PressAndReleaseKey(KeyCode, durationMs) for complete key press simulation
+- Added error handling with Marshal.GetLastWin32Error() and debug output
+- Mapped all KeyCode enums to Windows Virtual Key codes (letter keys, special keys, arrows, numbers, function keys)
+- Integrated WindowsInputSimulator into InputController with UseWindowsInputSimulation toggle property (default true)
+- Preserved internal key state tracking (KeyStates dictionary) for game logic that uses IsKeyPressed
+- Added UpArrow and DownArrow to KeyCode enum for completeness
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Input/WindowsInputSimulator.cs - New file with Windows API input simulation
+- src/ErenshorGlider/Input/InputController.cs - Integrated WindowsInputSimulator, added UpArrow/DownArrow to KeyCode
+
+**Learnings for future iterations:**
+- The Windows API SendInput function requires P/Invoke with [DllImport("user32.dll", SetLastError = true)]
+- INPUT struct uses LayoutKind.Sequential for correct marshaling to native code
+- Virtual Key codes are standard Windows constants (e.g., 0x57 for 'W', 0x20 for Space)
+- SendInput returns 0 on failure - use Marshal.GetLastWin32Error() to get error code
+- The INPUT union is simplified to only use Keyboard field since we don't need mouse/hardware input
+- Preserving internal key state tracking allows the game logic to query IsKeyPressed without Windows API calls
+- UseWindowsInputSimulation property allows disabling Windows input for testing or GUI-only scenarios
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
 ---
