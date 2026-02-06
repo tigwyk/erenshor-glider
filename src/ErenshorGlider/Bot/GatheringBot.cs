@@ -22,7 +22,7 @@ public class GatheringBot
     private readonly PositionTracker _positionTracker;
     private readonly SafetyController _safetyController;
     private readonly AutoStopController _autoStopController;
-    private readonly Navigation _navigation;
+    private readonly ErenshorGlider.Navigation.Navigation _navigation;
 
     /// <summary>
     /// Represents the current state of the gathering bot.
@@ -412,7 +412,7 @@ public class GatheringBot
 
             if (playerPos.HasValue)
             {
-                float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, node.Position);
+                float distance = ErenshorGlider.Navigation.Navigation.CalculateDistance(playerPos.Value, node.Position);
 
                 // Only detour if node is within reasonable distance
                 if (distance <= MaxNodeDetourDistance)
@@ -464,7 +464,7 @@ public class GatheringBot
             return;
         }
 
-        float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, node.Position);
+        float distance = ErenshorGlider.Navigation.Navigation.CalculateDistance(playerPos.Value, node.Position);
 
         // Check if we've reached the node
         if (distance <= 2f) // Within gathering range
@@ -518,7 +518,7 @@ public class GatheringBot
             return;
         }
 
-        float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, _targetNode.Value.Position);
+        float distance = ErenshorGlider.Navigation.Navigation.CalculateDistance(playerPos.Value, _targetNode.Value.Position);
 
         // If we've moved too far from the node, go back to moving to it
         if (distance > 5f)
@@ -640,7 +640,7 @@ public class GatheringBot
             if (entity.Type != EntityType.Node || entity.IsDead)
                 continue;
 
-            float distance = Navigation.Navigation.CalculateDistance(playerPos.Value, entity.Position);
+            float distance = ErenshorGlider.Navigation.Navigation.CalculateDistance(playerPos.Value, entity.Position);
             if (distance < nearestDistance)
             {
                 nearestDistance = distance;

@@ -164,6 +164,15 @@ public class Navigation
     }
 
     /// <summary>
+    /// Updates the navigation state.
+    /// Should be called regularly during navigation to check for stuck conditions.
+    /// </summary>
+    public void Update()
+    {
+        CheckAndAttemptUnstick();
+    }
+
+    /// <summary>
     /// Attempts to unstuck the bot using various strategies.
     /// </summary>
     /// <returns>True if attempting to unstuck, false if max attempts reached.</returns>
