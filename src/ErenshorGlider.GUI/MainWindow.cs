@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using ErenshorGlider.GUI.Controls;
+using ErenshorGlider.GUI.Forms;
 using ErenshorGlider.GUI.Installation;
 
 namespace ErenshorGlider.GUI;
@@ -633,30 +634,482 @@ public class MainWindow : Form
     }
 
     /// <summary>
-    /// Shows the settings dialog.
+    /// Shows the settings dialog with installation management options.
     /// </summary>
     private void ShowSettingsDialog()
     {
         var form = new Form
         {
-            Text = "Bot Settings",
-            Size = new Size(650, 550),
-            MinimumSize = new Size(600, 500),
+            Text = "Settings",
+            Size = new Size(750, 600),
+            MinimumSize = new Size(700, 550),
             StartPosition = FormStartPosition.CenterParent,
-            FormBorderStyle = FormBorderStyle.FixedSingle,
-            MaximizeBox = false,
+            FormBorderStyle = FormBorderStyle.Sizable,
             BackColor = Color.FromArgb(30, 30, 30),
             ForeColor = Color.White,
             ShowInTaskbar = false
+        };
+
+        // Create tab control for different settings categories
+        var tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(45, 45, 48),
+            ForeColor = Color.White,
+            DrawMode = TabDrawMode.Normal,
+            Appearance = TabAppearance.Normal
+        };
+
+        // Bot Settings tab
+        var botSettingsPage = new TabPage("Bot Settings")
+        {
+            BackColor = Color.FromArgb(35, 35, 38),
+            ForeColor = Color.White,
+            Padding = new Padding(10)
         };
 
         var settingsPanel = new SettingsPanel(_botController)
         {
             Dock = DockStyle.Fill
         };
+        botSettingsPage.Controls.Add(settingsPanel);
 
-        form.Controls.Add(settingsPanel);
+        // Installation Management tab
+        var installationPage = new TabPage("Installation")
+        {
+            BackColor = Color.FromArgb(35, 35, 38),
+            ForeColor = Color.White,
+            Padding = new Padding(15)
+        };
+
+        CreateInstallationManagementTab(installationPage);
+
+        tabControl.TabPages.Add(botSettingsPage);
+        tabControl.TabPages.Add(installationPage);
+
+        form.Controls.Add(tabControl);
         form.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Creates the installation management tab content.
+    /// </summary>
+    /// <param name="parentPanel">The parent panel to add controls to.</param>
+    private void CreateInstallationManagementTab(Panel parentPanel)
+    {
+        int y = 15;
+
+        // Section title
+        var titleLabel = new Label
+        {
+            Text = "Installation Management",
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+            Location = new Point(15, y),
+            AutoSize = true
+        };
+        parentPanel.Controls.Add(titleLabel);
+        y += 35;
+
+        // Description
+        var descLabel = new Label
+        {
+            Text = "Manage your BepInEx and Erenshor Glider installation.",
+            ForeColor = Color.FromArgb(180, 180, 180),
+            Font = new Font("Segoe UI", 9F),
+            Location = new Point(15, y),
+            AutoSize = true
+        };
+        parentPanel.Controls.Add(descLabel);
+        y += 35;
+
+        // Run Setup Wizard button
+        var wizardButton = CreateActionButton("Run Setup Wizard", "Re-run the initial setup wizard to configure your installation.",
+            Color.FromArgb(70, 130, 180), async (s, e) => await HandleRunWizardClick());
+        wizardButton.Location = new Point(15, y);
+        parentPanel.Controls.Add(wizardButton);
+        y += 55;
+
+        // Repair Installation button
+        var repairButton = CreateActionButton("Repair Installation", "Reinstall BepInEx and plugin files without changing configuration.",
+            Color.FromArgb(160, 120, 60), async (s, e) => await HandleRepairInstallationClick());
+        repairButton.Location = new Point(15, y);
+        parentPanel.Controls.Add(repairButton);
+        y += 55;
+
+        // Uninstall button
+        var uninstallButton = CreateActionButton("Uninstall", "Remove BepInEx and plugin files from your Erenshor installation.",
+            Color.FromArgb(180, 70, 70), async (s, e) => await HandleUninstallClick());
+        uninstallButton.Location = new Point(15, y);
+        parentPanel.Controls.Add(uninstallButton);
+        y += 55;
+
+        // Installation status display
+        y += 20;
+        var statusSeparator = new Label
+        {
+            Text = "Installation Status",
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+            Location = new Point(15, y),
+            AutoSize = true
+        };
+        parentPanel.Controls.Add(statusSeparator);
+        y += 30;
+
+        // Add installation status panel
+        if (_installationService != null)
+        {
+            var statusPanel = new InstallationStatusPanel(_installationService)
+            {
+                Location = new Point(15, y),
+                Width = parentPanel.Width - 40,
+                Height = 160
+            };
+            parentPanel.Controls.Add(statusPanel);
+        }
+    }
+
+    /// <summary>
+    /// Creates an action button with description label.
+    /// </summary>
+    /// <param name="buttonText">The button text.</param>
+    /// <param name="description">The description text.</param>
+    /// <param name="color">The button color.</param>
+    /// <param name="onClick">The click handler.</param>
+    /// <returns>A panel containing the button and description.</returns>
+    private Panel CreateActionButton(string buttonText, string description, Color color, EventHandler onClick)
+    {
+        var panel = new Panel
+        {
+            Height = 50,
+            Width = 600,
+            BackColor = Color.Transparent
+        };
+
+        var button = new Button
+        {
+            Text = buttonText,
+            BackColor = color,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Size = new Size(180, 32),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand,
+            Location = new Point(0, 0)
+        };
+
+        var lighterColor = Color.FromArgb(
+            Math.Min(255, color.R + 20),
+            Math.Min(255, color.G + 20),
+            Math.Min(255, color.B + 20));
+        button.MouseEnter += (s, e) => button.BackColor = lighterColor;
+        button.MouseLeave += (s, e) => button.BackColor = color;
+        button.Click += onClick;
+
+        var descLabel = new Label
+        {
+            Text = description,
+            ForeColor = Color.FromArgb(180, 180, 180),
+            Font = new Font("Segoe UI", 8F),
+            Location = new Point(195, 8),
+            Width = 400,
+            AutoSize = false
+        };
+
+        panel.Controls.Add(button);
+        panel.Controls.Add(descLabel);
+
+        return panel;
+    }
+
+    /// <summary>
+    /// Handles the Run Setup Wizard button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleRunWizardClick()
+    {
+        if (_installationService == null)
+        {
+            MessageBox.Show(
+                "Installation service is not available.",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        // Close any parent forms (settings dialog)
+        var parentForm = FindParentForm(this);
+        parentForm?.Close();
+
+        // Show the setup wizard
+        using var wizard = new Forms.SetupWizard(_installationService);
+        wizard.ShowDialog();
+    }
+
+    /// <summary>
+    /// Handles the Repair Installation button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleRepairInstallationClick()
+    {
+        if (_installationService == null)
+        {
+            MessageBox.Show(
+                "Installation service is not available.",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        var erenshorPath = _installationService.Config?.ErenshorPath;
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            MessageBox.Show(
+                "Erenshor installation path is not configured. Please run the Setup Wizard first.",
+                "Path Not Configured",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            "This will repair your installation by:\n\n" +
+            "• Reinstalling BepInEx files\n" +
+            "• Reinstalling the plugin DLL\n" +
+            "• Validating all files\n\n" +
+            "Your configuration will not be affected.\n\n" +
+            "Do you want to continue?",
+            "Repair Installation",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+
+        if (result != DialogResult.Yes)
+            return;
+
+        try
+        {
+            // Show progress dialog
+            using var progressDialog = CreateProgressDialog("Repairing installation...");
+            progressDialog.Show(this);
+
+            // Step 1: Download/Get BepInEx
+            progressDialog.Text = "Checking BepInEx...";
+            var bepInExPath = await _installationService.DownloadBepInExAsync();
+
+            if (string.IsNullOrEmpty(bepInExPath))
+            {
+                progressDialog.Close();
+                MessageBox.Show(
+                    "Failed to download BepInEx. Please check your internet connection.",
+                    "Download Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            // Step 2: Install BepInEx
+            progressDialog.Text = "Installing BepInEx...";
+            var bepInExResult = await _installationService.InstallBepInExAsync(erenshorPath!, bepInExPath!);
+
+            if (!bepInExResult.Success)
+            {
+                progressDialog.Close();
+                MessageBox.Show(
+                    $"Failed to install BepInEx: {bepInExResult.ErrorMessage}",
+                    "Installation Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            // Step 3: Install plugin
+            progressDialog.Text = "Installing plugin...";
+            var guiDirectory = System.IO.Path.GetDirectoryName(Application.ExecutablePath);
+            var pluginDllPath = System.IO.Path.Combine(guiDirectory!, "ErenshorGlider.dll");
+
+            if (System.IO.File.Exists(pluginDllPath))
+            {
+                var pluginResult = await _installationService.InstallPluginAsync(pluginDllPath, erenshorPath!);
+
+                if (!pluginResult.Success)
+                {
+                    progressDialog.Close();
+                    MessageBox.Show(
+                        $"BepInEx was repaired, but plugin installation failed: {pluginResult.ErrorMessage}",
+                        "Partial Success",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            progressDialog.Close();
+
+            MessageBox.Show(
+                "Installation repaired successfully!\n\n" +
+                "BepInEx and the plugin have been reinstalled.",
+                "Repair Complete",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred during repair:\n{ex.Message}",
+                "Repair Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Handles the Uninstall button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleUninstallClick()
+    {
+        if (_installationService == null)
+        {
+            MessageBox.Show(
+                "Installation service is not available.",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        var erenshorPath = _installationService.Config?.ErenshorPath;
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            MessageBox.Show(
+                "No installation found to uninstall.",
+                "Nothing to Uninstall",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        // Check if game is running
+        if (_installationService.IsGameRunning())
+        {
+            MessageBox.Show(
+                "Cannot uninstall while Erenshor is running. Please close the game first.",
+                "Game Running",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            "This will uninstall Erenshor Glider by removing:\n\n" +
+            "• BepInEx folders and files\n" +
+            "• ErenshorGlider plugin DLL\n" +
+            "• doorstop_config.dll (if present)\n\n" +
+            "Your game saves and Erenshor installation will NOT be affected.\n\n" +
+            "Do you want to continue?",
+            "Confirm Uninstallation",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (result != DialogResult.Yes)
+            return;
+
+        try
+        {
+            var deleteCount = 0;
+            var errors = new System.Collections.Generic.List<string>();
+
+            // Delete BepInEx folder
+            var bepInExPath = System.IO.Path.Combine(erenshorPath!, "BepInEx");
+            if (System.IO.Directory.Exists(bepInExPath))
+            {
+                try
+                {
+                    System.IO.Directory.Delete(bepInExPath, recursive: true);
+                    deleteCount++;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"BepInEx folder: {ex.Message}");
+                }
+            }
+
+            // Delete doorstop_config.dll
+            var doorstopPath = System.IO.Path.Combine(erenshorPath!, "doorstop_config.dll");
+            if (System.IO.File.Exists(doorstopPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(doorstopPath);
+                    deleteCount++;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"doorstop_config.dll: {ex.Message}");
+                }
+            }
+
+            // Delete doorstop_config.dll.backup
+            var backupPath = System.IO.Path.Combine(erenshorPath!, "doorstop_config.dll.backup");
+            if (System.IO.File.Exists(backupPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(backupPath);
+                }
+                catch { /* Ignore backup file errors */ }
+            }
+
+            // Clear the installation config
+            _installationService.Config!.ErenshorPath = null;
+            _installationService.SaveConfig();
+
+            // Show results
+            if (errors.Count > 0)
+            {
+                MessageBox.Show(
+                    $"Uninstallation completed with some errors:\n\n" +
+                    $"{string.Join("\n", errors)}\n\n" +
+                    "You may need to manually remove some files.",
+                    "Partial Uninstallation",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Erenshor Glider has been successfully uninstalled.\n\n" +
+                    $"Removed {deleteCount} items from your Erenshor installation.",
+                    "Uninstallation Complete",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred during uninstallation:\n{ex.Message}",
+                "Uninstallation Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Finds the parent form for a control.
+    /// </summary>
+    /// <param name="control">The control to start from.</param>
+    /// <returns>The parent form, or null if not found.</returns>
+    private Form? FindParentForm(Control? control)
+    {
+        while (control != null)
+        {
+            if (control is Form form)
+                return form;
+            control = control.Parent;
+        }
+        return null;
     }
 
     /// <summary>
