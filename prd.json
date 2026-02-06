@@ -626,8 +626,8 @@
         "Typecheck passes"
       ],
       "priority": 42,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added RadarWaypoint struct with Type (8 types), RelativeX/Z, Name, IsTarget, Index. IRadarDataProvider extended with GetWaypoints() and GetWaypointConnections(). RadarControl draws dashed path lines, waypoints colored by type (Normal=dark gray, Vendor=green, Repair=orange, Node=light blue diamond, QuestGiver/TurnIn=yellow, RestArea=light blue, DangerZone=red, square for vendors). Target waypoint highlighted with white color, ring, and cross mark. MockRadarDataProvider includes SetupMockWaypointPath() for circular path with 8 waypoints of various types."
     },
     {
       "id": "US-043",

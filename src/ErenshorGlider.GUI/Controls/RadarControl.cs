@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using ErenshorGlider.GUI;
 
 namespace ErenshorGlider.GUI.Controls;
 
@@ -241,6 +243,8 @@ public class RadarControl : Panel
         var centerY = _radarCanvas.Height / 2f;
         var playerInfo = _dataProvider.GetPlayerInfo();
         var entities = _dataProvider.GetNearbyEntities(playerInfo.Range);
+        var waypoints = _dataProvider.GetWaypoints();
+        var connections = _dataProvider.GetWaypointConnections();
 
         // Clear background
         g.Clear(Color.FromArgb(15, 15, 18));
@@ -250,6 +254,9 @@ public class RadarControl : Panel
 
         // Draw radar range circles
         DrawRangeCircles(g, centerX, centerY);
+
+        // Draw waypoint path
+        DrawWaypointPath(g, centerX, centerY, waypoints, connections);
 
         // Draw entities
         DrawEntities(g, centerX, centerY, entities, playerInfo);
@@ -277,6 +284,98 @@ public class RadarControl : Panel
         // Draw crosshairs
         g.DrawLine(pen, cx - 100, cy, cx + 100, cy);
         g.DrawLine(pen, cx, cy - 100, cx, cy + 100);
+    }
+
+    /// <summary>
+    /// Draws waypoint path connections and waypoints on the radar.
+    /// </summary>
+    private void DrawWaypointPath(Graphics g, float cx, float cy, IList<RadarWaypoint> waypoints, IList<(int from, int to)> connections)
+    {
+        if (waypoints.Count == 0) return;
+
+        float scale = GetScale();
+
+        // Create a lookup dictionary for waypoint positions
+        var waypointPositions = new System.Collections.Generic.Dictionary<int, PointF>();
+        foreach (var wp in waypoints)
+        {
+            float radarX = cx + (wp.RelativeX * scale);
+            float radarY = cy - (wp.RelativeZ * scale);
+            waypointPositions[wp.Index] = new PointF(radarX, radarY);
+        }
+
+        // Draw connections first (so waypoints appear on top)
+        using var pathPen = new Pen(Color.FromArgb(60, 100, 120), 1);
+        pathPen.DashPattern = new float[] { 4, 2 };  // Dashed line for path
+
+        foreach (var (from, to) in connections)
+        {
+            if (waypointPositions.TryGetValue(from, out var fromPoint) &&
+                waypointPositions.TryGetValue(to, out var toPoint))
+            {
+                g.DrawLine(pathPen, fromPoint, toPoint);
+            }
+        }
+
+        // Draw waypoints
+        foreach (var wp in waypoints)
+        {
+            if (waypointPositions.TryGetValue(wp.Index, out var point))
+            {
+                DrawWaypoint(g, point.X, point.Y, wp);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draws a single waypoint on the radar.
+    /// </summary>
+    private void DrawWaypoint(Graphics g, float x, float y, RadarWaypoint waypoint)
+    {
+        // Skip if outside radar bounds
+        if (x < -10 || x > _radarCanvas.Width + 10 ||
+            y < -10 || y > _radarCanvas.Height + 10)
+            return;
+
+        var color = Color.FromArgb(waypoint.IsTarget ? waypoint.TargetColor : waypoint.Color);
+        float size = waypoint.IsTarget ? 6f : 4f;
+
+        using var brush = new SolidBrush(color);
+        using var pen = new Pen(color, waypoint.IsTarget ? 2 : 1);
+
+        if (waypoint.IsTarget)
+        {
+            // Draw target waypoint with a ring around it
+            g.FillEllipse(brush, x - size / 2, y - size / 2, size, size);
+            g.DrawEllipse(pen, x - size, y - size, size * 2, size * 2);
+
+            // Draw a small cross on target waypoint
+            using var crossPen = new Pen(Color.FromArgb(200, 200, 200), 1);
+            g.DrawLine(crossPen, x - 2, y, x + 2, y);
+            g.DrawLine(crossPen, x, y - 2, x, y + 2);
+        }
+        else if (waypoint.Type == RadarWaypointType.Node)
+        {
+            // Draw diamond for resource nodes
+            var points = new PointF[]
+            {
+                new PointF(x, y - size),
+                new PointF(x + size, y),
+                new PointF(x, y + size),
+                new PointF(x - size, y)
+            };
+            g.FillPolygon(brush, points);
+        }
+        else if (waypoint.Type == RadarWaypointType.Vendor)
+        {
+            // Draw square for vendors
+            g.FillRectangle(brush, x - size / 2, y - size / 2, size, size);
+        }
+        else
+        {
+            // Draw circle for other waypoints
+            g.FillEllipse(brush, x - size / 2, y - size / 2, size, size);
+        }
     }
 
     /// <summary>

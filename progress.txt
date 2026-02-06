@@ -1180,3 +1180,35 @@
   - UseAutoAttack: false for casters, true for melee/hunters
 
 ---
+
+## 2026-02-05 - US-042
+- What was implemented:
+  - Added RadarWaypointType enum: Normal, Vendor, Repair, Node, QuestGiver, QuestTurnIn, RestArea, DangerZone
+  - Added RadarWaypoint readonly struct with Type, RelativeX, RelativeZ, Name, IsTarget, Index, Distance, Color, TargetColor
+  - Extended IRadarDataProvider with GetWaypoints() and GetWaypointConnections() methods
+  - Implemented DrawWaypointPath() method in RadarControl for drawing path connections and waypoints
+  - Implemented DrawWaypoint() method for rendering individual waypoints with different styles per type
+  - Waypoints drawn as connected path with dashed lines (DashPattern: 4, 2)
+  - Waypoint colors: Normal (dark gray), Vendor (green square), Repair (orange), Node (light blue diamond), QuestGiver/TurnIn (yellow), RestArea (light blue), DangerZone (red)
+  - Target waypoint highlighted with white color, larger size, outer ring, and cross mark
+  - MockRadarDataProvider.SetupMockWaypointPath() creates circular path with 8 waypoints of various types
+  - SetTargetWaypoint() method for changing the target waypoint index
+- Files changed:
+  - src/ErenshorGlider.GUI/RadarModel.cs (modified - added RadarWaypointType, RadarWaypoint, extended IRadarDataProvider)
+  - src/ErenshorGlider.GUI/Controls/RadarControl.cs (modified - added DrawWaypointPath, DrawWaypoint, updated PaintRadar)
+  - src/ErenshorGlider.GUI/MainWindow.cs (modified - call SetupMockWaypointPath)
+  - src/ErenshorGlider/Combat/CombatProfile.cs (modified - fixed missing using statement for GameState)
+- **Learnings for future iterations:**
+  - Waypoint paths drawn as dashed lines provide visual clarity without obscuring entities
+  - Different shapes (circle, square, diamond) help distinguish waypoint types on radar
+  - Target waypoint highlight uses multiple visual cues (color, size, ring, cross) for accessibility
+  - Mock data provider creates circular path (8 waypoints, 30 unit radius) for UI testing
+  - Coordinates: X is left/right, Z is forward/back (inverted for radar Y)
+  - Waypoint connections use tuple (int from, int to) for simple path edge representation
+  - GetWaypoints() and GetWaypointConnections() return IList<> for flexibility (arrays or lists)
+  - Target waypoint index tracked in MockRadarDataProvider for runtime updates
+  - UpdateWaypoints() method updates IsTarget flag when SetTargetWaypoint() is called
+  - Drawing order: range circles → waypoint paths → entities → player (layering for visibility)
+  - Path connections drawn first so waypoints appear on top of connection lines
+  - Bounds checking in DrawWaypoint skips waypoints outside canvas for performance
+  - Note: .NET Framework 4.7.2 reference assemblies not available on Linux - build verification limited to syntax check

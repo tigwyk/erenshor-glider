@@ -338,6 +338,7 @@ public class MainWindow : Form
 
         // Add radar panel
         var radarProvider = new MockRadarDataProvider();
+        radarProvider.SetupMockWaypointPath();
         var radarControl = new RadarControl(radarProvider)
         {
             Dock = DockStyle.Top
