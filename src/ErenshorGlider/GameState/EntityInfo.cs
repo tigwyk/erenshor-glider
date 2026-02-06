@@ -18,6 +18,12 @@ public readonly struct EntityInfo
     public EntityType Type { get; }
 
     /// <summary>
+    /// The Unity instance ID of the entity.
+    /// Used for direct entity targeting via the game API.
+    /// </summary>
+    public int InstanceId { get; }
+
+    /// <summary>
     /// The entity's position in the game world.
     /// </summary>
     public PlayerPosition Position { get; }
@@ -69,7 +75,8 @@ public readonly struct EntityInfo
         float currentHealth,
         float maxHealth,
         bool isDead,
-        float distance)
+        float distance,
+        int instanceId = 0)
     {
         Name = name ?? string.Empty;
         Type = type;
@@ -80,6 +87,7 @@ public readonly struct EntityInfo
         MaxHealth = maxHealth;
         IsDead = isDead;
         Distance = distance;
+        InstanceId = instanceId;
     }
 
     /// <summary>

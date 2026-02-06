@@ -1,6 +1,10 @@
 using System;
 using ErenshorGlider.GameState;
 
+#if !USE_REAL_GAME_TYPES
+using ErenshorGlider.GameStubs;
+#endif
+
 namespace ErenshorGlider.Input;
 
 /// <summary>
@@ -170,12 +174,13 @@ public class InputController
     /// <param name="entityInfo">The entity to target.</param>
     public void TargetEntity(in GameState.EntityInfo entityInfo)
     {
-        // For direct entity targeting, we would need to:
-        // 1. Find the actual Character/NPC object matching the EntityInfo
-        // 2. Set GameData.PlayerControl.CurrentTarget to that object
-        // This requires reflection or Harmony patching since CurrentTarget may be private
-        // For now, this is a placeholder for the implementation
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - raise event for test handling
         OnTargetEntityRequested?.Invoke(entityInfo);
+#else
+        // Real implementation - find and target the entity by instance ID
+        TargetEntityById(entityInfo.InstanceId);
+#endif
     }
 
     /// <summary>
@@ -184,8 +189,57 @@ public class InputController
     /// <param name="instanceId">The Unity instance ID of the entity.</param>
     public void TargetEntityById(int instanceId)
     {
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - raise event for test handling
         OnTargetEntityByIdRequested?.Invoke(instanceId);
+#else
+        // Real implementation - find the entity and set as target
+        try
+        {
+            if (GameData.PlayerControl == null)
+                return;
+
+            // Search for the entity by instance ID
+            // We need to check both Character and NPC types
+            var entity = FindEntityByInstanceId(instanceId);
+            if (entity != null)
+            {
+                // Set as current target
+                GameData.PlayerControl.CurrentTarget = entity;
+            }
+        }
+        catch
+        {
+            // Gracefully handle errors during scene transitions
+            // Fall back to event-based approach
+            OnTargetEntityByIdRequested?.Invoke(instanceId);
+        }
+#endif
     }
+
+#if USE_REAL_GAME_TYPES
+    /// <summary>
+    /// Finds an entity by its Unity instance ID.
+    /// Searches both Character and NPC objects.
+    /// </summary>
+    /// <param name="instanceId">The Unity instance ID to search for.</param>
+    /// <returns>The found entity, or null if not found.</returns>
+    private static Character? FindEntityByInstanceId(int instanceId)
+    {
+        // Search all Character objects (includes NPCs since they inherit from Character)
+        var allCharacters = UnityEngine.Object.FindObjectsOfType<Character>();
+        foreach (var character in allCharacters)
+        {
+            if (character != null && character.gameObject != null &&
+                character.gameObject.GetInstanceID() == instanceId)
+            {
+                return character;
+            }
+        }
+
+        return null;
+    }
+#endif
 
     /// <summary>
     /// Event raised when a specific entity targeting is requested.

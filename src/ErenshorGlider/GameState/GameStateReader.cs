@@ -797,6 +797,9 @@ public class GameStateReader
             entityType = EntityType.Mob;
         }
 
+        // Get Unity instance ID for direct targeting
+        int instanceId = character.gameObject != null ? character.gameObject.GetInstanceID() : 0;
+
         return new EntityInfo(
             name: character.CharacterName ?? "Unknown",
             type: entityType,
@@ -806,7 +809,8 @@ public class GameStateReader
             currentHealth: stats?.CurrentHP ?? 0,
             maxHealth: stats?.MaxHP ?? 0,
             isDead: character.Dead,
-            distance: distance
+            distance: distance,
+            instanceId: instanceId
         );
     }
 
@@ -814,6 +818,9 @@ public class GameStateReader
     {
         var stats = npc.MyStats;
         var position = npc.transform.position;
+
+        // Get Unity instance ID for direct targeting
+        int instanceId = npc.gameObject != null ? npc.gameObject.GetInstanceID() : 0;
 
         return new EntityInfo(
             name: npc.CharacterName ?? "Unknown NPC",
@@ -824,13 +831,17 @@ public class GameStateReader
             currentHealth: stats?.CurrentHP ?? 0,
             maxHealth: stats?.MaxHP ?? 0,
             isDead: npc.Dead,
-            distance: distance
+            distance: distance,
+            instanceId: instanceId
         );
     }
 
     private static EntityInfo CreateEntityInfoFromNode(ResourceNode node, float distance)
     {
         var position = node.transform.position;
+
+        // Get Unity instance ID for direct targeting
+        int instanceId = node.gameObject != null ? node.gameObject.GetInstanceID() : 0;
 
         return new EntityInfo(
             name: node.NodeName ?? "Resource Node",
@@ -841,7 +852,8 @@ public class GameStateReader
             currentHealth: 0,
             maxHealth: 0,
             isDead: false,
-            distance: distance
+            distance: distance,
+            instanceId: instanceId
         );
     }
 
@@ -849,6 +861,9 @@ public class GameStateReader
     {
         var position = corpse.transform.position;
         var originalChar = corpse.OriginalCharacter;
+
+        // Get Unity instance ID for direct targeting
+        int instanceId = corpse.gameObject != null ? corpse.gameObject.GetInstanceID() : 0;
 
         return new EntityInfo(
             name: corpse.CorpseName ?? originalChar?.CharacterName ?? "Corpse",
@@ -859,7 +874,8 @@ public class GameStateReader
             currentHealth: 0,
             maxHealth: 0,
             isDead: true,
-            distance: distance
+            distance: distance,
+            instanceId: instanceId
         );
     }
 
