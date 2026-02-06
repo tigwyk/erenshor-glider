@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using ErenshorGlider.Configuration;
+using ErenshorGlider.GUI;
 
 namespace ErenshorGlider.GUI.Controls;
 
@@ -743,8 +744,10 @@ public class SettingsPanel : Panel
             // Update status
             SetStatus("Settings saved successfully!", Color.FromArgb(100, 200, 100));
 
-            // Trigger config updated event
-            _configProvider.ConfigUpdated?.Invoke(this, EventArgs.Empty);
+            // Trigger config updated event through UpdateConfig method
+            // Note: Using reflection since BotController is not in the interface
+            var updateConfigMethod = _configProvider.GetType().GetMethod("UpdateConfig");
+            updateConfigMethod?.Invoke(_configProvider, new object[] { config });
         }
         catch (Exception ex)
         {
