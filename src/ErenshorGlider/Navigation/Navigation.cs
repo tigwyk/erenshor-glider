@@ -2,6 +2,10 @@ using System;
 using ErenshorGlider.GameState;
 using ErenshorGlider.Input;
 
+#if !USE_REAL_GAME_TYPES
+using ErenshorGlider.GameStubs;
+#endif
+
 namespace ErenshorGlider.Navigation;
 
 /// <summary>
@@ -324,14 +328,43 @@ public class Navigation
 
     /// <summary>
     /// Gets the player's current rotation in degrees.
-    /// This is a stub - actual implementation would read from the game.
+    /// Reads from GameData.PlayerControl.transform.rotation.eulerAngles.y
     /// </summary>
+    /// <returns>The player's Y-axis rotation in degrees (0-360), or 0 if unavailable.</returns>
     private float GetPlayerRotation()
     {
-        // In Erenshor, this would be read from the player transform's rotation
-        // For now, return 0 as a placeholder
-        // TODO: Implement using GameData.PlayerControl.transform.rotation
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - return cached rotation or 0
+        // In stub mode, we can't read real game state
         return 0f;
+#else
+        // Real implementation - read from GameData singleton
+        try
+        {
+            if (GameData.PlayerControl == null)
+                return 0f;
+
+            if (GameData.PlayerControl.transform == null)
+                return 0f;
+
+            // Read rotation from Unity transform
+            // eulerAngles.y is the rotation around the Y axis (yaw/heading) in degrees
+            float rotation = GameData.PlayerControl.transform.rotation.eulerAngles.y;
+
+            // Normalize to 0-360 range
+            if (rotation < 0)
+                rotation += 360f;
+            if (rotation >= 360f)
+                rotation %= 360f;
+
+            return rotation;
+        }
+        catch
+        {
+            // Gracefully handle any errors (e.g., during scene transitions)
+            return 0f;
+        }
+#endif
     }
 
     #endregion
