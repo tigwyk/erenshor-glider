@@ -694,8 +694,8 @@ public class MainWindow : Form
     /// <summary>
     /// Creates the installation management tab content.
     /// </summary>
-    /// <param name="parentPanel">The parent panel to add controls to.</param>
-    private void CreateInstallationManagementTab(Panel parentPanel)
+    /// <param name="parentPanel">The parent control to add controls to.</param>
+    private void CreateInstallationManagementTab(Control parentPanel)
     {
         int y = 15;
 
