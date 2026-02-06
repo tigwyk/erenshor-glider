@@ -612,8 +612,8 @@
         "Typecheck passes"
       ],
       "priority": 41,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed as part of US-040. Entity rendering implemented with color-coded dots: HostileMob=red, NeutralMob=yellow, FriendlyNpc=green, Corpse=gray. Resource nodes rendered as diamond shapes (distinct from circular dots). Player shown as purple circle."
     },
     {
       "id": "US-042",
