@@ -4,6 +4,10 @@ using ErenshorGlider.Input;
 using ErenshorGlider.Navigation;
 using NavNavigation = ErenshorGlider.Navigation.Navigation;
 
+#if !USE_REAL_GAME_TYPES
+using ErenshorGlider.GameStubs;
+#endif
+
 namespace ErenshorGlider.Combat;
 
 /// <summary>
@@ -61,6 +65,12 @@ public class CombatController
     public float MaxChaseDistance { get; set; } = 30f;
 
     /// <summary>
+    /// Gets or sets whether to use auto-attack during combat.
+    /// When true, the bot will toggle auto-attack on when engaging hostile targets.
+    /// </summary>
+    public bool UseAutoAttack { get; set; } = true;
+
+    /// <summary>
     /// Event raised when combat starts.
     /// </summary>
     public event Action<EntityInfo>? OnCombatStarted;
@@ -109,6 +119,12 @@ public class CombatController
         _currentState = CombatState.Pulling;
         _combatStartTime = DateTime.UtcNow;
 
+        // Enable auto-attack if configured and target is hostile
+        if (UseAutoAttack && target.Hostility == TargetHostility.Hostile)
+        {
+            EnableAutoAttack();
+        }
+
         OnTargetPulled?.Invoke(target);
         return true;
     }
@@ -130,6 +146,9 @@ public class CombatController
     /// </summary>
     public void StopCombat(CombatEndReason reason = CombatEndReason.Manual)
     {
+        // Disable auto-attack when ending combat
+        DisableAutoAttack();
+
         _currentTarget = null;
         _currentState = CombatState.Idle;
         _navigation.StopMovement();
@@ -294,6 +313,61 @@ public class CombatController
         // TODO: Calculate based on abilities in rotation
         return 5f; // Default melee range
     }
+
+    #region Auto-Attack
+
+    /// <summary>
+    /// Enables auto-attack using the game's PlayerCombat API.
+    /// </summary>
+    private void EnableAutoAttack()
+    {
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - no-op when using stubs
+        return;
+#else
+        try
+        {
+            if (GameData.PlayerCombat == null)
+                return;
+
+            // Force auto-attack on for immediate effect
+            GameData.PlayerCombat.ForceAttackOn();
+        }
+        catch
+        {
+            // Gracefully handle errors during scene transitions
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Disables auto-attack using the game's PlayerCombat API.
+    /// </summary>
+    private void DisableAutoAttack()
+    {
+#if !USE_REAL_GAME_TYPES
+        // Stub implementation - no-op when using stubs
+        return;
+#else
+        try
+        {
+            if (GameData.PlayerCombat == null)
+                return;
+
+            // Check if auto-attack is currently enabled before toggling
+            if (GameData.PlayerCombat.InCombat)
+            {
+                GameData.PlayerCombat.ToggleAttack();
+            }
+        }
+        catch
+        {
+            // Gracefully handle errors during scene transitions
+        }
+#endif
+    }
+
+    #endregion
 }
 
 /// <summary>
