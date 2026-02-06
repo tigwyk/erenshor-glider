@@ -81,35 +81,12 @@ public class InstallationService : IInstallationService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<string?> BrowseForErenshorPathAsync(IWin32Window? owner = null)
+    public Task<string?> BrowseForErenshorPathAsync(IWin32Window? owner = null)
     {
         // This method must be called from the UI thread
         // It shows the folder browser dialog and validates the selection
-        return await Task.Run(() =>
-        {
-            string? selectedPath = null;
-
-            // We need to show the dialog on the UI thread
-            // For simplicity, we'll use SynchronizationContext or show without owner
-            var syncContext = System.Windows.Forms.WindowsFormsSynchronizationContext.Current;
-
-            if (syncContext != null)
-            {
-                // We're on a UI thread, show dialog directly
-                syncContext.Send(_ =>
-                {
-                    selectedPath = ShowFolderBrowserAndValidate(owner);
-                }, null);
-            }
-            else
-            {
-                // Not on a UI thread, this won't work well
-                // Return null and let the caller handle the dialog
-                return null;
-            }
-
-            return selectedPath;
-        });
+        string? selectedPath = ShowFolderBrowserAndValidate(owner);
+        return Task.FromResult(selectedPath);
     }
 
     /// <summary>
