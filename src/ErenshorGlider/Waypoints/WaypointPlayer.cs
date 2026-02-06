@@ -19,6 +19,16 @@ public class WaypointPlayer
     private bool _isReversed;
 
     /// <summary>
+    /// Tracks when we started waiting at a waypoint with a delay.
+    /// </summary>
+    private DateTime _delayStartTime;
+
+    /// <summary>
+    /// Whether we're currently waiting for a waypoint delay to complete.
+    /// </summary>
+    private bool _waitingForDelay;
+
+    /// <summary>
     /// Gets or sets whether to override the path's loop setting.
     /// If null, uses the path's Loop setting.
     /// </summary>
@@ -143,6 +153,7 @@ public class WaypointPlayer
     public void Stop()
     {
         _isPlaying = false;
+        _waitingForDelay = false;
         _navigation.StopMovement();
     }
 
@@ -184,6 +195,27 @@ public class WaypointPlayer
         if (_navigation.CheckAndAttemptUnstick())
             return;
 
+        // Skip delay if we enter combat while waiting
+        if (_waitingForDelay && IsInCombat())
+        {
+            _waitingForDelay = false;
+            AdvanceToNextWaypoint();
+            return;
+        }
+
+        // Check if we're waiting for a delay to complete
+        if (_waitingForDelay)
+        {
+            var elapsed = (DateTime.UtcNow - _delayStartTime).TotalSeconds;
+            if (elapsed >= CurrentWaypoint?.Delay)
+            {
+                // Delay completed
+                _waitingForDelay = false;
+                AdvanceToNextWaypoint();
+            }
+            return;
+        }
+
         var currentWaypoint = CurrentWaypoint;
         if (currentWaypoint == null)
         {
@@ -200,8 +232,9 @@ public class WaypointPlayer
             // Wait at waypoint if delay is specified
             if (currentWaypoint.Delay > 0)
             {
-                // TODO: Implement delay waiting
-                // For now, just advance
+                _delayStartTime = DateTime.UtcNow;
+                _waitingForDelay = true;
+                return;
             }
 
             AdvanceToNextWaypoint();
@@ -211,6 +244,15 @@ public class WaypointPlayer
             // Move toward current waypoint
             _navigation.MoveTo(currentWaypoint.Position);
         }
+    }
+
+    /// <summary>
+    /// Checks if the player is currently in combat.
+    /// </summary>
+    private bool IsInCombat()
+    {
+        var combatState = _positionTracker.CurrentCombatState;
+        return combatState.HasValue && combatState.Value.InCombat;
     }
 
     /// <summary>
