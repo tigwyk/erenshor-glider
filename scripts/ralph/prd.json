@@ -133,8 +133,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added _delayStartTime and _waitingForDelay fields. Update() sets _delayStartTime when reaching waypoint with Delay > 0, waits for Delay duration before advancing, skips delay immediately if combat detected via IsInCombat(). Stop() clears _waitingForDelay flag."
     },
     {
       "id": "US-009",

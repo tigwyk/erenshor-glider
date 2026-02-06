@@ -222,3 +222,30 @@ Feature: Replace stub implementations with real Erenshor game API integration us
 - ErenshorGlider build: PASS (0 warnings, 0 errors)
 - Typecheck: PASS
 ---
+
+## [2025-02-05] - US-008
+- Implemented waypoint delay waiting in WaypointPlayer
+- Added _delayStartTime field (DateTime) to track when delay started
+- Added _waitingForDelay flag (bool) to indicate we're in a wait state
+- Updated Update() method to handle delay waiting:
+  - Sets _delayStartTime when reaching waypoint with Delay > 0
+  - Waits for Delay duration before advancing to next waypoint
+  - Skips delay immediately if player enters combat during wait
+- Added IsInCombat() helper to check combat state from PositionTracker
+- Updated Stop() to clear _waitingForDelay flag
+- All projects build with 0 warnings, 0 errors
+
+**Files changed:**
+- src/ErenshorGlider/Waypoints/WaypointPlayer.cs - Added delay waiting logic
+
+**Learnings for future iterations:**
+- Waypoint.Delay property is checked in Update() after reaching waypoint
+- Combat state from PositionTracker.CurrentCombatState triggers delay skip
+- DateTime.UtcNow - _delayStartTime calculates elapsed time
+- Stop() should clear all state flags including _waitingForDelay
+- This allows waiting for respawns at spawn points or NPC interactions
+
+**Build verification:**
+- ErenshorGlider build: PASS (0 warnings, 0 errors)
+- Typecheck: PASS
+---
