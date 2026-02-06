@@ -56,6 +56,12 @@ public interface IInstallationService
     /// <param name="erenshorPath">The path to the Erenshor installation.</param>
     /// <returns>The installation status.</returns>
     Task<InstallationStatus> GetPluginStatusAsync(string erenshorPath);
+
+    /// <summary>
+    /// Checks for available plugin updates.
+    /// </summary>
+    /// <returns>The result of the update check.</returns>
+    Task<UpdateCheckResult> CheckForUpdatesAsync();
 }
 
 /// <summary>
@@ -154,5 +160,101 @@ public class DownloadProgress
             TotalBytes = totalBytes,
             Percentage = totalBytes > 0 ? (int)((bytesReceived * 100) / totalBytes) : -1
         };
+    }
+}
+
+/// <summary>
+/// Represents the result of an update check operation.
+/// </summary>
+public class UpdateCheckResult
+{
+    /// <summary>
+    /// Gets whether an update is available.
+    /// </summary>
+    public bool HasUpdate { get; private set; }
+
+    /// <summary>
+    /// Gets the latest version available, or null if check failed.
+    /// </summary>
+    public string? LatestVersion { get; private set; }
+
+    /// <summary>
+    /// Gets the current version.
+    /// </summary>
+    public string CurrentVersion { get; private set; } = "unknown";
+
+    /// <summary>
+    /// Gets the error message if the check failed.
+    /// </summary>
+    public string? ErrorMessage { get; private set; }
+
+    /// <summary>
+    /// Gets the release notes for the new version, if available.
+    /// </summary>
+    public string? ReleaseNotes { get; private set; }
+
+    /// <summary>
+    /// Gets the download URL for the latest release.
+    /// </summary>
+    public string? DownloadUrl { get; private set; }
+
+    /// <summary>
+    /// Creates a result indicating an update is available.
+    /// </summary>
+    /// <param name="latestVersion">The latest version.</param>
+    /// <param name="currentVersion">The current version.</param>
+    /// <param name="releaseNotes">Optional release notes.</param>
+    /// <param name="downloadUrl">Optional download URL.</param>
+    /// <returns>An update check result with HasUpdate=true.</returns>
+    public static UpdateCheckResult UpdateAvailable(string latestVersion, string currentVersion, string? releaseNotes = null, string? downloadUrl = null)
+    {
+        return new UpdateCheckResult
+        {
+            HasUpdate = true,
+            LatestVersion = latestVersion,
+            CurrentVersion = currentVersion,
+            ReleaseNotes = releaseNotes,
+            DownloadUrl = downloadUrl
+        };
+    }
+
+    /// <summary>
+    /// Creates a result indicating no update is available.
+    /// </summary>
+    /// <param name="currentVersion">The current version.</param>
+    /// <returns>An update check result with HasUpdate=false.</returns>
+    public static UpdateCheckResult NoUpdate(string currentVersion)
+    {
+        return new UpdateCheckResult
+        {
+            HasUpdate = false,
+            CurrentVersion = currentVersion,
+            LatestVersion = currentVersion
+        };
+    }
+
+    /// <summary>
+    /// Creates a failed result.
+    /// </summary>
+    /// <param name="errorMessage">The error message describing the failure.</param>
+    /// <returns>A failed update check result.</returns>
+    public static UpdateCheckResult Failed(string errorMessage)
+    {
+        return new UpdateCheckResult
+        {
+            HasUpdate = false,
+            ErrorMessage = errorMessage,
+            CurrentVersion = GetCurrentAssemblyVersion()
+        };
+    }
+
+    /// <summary>
+    /// Gets the current assembly version.
+    /// </summary>
+    private static string GetCurrentAssemblyVersion()
+    {
+        return System.Reflection.Assembly.GetExecutingAssembly()
+            .GetName()
+            .Version?.ToString() ?? "unknown";
     }
 }

@@ -22,4 +22,21 @@ Feature: Automated BepInEx installation and plugin management
   - This codebase uses `Nullable` enabled - need to annotate nullable returns properly
   - Cache directory pattern: LocalApplicationData + "ErenshorGlider/cache"
   - Service class follows IDisposable pattern for HttpClient cleanup
+
+## Fri Feb  7 11:00:00 PST 2026 - US-006
+- Implemented GitHub version checking for plugin updates
+- Added CheckForUpdatesAsync method to InstallationService that queries GitHub API
+- Created UpdateCheckResult class with HasUpdate, LatestVersion, CurrentVersion, ReleaseNotes, and DownloadUrl properties
+- Added version comparison logic using System.Version parsing
+- Handled offline mode and GitHub API rate limiting gracefully
+- Files changed:
+  - src/ErenshorGlider.GUI/Installation/IInstallationService.cs (added CheckForUpdatesAsync, UpdateCheckResult)
+  - src/ErenshorGlider.GUI/Installation/InstallationService.cs (implemented CheckForUpdatesAsync with GitHub API)
+- **Learnings for future iterations:**
+  - Use GitHub API releases/latest endpoint for version checking
+  - GitHub API returns 403 Forbidden when rate limited - handle gracefully
+  - Use System.Text.Json for JSON parsing (already in dependencies)
+  - Version.Parse() requires version format (e.g., "1.0.0"), strip 'v' prefix if present
+  - Use null-forgiving operator (!) when compiler can't recognize null check guards
+  - Static factory methods pattern (UpdateAvailable, NoUpdate, Failed) for result objects
 ---

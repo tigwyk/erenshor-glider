@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Reflection;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ErenshorGlider.GUI.Installation;
@@ -13,6 +15,8 @@ public class InstallationService : IInstallationService, IDisposable
 {
     private const string BepInExDownloadUrl = "https://github.com/BepInEx/BepInEx/releases/download/v5.4.23/BepInEx_x64_5.4.23.0.zip";
     private const string BepInExFileName = "BepInEx_x64.zip";
+    private const string GitHubReleasesUrl = "https://api.github.com/repos/erenshor-glider/erenshor-glider/releases/latest";
+    private const string GitHubRepoUrl = "https://github.com/erenshor-glider/erenshor-glider";
 
     private readonly HttpClient _httpClient;
     private bool _disposed;
@@ -352,6 +356,142 @@ public class InstallationService : IInstallationService, IDisposable
     {
         int errorCode = ex.HResult & 0xFFFF;
         return errorCode == 32 || errorCode == 33; // ERROR_SHARING_VIOLATION or ERROR_LOCK_VIOLATION
+    }
+
+    /// <inheritdoc />
+    public async Task<UpdateCheckResult> CheckForUpdatesAsync()
+    {
+        try
+        {
+            // Get current assembly version
+            string currentVersion = GetCurrentAssemblyVersion();
+
+            // Query GitHub API for latest release
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            var response = await _httpClient.GetAsync(GitHubReleasesUrl);
+
+            // Handle rate limiting
+            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                // Rate limited - return no update
+                return UpdateCheckResult.NoUpdate(currentVersion);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Network or server error - handle gracefully
+                return UpdateCheckResult.NoUpdate(currentVersion);
+            }
+
+            string json = await response.Content.ReadAsStringAsync();
+            var releaseData = JsonSerializer.Deserialize<JsonElement>(json);
+
+            // Parse tag name (e.g., "v1.0.0" -> "1.0.0")
+            string? tagName = null;
+            if (releaseData.TryGetProperty("tag_name", out var tagProp))
+            {
+                tagName = tagProp.GetString()?.TrimStart('v');
+            }
+
+            if (string.IsNullOrEmpty(tagName))
+            {
+                return UpdateCheckResult.NoUpdate(currentVersion);
+            }
+
+            // Parse release notes
+            string? releaseNotes = null;
+            if (releaseData.TryGetProperty("body", out var bodyProp))
+            {
+                releaseNotes = bodyProp.GetString();
+            }
+
+            // Get download URL for the DLL asset
+            string? downloadUrl = null;
+            if (releaseData.TryGetProperty("assets", out var assetsProp) && assetsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var asset in assetsProp.EnumerateArray())
+                {
+                    if (asset.TryGetProperty("name", out var nameProp))
+                    {
+                        string assetName = nameProp.GetString() ?? "";
+                        if (assetName.Contains("ErenshorGlider") && assetName.EndsWith(".dll"))
+                        {
+                            if (asset.TryGetProperty("browser_download_url", out var urlProp))
+                            {
+                                downloadUrl = urlProp.GetString();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Compare versions
+            if (!string.IsNullOrEmpty(tagName) && IsNewerVersion(tagName, currentVersion))
+            {
+                return UpdateCheckResult.UpdateAvailable(tagName!, currentVersion, releaseNotes, downloadUrl);
+            }
+
+            return UpdateCheckResult.NoUpdate(currentVersion);
+        }
+        catch (HttpRequestException)
+        {
+            // Offline mode - handle gracefully
+            return UpdateCheckResult.NoUpdate(GetCurrentAssemblyVersion());
+        }
+        catch (TaskCanceledException)
+        {
+            // Timeout - handle gracefully
+            return UpdateCheckResult.NoUpdate(GetCurrentAssemblyVersion());
+        }
+        catch (JsonException)
+        {
+            // JSON parsing error - handle gracefully
+            return UpdateCheckResult.NoUpdate(GetCurrentAssemblyVersion());
+        }
+        catch (Exception)
+        {
+            // Unexpected error - handle gracefully
+            return UpdateCheckResult.Failed("Unable to check for updates.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the current assembly version.
+    /// </summary>
+    private static string GetCurrentAssemblyVersion()
+    {
+        return Assembly.GetExecutingAssembly()
+            .GetName()
+            .Version?.ToString() ?? "unknown";
+    }
+
+    /// <summary>
+    /// Compares two version strings to determine if the first is newer.
+    /// </summary>
+    /// <param name="latestVersion">The latest version string.</param>
+    /// <param name="currentVersion">The current version string.</param>
+    /// <returns>True if latestVersion is newer than currentVersion.</returns>
+    private static bool IsNewerVersion(string? latestVersion, string currentVersion)
+    {
+        if (string.IsNullOrEmpty(latestVersion) || string.IsNullOrEmpty(currentVersion))
+        {
+            return false;
+        }
+
+        try
+        {
+            string latestStr = latestVersion!.TrimStart('v');
+            string currentStr = currentVersion.TrimStart('v');
+            var latest = Version.Parse(latestStr);
+            var current = Version.Parse(currentStr);
+            return latest > current;
+        }
+        catch
+        {
+            // If version parsing fails, do string comparison
+            return string.Compare(latestVersion ?? "", currentVersion, StringComparison.OrdinalIgnoreCase) > 0;
+        }
     }
 
     /// <summary>
