@@ -86,11 +86,8 @@ internal static class Program
         // Run setup wizard
         using (var wizard = new SetupWizard(installationService))
         {
-            if (wizard.ShowDialog() != DialogResult.OK)
-            {
-                // User cancelled the wizard - exit application
-                return;
-            }
+            // Show the setup wizard and continue after it closes, regardless of DialogResult
+            wizard.ShowDialog();
         }
 
         // Show main window after wizard completes
