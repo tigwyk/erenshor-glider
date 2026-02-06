@@ -20,10 +20,15 @@ public class InstallationStatusPanel : Panel
     private readonly Button _refreshButton;
     private readonly IInstallationService _installationService;
     private readonly Timer _updateTimer;
+    private readonly Panel _updateNotificationPanel;
+    private readonly Label _updateNotificationLabel;
+    private readonly Button _updateNowButton;
+    private readonly LinkLabel _viewReleaseNotesLink;
     private InstallationStatus _bepInExStatus;
     private InstallationStatus _pluginStatus;
     private string? _bepInExVersion;
     private string? _pluginVersion;
+    private UpdateCheckResult? _lastUpdateCheckResult;
 
     /// <summary>
     /// Creates a new InstallationStatusPanel.
@@ -37,6 +42,12 @@ public class InstallationStatusPanel : Panel
         BorderStyle = BorderStyle.FixedSingle;
         Padding = new Padding(10);
         MinimumSize = new Size(300, 140);
+
+        // Create update notification panel
+        _updateNotificationPanel = CreateUpdateNotificationPanel();
+        _updateNotificationLabel = CreateUpdateNotificationLabel();
+        _updateNowButton = CreateUpdateNowButton();
+        _viewReleaseNotesLink = CreateViewReleaseNotesLink();
 
         // Create controls
         _bepInExIconLabel = CreateIconLabel("✗");
@@ -67,7 +78,71 @@ public class InstallationStatusPanel : Panel
         // Initial status check (fire and forget from constructor)
 #pragma warning disable CS4014
         _ = RefreshStatusAsync();
+        _ = CheckForUpdatesAsync();
 #pragma warning restore CS4014
+    }
+
+    /// <summary>
+    /// Creates the update notification panel.
+    /// </summary>
+    private Panel CreateUpdateNotificationPanel()
+    {
+        return new Panel
+        {
+            BackColor = Color.FromArgb(60, 50, 40),
+            Visible = false,
+            Height = 50,
+            Dock = DockStyle.Top
+        };
+    }
+
+    /// <summary>
+    /// Creates the update notification label.
+    /// </summary>
+    private Label CreateUpdateNotificationLabel()
+    {
+        return new Label
+        {
+            Text = "🎉 Update Available!",
+            ForeColor = Color.FromArgb(255, 220, 100),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            AutoSize = true,
+            Location = new Point(10, 8)
+        };
+    }
+
+    /// <summary>
+    /// Creates the Update Now button.
+    /// </summary>
+    private Button CreateUpdateNowButton()
+    {
+        return new Button
+        {
+            Text = "Update Now",
+            BackColor = Color.FromArgb(100, 180, 100),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8F),
+            Size = new Size(80, 24),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand
+        };
+    }
+
+    /// <summary>
+    /// Creates the View Release Notes link.
+    /// </summary>
+    private LinkLabel CreateViewReleaseNotesLink()
+    {
+        return new LinkLabel
+        {
+            Text = "View release notes",
+            ForeColor = Color.FromArgb(150, 200, 255),
+            Font = new Font("Segoe UI", 8F),
+            AutoSize = true,
+            LinkColor = Color.FromArgb(150, 200, 255),
+            VisitedLinkColor = Color.FromArgb(150, 200, 255)
+        };
     }
 
     /// <summary>
@@ -150,6 +225,12 @@ public class InstallationStatusPanel : Panel
     /// </summary>
     private void LayoutControls()
     {
+        // Add update notification panel first (docked to top)
+        _updateNotificationPanel.Controls.Add(_updateNotificationLabel);
+        _updateNotificationPanel.Controls.Add(_updateNowButton);
+        _updateNotificationPanel.Controls.Add(_viewReleaseNotesLink);
+        Controls.Add(_updateNotificationPanel);
+
         int rowHeight = 22;
         int y = 10;
 
@@ -187,6 +268,19 @@ public class InstallationStatusPanel : Panel
         _refreshButton.Location = new Point(Width - 80, 10);
 
         Controls.Add(_refreshButton);
+
+        // Position update notification controls
+        LayoutUpdateNotification();
+    }
+
+    /// <summary>
+    /// Layouts the update notification controls.
+    /// </summary>
+    private void LayoutUpdateNotification()
+    {
+        _updateNotificationLabel.Location = new Point(10, 8);
+        _updateNowButton.Location = new Point(_updateNotificationPanel.Width - 90, 13);
+        _viewReleaseNotesLink.Location = new Point(10, 28);
     }
 
     /// <summary>
@@ -207,6 +301,21 @@ public class InstallationStatusPanel : Panel
             _refreshButton.BackColor = Color.FromArgb(70, 130, 180);
         };
 
+        // Update Now button
+        _updateNowButton.Click += async (s, e) => await HandleUpdateNowClick();
+        _updateNowButton.MouseEnter += (s, e) =>
+        {
+            if (_updateNowButton.Enabled)
+                _updateNowButton.BackColor = Color.FromArgb(120, 200, 120);
+        };
+        _updateNowButton.MouseLeave += (s, e) =>
+        {
+            _updateNowButton.BackColor = Color.FromArgb(100, 180, 100);
+        };
+
+        // View Release Notes link
+        _viewReleaseNotesLink.LinkClicked += (s, e) => ShowReleaseNotesDialog();
+
         // Handle resize to reposition controls
         Resize += (s, e) =>
         {
@@ -214,6 +323,7 @@ public class InstallationStatusPanel : Panel
             _pluginVersionLabel.Width = Width - 150;
             _erenshorPathLabel.Width = Width - 90;
             _refreshButton.Location = new Point(Width - 80, 10);
+            LayoutUpdateNotification();
         };
     }
 
@@ -400,6 +510,268 @@ public class InstallationStatusPanel : Panel
         }
 
         return "..." + path.Substring(path.Length - maxLength);
+    }
+
+    /// <summary>
+    /// Checks for available plugin updates asynchronously.
+    /// </summary>
+    public async System.Threading.Tasks.Task CheckForUpdatesAsync()
+    {
+        if (!IsHandleCreated || IsDisposed)
+            return;
+
+        try
+        {
+            var updateResult = await _installationService.CheckForUpdatesAsync();
+            _lastUpdateCheckResult = updateResult;
+
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => UpdateUpdateNotification(updateResult)));
+            }
+            else
+            {
+                UpdateUpdateNotification(updateResult);
+            }
+        }
+        catch
+        {
+            // Ignore errors during update check
+        }
+    }
+
+    /// <summary>
+    /// Updates the update notification panel based on check result.
+    /// </summary>
+    /// <param name="updateResult">The update check result.</param>
+    private void UpdateUpdateNotification(UpdateCheckResult updateResult)
+    {
+        if (updateResult.HasUpdate && !string.IsNullOrEmpty(updateResult.LatestVersion))
+        {
+            _updateNotificationPanel.Visible = true;
+            _updateNotificationLabel.Text = $"🎉 Update Available! (v{updateResult.LatestVersion})";
+            _updateNowButton.Enabled = true;
+            _viewReleaseNotesLink.Visible = !string.IsNullOrEmpty(updateResult.ReleaseNotes);
+
+            // Adjust panel height
+            MinimumSize = new Size(300, 190);
+        }
+        else
+        {
+            _updateNotificationPanel.Visible = false;
+            MinimumSize = new Size(300, 140);
+        }
+    }
+
+    /// <summary>
+    /// Handles the Update Now button click.
+    /// </summary>
+    private async System.Threading.Tasks.Task HandleUpdateNowClick()
+    {
+        var erenshorPath = _installationService.Config?.ErenshorPath;
+        if (string.IsNullOrEmpty(erenshorPath))
+        {
+            MessageBox.Show(
+                "Erenshor installation path is not configured. Please run the setup wizard first.",
+                "Path Not Configured",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        // Check if game is running
+        if (_installationService.IsGameRunning())
+        {
+            MessageBox.Show(
+                "Cannot update plugin while Erenshor is running. Please close the game first.",
+                "Game Running",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            // Disable button during update
+            _updateNowButton.Enabled = false;
+            _updateNotificationLabel.Text = "Updating...";
+
+            // Create progress dialog
+            var progressDialog = CreateProgressDialog();
+            progressDialog.Show(this);
+
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        progressDialog.Text = $"Updating... {p.Percentage}%";
+                    }));
+                }
+                else
+                {
+                    progressDialog.Text = $"Updating... {p.Percentage}%";
+                }
+            });
+
+            var result = await _installationService.UpdatePluginAsync(erenshorPath!, progress);
+
+            progressDialog.Close();
+
+            if (result.Success)
+            {
+                MessageBox.Show(
+                    $"Plugin updated successfully!\n\n{result.Details ?? "The plugin has been updated to the latest version."}",
+                    "Update Complete",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                // Refresh status
+                _ = RefreshStatusAsync();
+                _ = CheckForUpdatesAsync();
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"Failed to update plugin:\n{result.ErrorMessage}",
+                    "Update Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                // Re-enable button on failure
+                _updateNowButton.Enabled = true;
+                if (_lastUpdateCheckResult != null)
+                {
+                    UpdateUpdateNotification(_lastUpdateCheckResult);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred during update:\n{ex.Message}",
+                "Update Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+
+            // Re-enable button on error
+            _updateNowButton.Enabled = true;
+            if (_lastUpdateCheckResult != null)
+            {
+                UpdateUpdateNotification(_lastUpdateCheckResult);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shows the release notes dialog.
+    /// </summary>
+    private void ShowReleaseNotesDialog()
+    {
+        if (_lastUpdateCheckResult == null || string.IsNullOrEmpty(_lastUpdateCheckResult.ReleaseNotes))
+            return;
+
+        var form = new Form
+        {
+            Text = $"Release Notes - Version {_lastUpdateCheckResult.LatestVersion}",
+            Size = new Size(600, 450),
+            MinimumSize = new Size(500, 300),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.Sizable,
+            BackColor = Color.FromArgb(30, 30, 30),
+            ForeColor = Color.White,
+            ShowInTaskbar = false
+        };
+
+        var titleLabel = new Label
+        {
+            Text = $"Erenshor Glider v{_lastUpdateCheckResult.LatestVersion}",
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Dock = DockStyle.Top,
+            Padding = new Padding(15, 10, 15, 5),
+            BackColor = Color.FromArgb(45, 45, 48)
+        };
+
+        var notesTextBox = new TextBox
+        {
+            Text = _lastUpdateCheckResult.ReleaseNotes,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(40, 40, 43),
+            ForeColor = Color.FromArgb(220, 220, 220),
+            Font = new Font("Segoe UI", 9F),
+            BorderStyle = BorderStyle.None,
+            Padding = new Padding(15)
+        };
+
+        var closeButton = new Button
+        {
+            Text = "Close",
+            BackColor = Color.FromArgb(70, 130, 180),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            Size = new Size(80, 30),
+            UseVisualStyleBackColor = false,
+            Cursor = Cursors.Hand,
+            Dock = DockStyle.Bottom
+        };
+
+        closeButton.MouseEnter += (s, e) => closeButton.BackColor = Color.FromArgb(90, 150, 200);
+        closeButton.MouseLeave += (s, e) => closeButton.BackColor = Color.FromArgb(70, 130, 180);
+        closeButton.Click += (s, e) => form.Close();
+
+        form.Controls.Add(notesTextBox);
+        form.Controls.Add(closeButton);
+        form.Controls.Add(titleLabel);
+
+        form.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Creates a progress dialog for the update operation.
+    /// </summary>
+    /// <returns>A progress dialog form.</returns>
+    private Form CreateProgressDialog()
+    {
+        var form = new Form
+        {
+            Text = "Updating Plugin",
+            Size = new Size(350, 120),
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            ShowInTaskbar = false,
+            BackColor = Color.FromArgb(30, 30, 30),
+            ForeColor = Color.White
+        };
+
+        var label = new Label
+        {
+            Text = "Downloading and installing update...",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 10F),
+            Padding = new Padding(10)
+        };
+
+        var progressBar = new ProgressBar
+        {
+            Dock = DockStyle.Bottom,
+            Height = 8,
+            Style = ProgressBarStyle.Continuous
+        };
+
+        form.Controls.Add(label);
+        form.Controls.Add(progressBar);
+
+        return form;
     }
 
     /// <summary>

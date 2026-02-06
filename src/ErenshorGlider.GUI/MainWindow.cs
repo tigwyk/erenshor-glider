@@ -394,6 +394,48 @@ public class MainWindow : Form
                 }
                 UpdateGameRunningButtons(false);
             };
+
+            // Check for updates on startup (fire and forget, doesn't block UI)
+#pragma warning disable CS4014
+            _ = CheckForUpdatesOnStartupAsync();
+#pragma warning restore CS4014
+        }
+    }
+
+    /// <summary>
+    /// Checks for updates on startup and shows balloon notification if available.
+    /// </summary>
+    private async System.Threading.Tasks.Task CheckForUpdatesOnStartupAsync()
+    {
+        try
+        {
+            var updateResult = await _installationService!.CheckForUpdatesAsync();
+
+            if (updateResult.HasUpdate && !string.IsNullOrEmpty(updateResult.LatestVersion))
+            {
+                // Show balloon notification for update
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        ShowBalloonTip(
+                            $"Update Available (v{updateResult.LatestVersion})",
+                            $"A new version of Erenshor Glider is available.\nCurrent: {updateResult.CurrentVersion} → Latest: {updateResult.LatestVersion}",
+                            ToolTipIcon.Info);
+                    }));
+                }
+                else
+                {
+                    ShowBalloonTip(
+                        $"Update Available (v{updateResult.LatestVersion})",
+                        $"A new version of Erenshor Glider is available.\nCurrent: {updateResult.CurrentVersion} → Latest: {updateResult.LatestVersion}",
+                        ToolTipIcon.Info);
+                }
+            }
+        }
+        catch
+        {
+            // Ignore update check errors on startup
         }
     }
 
